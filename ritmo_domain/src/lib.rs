@@ -19,14 +19,21 @@ pub struct Alias {
 pub struct Place {
     pub id: i64,
     pub name: String,
-    pub place_type: String,
+    pub place_type_id: i64,
     pub person_id: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaceType {
+    pub id: i64,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Language {
     pub id: i64,
-    pub iso_code: String,
+    pub iso_639_2: Option<String>,
+    pub iso_639_3: Option<String>,
     pub name: String,
 }
 
