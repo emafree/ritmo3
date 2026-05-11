@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"ritmo_errors",
+	"ritmo_domain",
 	]
 resolver = "2"
 
@@ -18,4 +19,3 @@ sqlx = { version = "0.8" , default-features = false, features = ["runtime-tokio"
 tokio = { version = "1", features = ["full"] }
 rust-i18n = "3"
 anyhow = "1"
-
