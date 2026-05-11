@@ -8,11 +8,7 @@ Ritmo è software libero, distribuito sotto licenza MIT. È scritto in Rust. È 
 
 ### Documentazione
 
-La documentazione di progetto si trova nella cartella `/doc`:
-
--   `/doc/ARCHITECTURE.md` — struttura dei crate e regole architetturali
--   `/doc/DOMAIN.md` — modello del dominio e entità principali
--   `/doc/ROADMAP.md` — stato del progetto e sviluppi previsti
+La documentazione di progetto si trova nella cartella `/doc`.
 
 ### Stato del progetto
 
