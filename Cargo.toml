@@ -1,0 +1,21 @@
+[workspace]
+members = [
+	"ritmo_errors",
+	]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.91"
+authors = ["laverdure <pierrot.bru@gmail.com>"]
+repository = "https://github.com/emafree/ritmo3"
+
+[workspace.dependencies]
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+sqlx = { version = "0.8" , default-features = false, features = ["runtime-tokio", "sqlite", "macros"] }
+tokio = { version = "1", features = ["full"] }
+rust-i18n = "3"
+anyhow = "1"
+
