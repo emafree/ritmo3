@@ -601,6 +601,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ritmo_domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "ritmo_errors"
 version = "0.1.0"
 dependencies = [
