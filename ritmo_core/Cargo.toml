@@ -1,0 +1,13 @@
+[package]
+name = "ritmo_core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+ritmo_domain = { path = "../ritmo_domain" }
+ritmo_repository = { path = "../ritmo_repository" }
+ritmo_errors = { path = "../ritmo_errors" }
