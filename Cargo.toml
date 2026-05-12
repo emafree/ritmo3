@@ -3,6 +3,7 @@ members = [
 	"ritmo_errors",
 	"ritmo_domain",
 	"ritmo_db",
+	"ritmo_repository",
 	]
 resolver = "2"
 
