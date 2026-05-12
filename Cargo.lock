@@ -636,6 +636,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ritmo_core"
+version = "0.1.0"
+dependencies = [
+ "ritmo_domain",
+ "ritmo_errors",
+ "ritmo_repository",
+ "tokio",
+]
+
+[[package]]
 name = "ritmo_db"
 version = "0.1.0"
 dependencies = [
