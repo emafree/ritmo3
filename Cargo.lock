@@ -662,6 +662,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ritmo_repository"
+version = "0.1.0"
+dependencies = [
+ "ritmo_db",
+ "ritmo_domain",
+ "ritmo_errors",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "rustls"
 version = "0.23.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
