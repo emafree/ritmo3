@@ -1,0 +1,12 @@
+[package]
+name = "ritmo_presenter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+rust-i18n.workspace = true
+ritmo_domain = { path = "../ritmo_domain" }
+ritmo_errors = { path = "../ritmo_errors" }

@@ -5,6 +5,7 @@ members = [
 	"ritmo_db",
 	"ritmo_repository",
 	"ritmo_core",
+	"ritmo_presenter",
 	]
 resolver = "2"
 
