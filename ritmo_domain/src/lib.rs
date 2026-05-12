@@ -76,11 +76,16 @@ pub struct Series {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Person {
     pub id: i64,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
+    pub name: String,
+    pub display_name: Option<String>,
+    pub given_name: Option<String>,
+    pub surname: Option<String>,
+    pub middle_names: Option<String>,
+    pub title: Option<String>,
+    pub suffix: Option<String>,
     pub birth_date: Option<PartialDate>,
     pub death_date: Option<PartialDate>,
-    pub notes: Option<String>,
+    pub biography: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
