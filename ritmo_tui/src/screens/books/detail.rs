@@ -49,15 +49,7 @@ pub struct BookDetailScreen {
 
 impl BookDetailScreen {
     pub fn new(item: BookDetail) -> Self {
-        let editable_values = vec![
-            item.book.title.clone(),
-            item.book.isbn.clone().unwrap_or_default(),
-            format_partial_date(item.book.publication_year.as_ref()),
-            String::new(),
-            String::new(),
-            String::new(),
-            item.book.notes.clone().unwrap_or_default(),
-        ];
+        let editable_values = editable_values_from_item(&item);
         let initial_values = editable_values.clone();
 
         Self {
@@ -228,7 +220,7 @@ impl BookDetailScreen {
             .join("\n");
 
         let tags = self.item.tags.join("\n");
-        let languages = String::new();
+        let languages = self.read_only_languages().join("\n");
 
         self.render_read_only_block(
             frame,
@@ -252,6 +244,12 @@ impl BookDetailScreen {
             Paragraph::new(display).block(Block::default().title(title).borders(Borders::ALL));
         frame.render_widget(paragraph, area);
     }
+
+    fn read_only_languages(&self) -> Vec<String> {
+        // `BookDetail` currently does not expose languages directly.
+        // Until presenter support is added, this section is intentionally empty/read-only.
+        Vec::new()
+    }
 }
 
 fn changed_value(
@@ -266,6 +264,18 @@ fn changed_value(
     }
 }
 
+fn editable_values_from_item(item: &BookDetail) -> Vec<String> {
+    vec![
+        item.book.title.clone(),
+        item.book.isbn.clone().unwrap_or_default(),
+        format_partial_date(item.book.publication_year.as_ref()),
+        String::new(), // format placeholder: not available in `BookDetail` yet.
+        String::new(), // series placeholder: not available in `BookDetail` yet.
+        String::new(), // publisher placeholder: not available in `BookDetail` yet.
+        item.book.notes.clone().unwrap_or_default(),
+    ]
+}
+
 fn format_partial_date(date: Option<&PartialDate>) -> String {
     let Some(date) = date else {
         return String::new();
@@ -275,6 +285,7 @@ fn format_partial_date(date: Option<&PartialDate>) -> String {
         (Some(year), Some(month), Some(day)) => format!("{year:04}-{month:02}-{day:02}"),
         (Some(year), Some(month), None) => format!("{year:04}-{month:02}"),
         (Some(year), None, None) => format!("{year:04}"),
+        // Be permissive for partially populated legacy values and keep formatting stable.
         (None, Some(month), Some(day)) => format!("--{month:02}-{day:02}"),
         (None, Some(month), None) => format!("--{month:02}"),
         (None, None, Some(day)) => format!("---{day:02}"),
