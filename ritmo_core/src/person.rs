@@ -3,7 +3,7 @@ use ritmo_domain::{Alias, Person, Place};
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
     AliasRepository, PersonRepository, PlaceRepository, XBooksPeopleRolesRepository,
-    XContentsPeopleRolesRepository, XPersonLanguagesRepository,
+    XContentsPeopleRolesRepository, XPersonLanguagesRepository, XPersonPlacesRepository,
 };
 
 pub async fn create(ctx: &CoreContext, item: &Person) -> RitmoResult<i64> {
@@ -29,8 +29,10 @@ pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
     }
 
     let place_repo = PlaceRepository::new(&ctx.ctx);
-    for place in place_repo.list_by_person(id).await? {
-        place_repo.delete(place.id).await?;
+    let person_places_repo = XPersonPlacesRepository::new(&ctx.ctx);
+    for (place_id, place_type_id) in person_places_repo.list_by_person(id).await? {
+        person_places_repo.delete(id, place_id, place_type_id).await?;
+        place_repo.delete(place_id).await?;
     }
 
     let books_roles_repo = XBooksPeopleRolesRepository::new(&ctx.ctx);
@@ -68,8 +70,23 @@ pub async fn remove_alias(ctx: &CoreContext, alias_id: i64) -> RitmoResult<()> {
 }
 
 pub async fn add_place(ctx: &CoreContext, place: &Place) -> RitmoResult<i64> {
-    if place.name.trim().is_empty() {
-        return Err(RitmoErr::InvalidInput("name cannot be empty".to_string()));
+    let has_value = place
+        .continent
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty())
+        || place
+            .country
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+        || place
+            .city
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty());
+
+    if !has_value {
+        return Err(RitmoErr::InvalidInput(
+            "place must define continent, country, or city".to_string(),
+        ));
     }
     let repo = PlaceRepository::new(&ctx.ctx);
     repo.save(place).await
