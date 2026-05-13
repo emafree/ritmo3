@@ -147,29 +147,43 @@ CREATE TABLE IF NOT EXISTS "people" (
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
-CREATE TABLE person_place_types (
-    "id"         INTEGER PRIMARY KEY AUTOINCREMENT,
-    "key"        TEXT NOT NULL UNIQUE,
-    "created_at" INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    "updated_at" INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+CREATE TABLE s_place_types (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    key         TEXT NOT NULL UNIQUE,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
-CREATE TABLE person_place_type_translations (
-    place_type_id INTEGER NOT NULL REFERENCES person_place_types(id),
-    language_code TEXT NOT NULL,
-    label         TEXT NOT NULL,
+CREATE TABLE s_place_type_translations (
+    place_type_id   INTEGER NOT NULL REFERENCES s_place_types(id),
+    language_code   TEXT NOT NULL,
+    label           TEXT NOT NULL,
     PRIMARY KEY (place_type_id, language_code)
 );
 
-CREATE TABLE person_places (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    person_id       INTEGER NOT NULL REFERENCES people(id),
-    place_type_id   INTEGER NOT NULL REFERENCES person_place_types(id),
-    place_name      TEXT NOT NULL,
-    region          TEXT,
-    country         TEXT,
-    country_historical TEXT,
-    notes           TEXT
+CREATE TABLE d_places (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    continent   TEXT,
+    country     TEXT,
+    city        TEXT,
+    circa       INTEGER NOT NULL DEFAULT 0,
+    disputed    INTEGER NOT NULL DEFAULT 0,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE x_person_places (
+    person_id       INTEGER NOT NULL REFERENCES d_people(id),
+    place_id        INTEGER NOT NULL REFERENCES d_places(id),
+    place_type_id   INTEGER NOT NULL REFERENCES s_place_types(id),
+    PRIMARY KEY (person_id, place_id, place_type_id)
+);
+
+CREATE TABLE x_publisher_places (
+    publisher_id    INTEGER NOT NULL REFERENCES d_publishers(id),
+    place_id        INTEGER NOT NULL REFERENCES d_places(id),
+    place_type_id   INTEGER NOT NULL REFERENCES s_place_types(id),
+    PRIMARY KEY (publisher_id, place_id, place_type_id)
 );
 
 CREATE TABLE IF NOT EXISTS person_language_roles (

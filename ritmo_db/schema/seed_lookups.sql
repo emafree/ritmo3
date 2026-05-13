@@ -348,14 +348,14 @@ INSERT INTO person_language_role_translations (role_id, language_code, label) VA
     ((SELECT id FROM person_language_roles WHERE code = 'other'), 'fr', 'Autre'),
     ((SELECT id FROM person_language_roles WHERE code = 'other'), 'de', 'Andere');
 
-INSERT INTO person_place_types (key, created_at, updated_at) VALUES
+INSERT INTO s_place_types (key, created_at, updated_at) VALUES
     ('birth',    strftime('%s', 'now'), strftime('%s', 'now')),
     ('death',    strftime('%s', 'now'), strftime('%s', 'now')),
     ('activity', strftime('%s', 'now'), strftime('%s', 'now')),
     ('residence',strftime('%s', 'now'), strftime('%s', 'now')),
     ('other',    strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO person_place_type_translations (place_type_id, language_code, label) VALUES
+INSERT INTO s_place_type_translations (place_type_id, language_code, label) VALUES
     ((SELECT id FROM person_place_types WHERE key = 'birth'), 'it', 'Luogo di nascita'),
     ((SELECT id FROM person_place_types WHERE key = 'birth'), 'en', 'Place of birth'),
     ((SELECT id FROM person_place_types WHERE key = 'birth'), 'fr', 'Lieu de naissance'),
@@ -386,11 +386,11 @@ INSERT INTO languages (iso_code_2char, iso_code_3char, official_name, native_nam
     ('fr', 'fra', 'French',       'français',          strftime('%s', 'now'), strftime('%s', 'now')),
     ('es', 'spa', 'Spanish',      'español',           strftime('%s', 'now'), strftime('%s', 'now')),
     ('de', 'deu', 'German',       'Deutsch',           strftime('%s', 'now'), strftime('%s', 'now')),
-    ('zh', 'zho', 'Chinese',      '中文',              strftime('%s', 'now'), strftime('%s', 'now')),
-    ('ja', 'jpn', 'Japanese',     '日本語',            strftime('%s', 'now'), strftime('%s', 'now')),
-    ('ko', 'kor', 'Korean',       '한국어',            strftime('%s', 'now'), strftime('%s', 'now')),
+    ('zh', 'zho', 'Chinese',      '中文',               strftime('%s', 'now'), strftime('%s', 'now')),
+    ('ja', 'jpn', 'Japanese',     '日本語',             strftime('%s', 'now'), strftime('%s', 'now')),
+    ('ko', 'kor', 'Korean',       '한국어',     strftime('%s', 'now'), strftime('%s', 'now')),
     ('la', 'lat', 'Latin',        'lingua latina',     strftime('%s', 'now'), strftime('%s', 'now')),
-    (NULL, 'grc', 'Ancient Greek','ἀρχαία ἑλληνική',  strftime('%s', 'now'), strftime('%s', 'now'));
+    (NULL, 'grc', 'Ancient Greek','ἀρχαία ἑλληνική',   strftime('%s', 'now'), strftime('%s', 'now'));
 
 -- ============================================================
 -- 12. content_language_roles
