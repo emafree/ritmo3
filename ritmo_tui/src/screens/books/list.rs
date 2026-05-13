@@ -43,7 +43,7 @@ impl BookListScreen {
     pub fn handle_key(&mut self, key: KeyEvent, statusbar: &mut StatusBar) {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => self.table.previous(),
-            KeyCode::Down | KeyCode::Char('j') => self.table.next(self.table.rows.len()),
+            KeyCode::Down | KeyCode::Char('j') => self.table.next(self.items.len()),
             _ => return,
         }
 
@@ -124,7 +124,7 @@ mod tests {
         let mut screen = BookListScreen::new(vec![item(10, "A"), item(20, "B")]);
 
         assert_eq!(screen.selected_id(), Some(10));
-        screen.table.next(10);
+        screen.table.next(screen.items.len());
         assert_eq!(screen.selected_id(), Some(20));
     }
 
