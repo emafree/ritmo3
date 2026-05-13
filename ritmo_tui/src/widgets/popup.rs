@@ -5,6 +5,9 @@ use ratatui::{
 };
 
 const POPUP_HINT: &str = "Enter: confirm / Esc: cancel";
+const POPUP_HORIZONTAL_PADDING: u16 = 4;
+const POPUP_HINT_LINES: u16 = 1;
+const POPUP_BORDER_HEIGHT: u16 = 2;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PopupWidget {
@@ -45,13 +48,14 @@ impl PopupWidget {
 }
 
 fn centered_popup_area(area: Rect, message: &str) -> Rect {
-    let desired_width = (max_line_width(message).max(POPUP_HINT.chars().count()) as u16).saturating_add(4);
+    let desired_width = (max_line_width(message).max(POPUP_HINT.chars().count()) as u16)
+        .saturating_add(POPUP_HORIZONTAL_PADDING);
     let width = desired_width.min(max_popup_width(area)).max(3);
     let inner_width = width.saturating_sub(2).max(1);
 
     let desired_height = wrapped_line_count(message, inner_width)
-        .saturating_add(1)
-        .saturating_add(2);
+        .saturating_add(POPUP_HINT_LINES)
+        .saturating_add(POPUP_BORDER_HEIGHT);
     let height = desired_height.min(max_popup_height(area)).max(3);
 
     Rect::new(
