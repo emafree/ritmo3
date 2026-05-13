@@ -26,6 +26,28 @@ pub enum DetailMode {
     Edit,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RelatedSection {
+    LinkedContents,
+    PeopleWithRoles,
+    Tags,
+    Languages,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BookDetailRelatedAction {
+    AddLinkedContent,
+    RemoveLinkedContent { content_id: i64 },
+    OpenLinkedContent { content_id: i64 },
+    AddPersonWithRole,
+    RemovePersonWithRole { person_id: i64 },
+    OpenPersonWithRole { person_id: i64 },
+    AddTag,
+    RemoveTag { tag: String },
+    AddLanguage,
+    RemoveLanguage { language: String },
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BookDetailPendingChanges {
     pub title: Option<String>,
@@ -45,6 +67,13 @@ pub struct BookDetailScreen {
     pub input: InputWidget,
     editable_values: Vec<String>,
     initial_values: Vec<String>,
+    in_related_sections: bool,
+    related_section: RelatedSection,
+    selected_linked_content: usize,
+    selected_person_with_role: usize,
+    selected_tag: usize,
+    selected_language: usize,
+    pending_related_action: Option<BookDetailRelatedAction>,
 }
 
 impl BookDetailScreen {
@@ -59,15 +88,26 @@ impl BookDetailScreen {
             input: InputWidget::new(),
             editable_values,
             initial_values,
+            in_related_sections: false,
+            related_section: RelatedSection::LinkedContents,
+            selected_linked_content: 0,
+            selected_person_with_role: 0,
+            selected_tag: 0,
+            selected_language: 0,
+            pending_related_action: None,
         }
     }
 
     pub fn handle_key(&mut self, key: KeyEvent, statusbar: &mut StatusBar) {
         match self.mode {
             DetailMode::View => match key.code {
-                KeyCode::Up => self.previous_field(),
-                KeyCode::Down => self.next_field(),
-                KeyCode::Enter => self.start_editing(),
+                KeyCode::Up => self.previous_section(),
+                KeyCode::Down => self.next_section(),
+                KeyCode::Char('k') => self.previous_related_item(),
+                KeyCode::Char('j') => self.next_related_item(),
+                KeyCode::Enter => self.handle_enter_on_section(),
+                KeyCode::Char('n') => self.handle_add_related_item(),
+                KeyCode::Char('d') | KeyCode::Delete => self.handle_remove_related_item(),
                 _ => {}
             },
             DetailMode::Edit => match key.code {
@@ -93,6 +133,10 @@ impl BookDetailScreen {
         }
 
         self.update_statusbar(statusbar);
+    }
+
+    pub fn take_related_action(&mut self) -> Option<BookDetailRelatedAction> {
+        self.pending_related_action.take()
     }
 
     pub fn pending_changes(&self) -> Option<BookDetailPendingChanges> {
@@ -133,6 +177,40 @@ impl BookDetailScreen {
         self.selected_field = (self.selected_field + 1).min(FIELD_LABELS.len() - 1);
     }
 
+    fn previous_section(&mut self) {
+        if self.in_related_sections {
+            match self.related_section {
+                RelatedSection::LinkedContents => self.in_related_sections = false,
+                RelatedSection::PeopleWithRoles => self.related_section = RelatedSection::LinkedContents,
+                RelatedSection::Tags => self.related_section = RelatedSection::PeopleWithRoles,
+                RelatedSection::Languages => self.related_section = RelatedSection::Tags,
+            }
+            return;
+        }
+
+        self.previous_field();
+    }
+
+    fn next_section(&mut self) {
+        if !self.in_related_sections {
+            if self.selected_field + 1 < FIELD_LABELS.len() {
+                self.next_field();
+                return;
+            }
+
+            self.in_related_sections = true;
+            self.related_section = RelatedSection::LinkedContents;
+            return;
+        }
+
+        self.related_section = match self.related_section {
+            RelatedSection::LinkedContents => RelatedSection::PeopleWithRoles,
+            RelatedSection::PeopleWithRoles => RelatedSection::Tags,
+            RelatedSection::Tags => RelatedSection::Languages,
+            RelatedSection::Languages => RelatedSection::Languages,
+        };
+    }
+
     fn start_editing(&mut self) {
         self.mode = DetailMode::Edit;
         self.input.value = self.editable_values[self.selected_field].clone();
@@ -145,18 +223,168 @@ impl BookDetailScreen {
         self.editable_values[self.selected_field] = self.input.accept();
     }
 
+    fn handle_enter_on_section(&mut self) {
+        if !self.in_related_sections {
+            self.start_editing();
+            return;
+        }
+
+        self.pending_related_action = match self.related_section {
+            RelatedSection::LinkedContents => self.selected_linked_content_id().map(
+                |content_id| BookDetailRelatedAction::OpenLinkedContent { content_id },
+            ),
+            RelatedSection::PeopleWithRoles => self
+                .selected_person_with_role_id()
+                .map(|person_id| BookDetailRelatedAction::OpenPersonWithRole { person_id }),
+            RelatedSection::Tags | RelatedSection::Languages => None,
+        };
+    }
+
+    fn handle_add_related_item(&mut self) {
+        if !self.in_related_sections {
+            return;
+        }
+
+        self.pending_related_action = Some(match self.related_section {
+            RelatedSection::LinkedContents => BookDetailRelatedAction::AddLinkedContent,
+            RelatedSection::PeopleWithRoles => BookDetailRelatedAction::AddPersonWithRole,
+            RelatedSection::Tags => BookDetailRelatedAction::AddTag,
+            RelatedSection::Languages => BookDetailRelatedAction::AddLanguage,
+        });
+    }
+
+    fn handle_remove_related_item(&mut self) {
+        if !self.in_related_sections {
+            return;
+        }
+
+        self.pending_related_action = match self.related_section {
+            RelatedSection::LinkedContents => self.selected_linked_content_id().map(
+                |content_id| BookDetailRelatedAction::RemoveLinkedContent { content_id },
+            ),
+            RelatedSection::PeopleWithRoles => self
+                .selected_person_with_role_id()
+                .map(|person_id| BookDetailRelatedAction::RemovePersonWithRole { person_id }),
+            RelatedSection::Tags => self
+                .selected_tag()
+                .map(|tag| BookDetailRelatedAction::RemoveTag { tag }),
+            RelatedSection::Languages => self
+                .selected_language()
+                .map(|language| BookDetailRelatedAction::RemoveLanguage { language }),
+        };
+    }
+
+    fn previous_related_item(&mut self) {
+        if !self.in_related_sections {
+            return;
+        }
+
+        match self.related_section {
+            RelatedSection::LinkedContents => {
+                self.selected_linked_content = self.selected_linked_content.saturating_sub(1);
+            }
+            RelatedSection::PeopleWithRoles => {
+                self.selected_person_with_role = self.selected_person_with_role.saturating_sub(1);
+            }
+            RelatedSection::Tags => {
+                self.selected_tag = self.selected_tag.saturating_sub(1);
+            }
+            RelatedSection::Languages => {
+                self.selected_language = self.selected_language.saturating_sub(1);
+            }
+        }
+    }
+
+    fn next_related_item(&mut self) {
+        if !self.in_related_sections {
+            return;
+        }
+
+        match self.related_section {
+            RelatedSection::LinkedContents => {
+                let max = self.item.linked_contents.len().saturating_sub(1);
+                self.selected_linked_content = (self.selected_linked_content + 1).min(max);
+            }
+            RelatedSection::PeopleWithRoles => {
+                let max = self.item.people_with_roles.len().saturating_sub(1);
+                self.selected_person_with_role = (self.selected_person_with_role + 1).min(max);
+            }
+            RelatedSection::Tags => {
+                let max = self.item.tags.len().saturating_sub(1);
+                self.selected_tag = (self.selected_tag + 1).min(max);
+            }
+            RelatedSection::Languages => {
+                let max = self.read_only_languages().len().saturating_sub(1);
+                self.selected_language = (self.selected_language + 1).min(max);
+            }
+        }
+    }
+
     fn update_statusbar(&self, statusbar: &mut StatusBar) {
         let keys = match self.mode {
-            DetailMode::View => "↑↓: naviga | Enter: modifica | Esc: torna alla lista",
+            DetailMode::View if !self.in_related_sections => {
+                "↑↓: naviga sezioni | Enter: modifica campo | Esc: torna alla lista"
+            }
+            DetailMode::View => match self.related_section {
+                RelatedSection::LinkedContents => {
+                    "↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi | Enter: apri"
+                }
+                RelatedSection::PeopleWithRoles => {
+                    "↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi | Enter: apri"
+                }
+                RelatedSection::Tags => {
+                    "↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi"
+                }
+                RelatedSection::Languages => {
+                    "↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi"
+                }
+            },
             DetailMode::Edit => "Enter: salva | Tab: prossimo campo | Esc: annulla",
         };
         statusbar.set_keys(vec![keys.to_string()]);
-        statusbar.set_info(format!(
-            "Campo {}/{}: {}",
-            self.selected_field + 1,
-            FIELD_LABELS.len(),
-            FIELD_LABELS[self.selected_field]
-        ));
+
+        if !self.in_related_sections {
+            statusbar.set_info(format!(
+                "Campo {}/{}: {}",
+                self.selected_field + 1,
+                FIELD_LABELS.len(),
+                FIELD_LABELS[self.selected_field]
+            ));
+            return;
+        }
+
+        let info = match self.related_section {
+            RelatedSection::LinkedContents => format!(
+                "Sezione: contenuti collegati ({}/{})",
+                self.selected_linked_content
+                    .min(self.item.linked_contents.len().saturating_sub(1))
+                    + usize::from(!self.item.linked_contents.is_empty()),
+                self.item.linked_contents.len()
+            ),
+            RelatedSection::PeopleWithRoles => format!(
+                "Sezione: persone con ruoli ({}/{})",
+                self.selected_person_with_role
+                    .min(self.item.people_with_roles.len().saturating_sub(1))
+                    + usize::from(!self.item.people_with_roles.is_empty()),
+                self.item.people_with_roles.len()
+            ),
+            RelatedSection::Tags => format!(
+                "Sezione: tag ({}/{})",
+                self.selected_tag.min(self.item.tags.len().saturating_sub(1))
+                    + usize::from(!self.item.tags.is_empty()),
+                self.item.tags.len()
+            ),
+            RelatedSection::Languages => {
+                let languages = self.read_only_languages();
+                format!(
+                    "Sezione: lingue ({}/{})",
+                    self.selected_language.min(languages.len().saturating_sub(1))
+                        + usize::from(!languages.is_empty()),
+                    languages.len()
+                )
+            }
+        };
+        statusbar.set_info(info);
     }
 
     fn render_editable_fields(&mut self, frame: &mut Frame, area: Rect) {
@@ -185,7 +413,10 @@ impl BookDetailScreen {
 
             let value = display_value(self.editable_values[idx].as_str());
             let text = format!("{}: {value}", FIELD_LABELS[idx]);
-            let style = if self.mode == DetailMode::View && idx == self.selected_field {
+            let style = if self.mode == DetailMode::View
+                && !self.in_related_sections
+                && idx == self.selected_field
+            {
                 Style::default().add_modifier(Modifier::REVERSED)
             } else {
                 Style::default()
@@ -207,48 +438,133 @@ impl BookDetailScreen {
             .item
             .linked_contents
             .iter()
-            .map(|item| item.title.as_str())
-            .collect::<Vec<_>>()
-            .join("\n");
+            .map(|item| item.title.clone())
+            .collect::<Vec<_>>();
 
         let people_with_roles = self
             .item
             .people_with_roles
             .iter()
             .map(|person| format!("{} ({})", person.name, person.role))
-            .collect::<Vec<_>>()
-            .join("\n");
+            .collect::<Vec<_>>();
 
-        let tags = self.item.tags.join("\n");
-        let languages = self.read_only_languages().join("\n");
+        let tags = self.item.tags.clone();
+        let languages = self.read_only_languages();
 
-        self.render_read_only_block(
+        self.render_related_block(
             frame,
             chunks[0],
             "contenuti collegati",
-            linked_contents.as_str(),
+            &linked_contents,
+            self.related_section == RelatedSection::LinkedContents && self.is_related_section_active(),
+            self.selected_linked_content,
         );
-        self.render_read_only_block(
+        self.render_related_block(
             frame,
             chunks[1],
             "persone con ruoli",
-            people_with_roles.as_str(),
+            &people_with_roles,
+            self.related_section == RelatedSection::PeopleWithRoles && self.is_related_section_active(),
+            self.selected_person_with_role,
         );
-        self.render_read_only_block(frame, chunks[2], "tag", tags.as_str());
-        self.render_read_only_block(frame, chunks[3], "lingue", languages.as_str());
+        self.render_related_block(
+            frame,
+            chunks[2],
+            "tag",
+            &tags,
+            self.related_section == RelatedSection::Tags && self.is_related_section_active(),
+            self.selected_tag,
+        );
+        self.render_related_block(
+            frame,
+            chunks[3],
+            "lingue",
+            &languages,
+            self.related_section == RelatedSection::Languages && self.is_related_section_active(),
+            self.selected_language,
+        );
     }
 
-    fn render_read_only_block(&self, frame: &mut Frame, area: Rect, title: &str, content: &str) {
-        let display = if content.is_empty() { "—" } else { content };
-        let paragraph =
-            Paragraph::new(display).block(Block::default().title(title).borders(Borders::ALL));
+    fn render_related_block(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        title: &str,
+        items: &[String],
+        is_active: bool,
+        selected_index: usize,
+    ) {
+        let block = if is_active {
+            Block::default()
+                .title(format!("{title} *"))
+                .borders(Borders::ALL)
+                .border_style(Style::default().add_modifier(Modifier::REVERSED))
+        } else {
+            Block::default().title(title).borders(Borders::ALL)
+        };
+
+        let display = if items.is_empty() {
+            "—".to_string()
+        } else {
+            items.iter()
+                .enumerate()
+                .map(|(idx, item)| {
+                    if is_active && idx == selected_index.min(items.len().saturating_sub(1)) {
+                        format!("> {item}")
+                    } else {
+                        format!("  {item}")
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
+        let paragraph = Paragraph::new(display).block(block);
         frame.render_widget(paragraph, area);
+    }
+
+    fn is_related_section_active(&self) -> bool {
+        self.mode == DetailMode::View && self.in_related_sections
     }
 
     fn read_only_languages(&self) -> Vec<String> {
         // `BookDetail` currently does not expose languages directly.
         // Until presenter support is added, this section is intentionally empty/read-only.
         Vec::new()
+    }
+
+    fn selected_linked_content_id(&self) -> Option<i64> {
+        self.item
+            .linked_contents
+            .get(
+                self.selected_linked_content
+                    .min(self.item.linked_contents.len().saturating_sub(1)),
+            )
+            .map(|item| item.id)
+    }
+
+    fn selected_person_with_role_id(&self) -> Option<i64> {
+        self.item
+            .people_with_roles
+            .get(
+                self.selected_person_with_role
+                    .min(self.item.people_with_roles.len().saturating_sub(1)),
+            )
+            .map(|person| person.person_id)
+    }
+
+    fn selected_tag(&self) -> Option<String> {
+        self.item
+            .tags
+            .get(self.selected_tag.min(self.item.tags.len().saturating_sub(1)))
+            .cloned()
+    }
+
+    fn selected_language(&self) -> Option<String> {
+        let languages = self.read_only_languages();
+        languages
+            .get(self.selected_language.min(languages.len().saturating_sub(1)))
+            .cloned()
     }
 }
 
@@ -304,7 +620,7 @@ fn display_value(value: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::{BookDetailPendingChanges, BookDetailScreen, DetailMode};
+    use super::{BookDetailPendingChanges, BookDetailRelatedAction, BookDetailScreen, DetailMode};
     use crate::widgets::statusbar::StatusBar;
     use crossterm::event::{KeyCode, KeyEvent};
     use ratatui::{backend::TestBackend, Terminal};
@@ -410,6 +726,53 @@ mod tests {
 
         assert_eq!(screen.mode, DetailMode::View);
         assert_eq!(screen.pending_changes(), None);
+    }
+
+    #[test]
+    fn related_sections_update_statusbar_and_emit_actions() {
+        let mut screen = BookDetailScreen::new(detail());
+        let mut statusbar = StatusBar::new();
+
+        for _ in 0..7 {
+            screen.handle_key(KeyEvent::from(KeyCode::Down), &mut statusbar);
+        }
+        assert_eq!(
+            statusbar.keys,
+            vec!["↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi | Enter: apri"]
+        );
+        assert_eq!(statusbar.info, "Sezione: contenuti collegati (1/1)");
+
+        screen.handle_key(KeyEvent::from(KeyCode::Char('n')), &mut statusbar);
+        assert_eq!(
+            screen.take_related_action(),
+            Some(BookDetailRelatedAction::AddLinkedContent)
+        );
+
+        screen.handle_key(KeyEvent::from(KeyCode::Enter), &mut statusbar);
+        assert_eq!(
+            screen.take_related_action(),
+            Some(BookDetailRelatedAction::OpenLinkedContent { content_id: 10 })
+        );
+
+        screen.handle_key(KeyEvent::from(KeyCode::Down), &mut statusbar);
+        screen.handle_key(KeyEvent::from(KeyCode::Delete), &mut statusbar);
+        assert_eq!(
+            screen.take_related_action(),
+            Some(BookDetailRelatedAction::RemovePersonWithRole { person_id: 5 })
+        );
+
+        screen.handle_key(KeyEvent::from(KeyCode::Down), &mut statusbar);
+        assert_eq!(
+            statusbar.keys,
+            vec!["↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi"]
+        );
+        screen.handle_key(KeyEvent::from(KeyCode::Char('d')), &mut statusbar);
+        assert_eq!(
+            screen.take_related_action(),
+            Some(BookDetailRelatedAction::RemoveTag {
+                tag: "tag1".to_string()
+            })
+        );
     }
 
     #[test]
