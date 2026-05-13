@@ -45,12 +45,9 @@ impl StatusBar {
 
 impl Widget for &StatusBar {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let sections = Layout::horizontal([
-            Constraint::Percentage(34),
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-        ])
-        .split(area);
+        let sections =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
+                .split(area);
 
         Paragraph::new(Line::from(self.keys_text()))
             .alignment(Alignment::Left)
