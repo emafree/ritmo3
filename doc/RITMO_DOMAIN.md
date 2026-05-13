@@ -26,8 +26,18 @@ Entità con vita propria, gestibili indipendentemente dalle altre:
 Strutture che esistono solo in relazione a una entità autonoma:
 
 -   `Alias` — nome alternativo di una `Person`
--   `Place` — luogo associato a una `Person` (nascita, residenza, ecc.)
+-   `PlaceType` — tipo di luogo associato a una relazione persona-luogo o publisher-luogo (es. nascita, morte, attività, sede). Editabile dall'utente.
+-   `Place` — entità autonoma con tre livelli geografici: continente, paese, città. Supporta flag `circa` e `disputed`. Non contiene riferimenti a persone o publisher — i collegamenti avvengono tramite tabelle di relazione.
 -   `PartialDate` — data parziale o approssimata, usata per date di pubblicazione, nascita, morte. Supporta anno/mese/giorno opzionali e flag `circa`. Gestisce date storiche con anno negativo.
+
+#### Strutture di filtro
+
+-   `Filter` — condizione atomica di filtro. Specifica su quale campo cercare (`FilterField`), come confrontare (`FilterOperator`), e quali valori usare (`Vec<FilterValue>`). Più valori sullo stesso campo sono sempre in OR implicito.
+-   `FilterSet` — insieme nominato di filtri combinati con operatore logico (`AND`/`OR`). Può essere salvato, ricaricato e attivato o disattivato. Più `FilterSet` attivi si combinano sempre con `AND`.
+-   `FilterField` — enum che identifica il campo su cui applicare il filtro, inclusi campi di entità correlate (lingua con ruolo, persona con ruolo, luogo con tipo).
+-   `FilterOperator` — operatore di confronto: `Contains`, `Equals`, `Between`, `Before`, `After`.
+-   `FilterValue` — valore concreto del filtro: testo, id, data, intervallo di date.
+-   `LogicalOperator` — operatore logico per combinare i filtri all'interno di un `FilterSet`: `And` / `Or`.
 
 #### Cosa non contiene
 

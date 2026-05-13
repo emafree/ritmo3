@@ -11,7 +11,6 @@ Contiene la logica applicativa e l'orchestrazione. È l'unico crate che sa cosa 
 Entità che esistono da sole, senza relazioni obbligatorie. Le operazioni sono create, update, delete con policy.
 
 -   `Tag`
--   `Publisher`
 -   `Series`
 -   `Format`
 -   `Genre`
@@ -22,7 +21,8 @@ Entità che esistono da sole, senza relazioni obbligatorie. Le operazioni sono c
 
 Entità che esistono indipendentemente ma possono essere collegate ad altre. Le operazioni sono create, update, delete con policy. `Alias` e `Place` sono attributi di `Person` e vengono gestiti nel suo contesto.
 
--   `Person` — include la gestione di alias e luoghi
+-   `Person` — include la gestione di alias e luoghi (`add_place`, `remove_place`); la `delete` in cascata include anche i luoghi collegati
+-   `Publisher` — include la gestione dei luoghi (`add_place`, `remove_place`)
 -   `Book` — include la gestione di publisher, format, series
 -   `Content` — include la gestione di type, genre
 
@@ -42,6 +42,11 @@ Collegamento e scollegamento tra entità già esistenti.
 #### Sync metadata
 
 Allineamento dei metadati tra il filesystem e il database.
+
+#### Filtri
+
+-   `execute_filter(filter_sets)` — applica i `FilterSet` attivi a libri e contenuti
+-   `save_filter_set`, `update_filter_set`, `delete_filter_set`, `list_filter_sets`, `toggle_filter_set`
 
 ### Policy di dominio
 
