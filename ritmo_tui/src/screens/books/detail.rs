@@ -356,30 +356,27 @@ impl BookDetailScreen {
         let info = match self.related_section {
             RelatedSection::LinkedContents => format!(
                 "Sezione: contenuti collegati ({}/{})",
-                self.selected_linked_content
-                    .min(self.item.linked_contents.len().saturating_sub(1))
-                    + usize::from(!self.item.linked_contents.is_empty()),
+                current_position(self.selected_linked_content, self.item.linked_contents.len()),
                 self.item.linked_contents.len()
             ),
             RelatedSection::PeopleWithRoles => format!(
                 "Sezione: persone con ruoli ({}/{})",
-                self.selected_person_with_role
-                    .min(self.item.people_with_roles.len().saturating_sub(1))
-                    + usize::from(!self.item.people_with_roles.is_empty()),
+                current_position(
+                    self.selected_person_with_role,
+                    self.item.people_with_roles.len(),
+                ),
                 self.item.people_with_roles.len()
             ),
             RelatedSection::Tags => format!(
                 "Sezione: tag ({}/{})",
-                self.selected_tag.min(self.item.tags.len().saturating_sub(1))
-                    + usize::from(!self.item.tags.is_empty()),
+                current_position(self.selected_tag, self.item.tags.len()),
                 self.item.tags.len()
             ),
             RelatedSection::Languages => {
                 let languages = self.read_only_languages();
                 format!(
                     "Sezione: lingue ({}/{})",
-                    self.selected_language.min(languages.len().saturating_sub(1))
-                        + usize::from(!languages.is_empty()),
+                    current_position(self.selected_language, languages.len()),
                     languages.len()
                 )
             }
@@ -509,7 +506,7 @@ impl BookDetailScreen {
             items.iter()
                 .enumerate()
                 .map(|(idx, item)| {
-                    if is_active && idx == selected_index.min(items.len().saturating_sub(1)) {
+                    if is_active && idx == clamped_index(selected_index, items.len()) {
                         format!("> {item}")
                     } else {
                         format!("  {item}")
@@ -537,8 +534,7 @@ impl BookDetailScreen {
         self.item
             .linked_contents
             .get(
-                self.selected_linked_content
-                    .min(self.item.linked_contents.len().saturating_sub(1)),
+                clamped_index(self.selected_linked_content, self.item.linked_contents.len()),
             )
             .map(|item| item.id)
     }
@@ -547,8 +543,7 @@ impl BookDetailScreen {
         self.item
             .people_with_roles
             .get(
-                self.selected_person_with_role
-                    .min(self.item.people_with_roles.len().saturating_sub(1)),
+                clamped_index(self.selected_person_with_role, self.item.people_with_roles.len()),
             )
             .map(|person| person.person_id)
     }
@@ -556,14 +551,14 @@ impl BookDetailScreen {
     fn selected_tag(&self) -> Option<String> {
         self.item
             .tags
-            .get(self.selected_tag.min(self.item.tags.len().saturating_sub(1)))
+            .get(clamped_index(self.selected_tag, self.item.tags.len()))
             .cloned()
     }
 
     fn selected_language(&self) -> Option<String> {
         let languages = self.read_only_languages();
         languages
-            .get(self.selected_language.min(languages.len().saturating_sub(1)))
+            .get(clamped_index(self.selected_language, languages.len()))
             .cloned()
     }
 }
@@ -615,6 +610,18 @@ fn display_value(value: &str) -> &str {
         "—"
     } else {
         value
+    }
+}
+
+fn clamped_index(selected: usize, total: usize) -> usize {
+    selected.min(total.saturating_sub(1))
+}
+
+fn current_position(selected: usize, total: usize) -> usize {
+    if total == 0 {
+        0
+    } else {
+        clamped_index(selected, total) + 1
     }
 }
 
