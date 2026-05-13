@@ -353,6 +353,24 @@ CREATE TABLE IF NOT EXISTS "x_contents_tags" (
 	FOREIGN KEY("content_id") REFERENCES "contents"("id") ON DELETE CASCADE,
 	FOREIGN KEY("tag_id") REFERENCES "tags"("id") ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS s_filter_sets (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    active      INTEGER NOT NULL DEFAULT 0,
+    operator    TEXT NOT NULL DEFAULT 'AND',
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS s_filter_conditions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    filter_set_id   INTEGER NOT NULL REFERENCES s_filter_sets(id),
+    field           TEXT NOT NULL,
+    operator        TEXT NOT NULL,
+    values          TEXT NOT NULL  -- JSON array di FilterValue
+);
+
 CREATE TABLE IF NOT EXISTS "pending_metadata_sync" (
 	"id"	INTEGER,
 	"book_id"	INTEGER NOT NULL,

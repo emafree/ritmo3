@@ -14,7 +14,7 @@ Definisce tutte le tabelle, gli indici e i trigger del database.
 
 **Tabelle di relazione (`x_`):** `x_books_contents`, `x_books_people_roles`, `x_books_tags`, `x_contents_people_roles`, `x_contents_tags`, `x_content_languages`, `x_book_languages`, `x_person_languages`, `x_person_places`, `x_publisher_places`
 
-**Tabelle di sistema (`s_`):** `s_system_config`, `s_audit_log`, `s_stats_cache`, `s_pending_metadata_sync`, `s_metadata`, `s_ml_data`, `s_page_fields`, `s_place_types`, `s_place_type_translations`, `s_person_language_roles`, `s_person_language_role_translations`, `s_content_language_roles`, `s_content_language_role_translations`, `s_book_language_roles`, `s_book_language_role_translations`, `s_role_translations`, `s_format_translations`, `s_genre_translations`, `s_type_translations`
+**Tabelle di sistema (`s_`):** `s_system_config`, `s_audit_log`, `s_stats_cache`, `s_pending_metadata_sync`, `s_metadata`, `s_ml_data`, `s_page_fields`, `s_place_types`, `s_place_type_translations`, `s_person_language_roles`, `s_person_language_role_translations`, `s_content_language_roles`, `s_content_language_role_translations`, `s_book_language_roles`, `s_book_language_role_translations`, `s_role_translations`, `s_format_translations`, `s_genre_translations`, `s_type_translations`, `s_filter_sets`, `s_filter_conditions`.
 
 **Trigger:** Normalizzazione nomi, aggiornamento timestamp, audit log su `d_people`, cleanup automatico di `s_audit_log` e `s_stats_cache`.
 
