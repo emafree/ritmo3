@@ -12,3 +12,5 @@ tokio = { version = "1", features = ["full"] }
 ritmo_domain = { path = "../ritmo_domain" }
 ritmo_db = { path = "../ritmo_db" }
 ritmo_errors = { path = "../ritmo_errors" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

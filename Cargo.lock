@@ -845,6 +845,8 @@ dependencies = [
  "ritmo_db",
  "ritmo_domain",
  "ritmo_errors",
+ "serde",
+ "serde_json",
  "sqlx",
  "tokio",
 ]
