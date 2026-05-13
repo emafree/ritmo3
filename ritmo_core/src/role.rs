@@ -1,9 +1,7 @@
 use crate::CoreContext;
 use ritmo_domain::Role;
 use ritmo_errors::{RitmoErr, RitmoResult};
-use ritmo_repository::{
-    RoleRepository, XBooksPeopleRolesRepository, XContentsPeopleRolesRepository,
-};
+use ritmo_repository::{RoleRepository, XBooksPeopleRolesRepository, XContentsPeopleRolesRepository};
 
 pub async fn create(ctx: &CoreContext, item: &Role) -> RitmoResult<i64> {
     if item.i18n_key.trim().is_empty() {

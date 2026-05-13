@@ -83,10 +83,7 @@ fn max_popup_height(area: Rect) -> u16 {
 }
 
 fn max_line_width(text: &str) -> usize {
-    text.lines()
-        .map(|line| line.chars().count())
-        .max()
-        .unwrap_or(0)
+    text.lines().map(|line| line.chars().count()).max().unwrap_or(0)
 }
 
 fn wrapped_line_count(text: &str, width: u16) -> u16 {
@@ -135,13 +132,9 @@ mod tests {
         let backend = TestBackend::new(40, 7);
         let mut terminal = Terminal::new(backend).unwrap();
 
-        terminal
-            .draw(|frame| popup.render(frame, frame.area()))
-            .unwrap();
+        terminal.draw(|frame| popup.render(frame, frame.area())).unwrap();
 
-        terminal
-            .backend()
-            .assert_buffer_lines(["                                        "; 7]);
+        terminal.backend().assert_buffer_lines(["                                        "; 7]);
     }
 
     #[test]
@@ -151,9 +144,7 @@ mod tests {
         let mut terminal = Terminal::new(backend).unwrap();
         popup.show();
 
-        terminal
-            .draw(|frame| popup.render(frame, frame.area()))
-            .unwrap();
+        terminal.draw(|frame| popup.render(frame, frame.area())).unwrap();
 
         terminal.backend().assert_buffer_lines([
             "                                        ",

@@ -1,5 +1,5 @@
-use crate::PartialDate;
 use serde::{Deserialize, Serialize};
+use crate::PartialDate;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LogicalOperator {
