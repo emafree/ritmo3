@@ -18,9 +18,11 @@ pub struct Alias {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Place {
     pub id: i64,
-    pub name: String,
-    pub place_type_id: i64,
-    pub person_id: i64,
+    pub continent: Option<String>,
+    pub country: Option<String>,
+    pub city: Option<String>,
+    pub circa: bool,
+    pub disputed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
