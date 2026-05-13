@@ -8,7 +8,7 @@ Unico punto di accesso al database. Esegue tutte le operazioni di lettura e scri
 
 #### Operazioni sulle entità di dominio
 
-Per ciascuna entità — `Alias`, `Book`, `Content`, `Format`, `Genre`, `Language`, `Person`, `Publisher`, `Role`, `Series`, `Tag` — il repository espone:
+Per ciascuna entità — `Alias`, `Book`, `Content`, `Format`, `Genre`, `Language`, `Person`, `Place`, `PlaceType`, `Publisher`, `Role`, `Series`, `Tag` — il repository espone:
 
 -   `save` — inserimento di un nuovo record, restituisce l'id assegnato
 -   `get` — lettura per id
@@ -19,13 +19,28 @@ Per ciascuna entità — `Alias`, `Book`, `Content`, `Format`, `Genre`, `Languag
 -   `search` — ricerca per pattern su campi testuali
 -   `get_or_create` — ricerca per chiave naturale, creazione se non esiste
 
+Per `Place` il repository espone: `save`, `get`, `update`, `delete`, `list_all`, `search`.
+
+Per `PlaceType` il repository espone: `save`, `get`, `update`, `delete`, `list_all`.
+
 #### Operazioni sulle tabelle di relazione
 
-Per ciascuna tabella di relazione — `x_books_contents`, `x_books_people_roles`, `x_books_tags`, `x_contents_people_roles`, `x_contents_tags`, `x_content_languages`, `x_book_languages`, `x_person_languages` — il repository espone:
+Per ciascuna tabella di relazione — `x_books_contents`, `x_books_people_roles`, `x_books_tags`, `x_contents_people_roles`, `x_contents_tags`, `x_content_languages`, `x_book_languages`, `x_person_languages`, `x_person_places`, `x_publisher_places` — il repository espone:
 
 -   `create` — creazione del legame
 -   `delete` — rimozione del legame
 -   `list_by_*` — lista per uno dei due lati della relazione
+
+Operazioni specifiche:
+
+-   `x_person_places` — `create`, `delete`, `list_by_person`, `list_by_place`
+-   `x_publisher_places` — `create`, `delete`, `list_by_publisher`, `list_by_place`
+
+#### Operazioni di filtro
+
+-   `search_books(filter_sets)` — esegue una query dinamica sui libri in base ai `FilterSet` attivi
+-   `search_contents(filter_sets)` — esegue una query dinamica sui contenuti in base ai `FilterSet` attivi
+-   `save_filter_set`, `get_filter_set`, `update_filter_set`, `delete_filter_set`, `list_filter_sets`
 
 #### Mapping
 

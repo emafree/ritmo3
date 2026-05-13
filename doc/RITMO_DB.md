@@ -16,6 +16,8 @@ Definisce tutte le tabelle, gli indici e i trigger del database.
 
 **Tabelle di sistema (`s_`):** `s_system_config`, `s_audit_log`, `s_stats_cache`, `s_pending_metadata_sync`, `s_metadata`, `s_ml_data`, `s_page_fields`, `s_place_types`, `s_place_type_translations`, `s_person_language_roles`, `s_person_language_role_translations`, `s_content_language_roles`, `s_content_language_role_translations`, `s_book_language_roles`, `s_book_language_role_translations`, `s_role_translations`, `s_format_translations`, `s_genre_translations`, `s_type_translations`, `s_filter_sets`, `s_filter_conditions`.
 
+Le tabelle `s_place_types` e `s_place_type_translations` sostituiscono le precedenti strutture dedicate ai place type legati solo a `Person`.
+
 **Trigger:** Normalizzazione nomi, aggiornamento timestamp, audit log su `d_people`, cleanup automatico di `s_audit_log` e `s_stats_cache`.
 
 #### Seeding (`seed_lookups.sql`, `seed_page_fields.sql`)
