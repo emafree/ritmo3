@@ -630,19 +630,19 @@ fn push_person_place_filter(
         builder.push(" AND pp.place_type_id = ");
         builder.push_bind(value);
     }
-    push_person_place_value_condition(builder, filter.operator.clone(), &place_ids, &place_texts);
+    push_person_place_value_condition(builder, &filter.operator, &place_ids, &place_texts);
     builder.push(") OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN x_person_places pp ON pp.person_id = cpr.person_id JOIN d_places dp ON dp.id = pp.place_id WHERE bc.book_id = books.id");
     if let Some(value) = place_type_id {
         builder.push(" AND pp.place_type_id = ");
         builder.push_bind(value);
     }
-    push_person_place_value_condition(builder, filter.operator.clone(), &place_ids, &place_texts);
+    push_person_place_value_condition(builder, &filter.operator, &place_ids, &place_texts);
     builder.push("))");
 }
 
 fn push_person_place_value_condition(
     builder: &mut QueryBuilder<'_, Sqlite>,
-    operator: FilterOperator,
+    operator: &FilterOperator,
     ids: &[i64],
     texts: &[String],
 ) {
