@@ -13,25 +13,39 @@ impl XPersonLanguagesRepository {
         }
     }
 
-    pub async fn create(&self, person_id: i64, language_id: i64, language_role_id: i64) -> RitmoResult<()> {
-        sqlx::query("INSERT INTO person_languages(person_id, language_id, role_id) VALUES (?, ?, ?)")
-            .bind(person_id)
-            .bind(language_id)
-            .bind(language_role_id)
-            .execute(&self.pool)
-            .await
-            .map_err(map_insert)?;
+    pub async fn create(
+        &self,
+        person_id: i64,
+        language_id: i64,
+        language_role_id: i64,
+    ) -> RitmoResult<()> {
+        sqlx::query(
+            "INSERT INTO person_languages(person_id, language_id, role_id) VALUES (?, ?, ?)",
+        )
+        .bind(person_id)
+        .bind(language_id)
+        .bind(language_role_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_insert)?;
         Ok(())
     }
 
-    pub async fn delete(&self, person_id: i64, language_id: i64, language_role_id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM person_languages WHERE person_id = ? AND language_id = ? AND role_id = ?")
-            .bind(person_id)
-            .bind(language_id)
-            .bind(language_role_id)
-            .execute(&self.pool)
-            .await
-            .map_err(map_delete)?;
+    pub async fn delete(
+        &self,
+        person_id: i64,
+        language_id: i64,
+        language_role_id: i64,
+    ) -> RitmoResult<()> {
+        sqlx::query(
+            "DELETE FROM person_languages WHERE person_id = ? AND language_id = ? AND role_id = ?",
+        )
+        .bind(person_id)
+        .bind(language_id)
+        .bind(language_role_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_delete)?;
         Ok(())
     }
 

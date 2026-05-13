@@ -135,7 +135,9 @@ impl AppState {
             KeyCode::Char('n') | KeyCode::Char('+') => AppAction::NewRecord,
             KeyCode::Char('e') => AppAction::EditRecord,
             KeyCode::Char('d') | KeyCode::Delete => AppAction::DeleteRecord,
-            KeyCode::Char(' ') if self.main_window == MainWindow::Filters && self.level == ScreenLevel::List => {
+            KeyCode::Char(' ')
+                if self.main_window == MainWindow::Filters && self.level == ScreenLevel::List =>
+            {
                 AppAction::ToggleFilterSet
             }
             _ => AppAction::None,
@@ -154,7 +156,10 @@ mod tests {
     #[test]
     fn fbc_are_only_enabled_on_list_level() {
         let mut app = AppState::default();
-        assert_eq!(app.handle_key(key(KeyCode::Char('b'))), AppAction::SwitchWindow(MainWindow::Books));
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('b'))),
+            AppAction::SwitchWindow(MainWindow::Books)
+        );
         assert_eq!(app.main_window, MainWindow::Books);
 
         app.level = ScreenLevel::Detail;
@@ -188,9 +193,21 @@ mod tests {
     #[test]
     fn arrows_cycle_main_windows_from_list_level() {
         let mut app = AppState::default();
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Books));
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Contents));
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Filters));
-        assert_eq!(app.handle_key(key(KeyCode::Left)), AppAction::SwitchWindow(MainWindow::Contents));
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Books)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Contents)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Filters)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Left)),
+            AppAction::SwitchWindow(MainWindow::Contents)
+        );
     }
 }
