@@ -20,6 +20,8 @@ mod x_content_languages;
 mod x_contents_people_roles;
 mod x_contents_tags;
 mod x_person_languages;
+mod x_person_places;
+mod x_publisher_places;
 
 pub use alias::*;
 pub use book::*;
@@ -43,3 +45,5 @@ pub use x_content_languages::*;
 pub use x_contents_people_roles::*;
 pub use x_contents_tags::*;
 pub use x_person_languages::*;
+pub use x_person_places::*;
+pub use x_publisher_places::*;
