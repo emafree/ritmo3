@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::{Constraint, Frame, Layout, Rect},
     style::{Modifier, Style},
@@ -15,6 +16,16 @@ pub struct InputWidget {
 impl InputWidget {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char(c) => self.handle_char(c),
+            KeyCode::Backspace => self.handle_backspace(),
+            KeyCode::Up => self.handle_up(),
+            KeyCode::Down => self.handle_down(),
+            _ => {}
+        }
     }
 
     pub fn handle_char(&mut self, c: char) {
@@ -84,11 +95,8 @@ impl InputWidget {
             return;
         }
 
-        let layout = Layout::vertical([
-            Constraint::Length(input_height),
-            Constraint::Min(0),
-        ])
-        .split(area);
+        let layout =
+            Layout::vertical([Constraint::Length(input_height), Constraint::Min(0)]).split(area);
         let input_area = layout[0];
 
         let input = Paragraph::new(self.value.as_str())
@@ -125,18 +133,22 @@ impl InputWidget {
             height: popup_height,
         };
 
-        let items = self.suggestions.iter().enumerate().map(|(index, suggestion)| {
-            let style = if Some(index) == self.selected_suggestion {
-                Style::default().add_modifier(Modifier::REVERSED)
-            } else {
-                Style::default()
-            };
+        let items = self
+            .suggestions
+            .iter()
+            .enumerate()
+            .map(|(index, suggestion)| {
+                let style = if Some(index) == self.selected_suggestion {
+                    Style::default().add_modifier(Modifier::REVERSED)
+                } else {
+                    Style::default()
+                };
 
-            ListItem::new(suggestion.as_str()).style(style)
-        });
+                ListItem::new(suggestion.as_str()).style(style)
+            });
 
-        let popup = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title("Suggestions"));
+        let popup =
+            List::new(items).block(Block::default().borders(Borders::ALL).title("Suggestions"));
 
         frame.render_widget(Clear, popup_area);
         frame.render_widget(popup, popup_area);
@@ -145,6 +157,8 @@ impl InputWidget {
 
 #[cfg(test)]
 mod tests {
+    use crossterm::event::{KeyCode, KeyEvent};
+
     use super::InputWidget;
     use ratatui::{backend::TestBackend, Terminal};
 
@@ -160,6 +174,20 @@ mod tests {
         assert_eq!(input.value, "a");
         assert_eq!(input.cursor, 1);
         assert_eq!(input.selected_suggestion, None);
+    }
+
+    #[test]
+    fn handle_key_routes_supported_keys() {
+        let mut input = InputWidget::new();
+        input.set_suggestions(vec!["alpha".into(), "beta".into()]);
+
+        input.handle_key(KeyEvent::from(KeyCode::Down));
+        input.handle_key(KeyEvent::from(KeyCode::Char('ß')));
+        input.handle_key(KeyEvent::from(KeyCode::Backspace));
+
+        assert_eq!(input.selected_suggestion, None);
+        assert!(input.value.is_empty());
+        assert_eq!(input.cursor, 0);
     }
 
     #[test]
