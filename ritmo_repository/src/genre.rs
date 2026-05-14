@@ -71,12 +71,13 @@ impl GenreRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Genre>> {
         let pattern = format!("%{query}%");
-        let rows =
-            sqlx::query("SELECT id, key FROM genres WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
-                .bind(pattern)
-                .fetch_all(&self.pool)
-                .await
-                .map_err(map_query)?;
+        let rows = sqlx::query(
+            "SELECT id, key FROM genres WHERE key LIKE ? COLLATE NOCASE ORDER BY key",
+        )
+        .bind(pattern)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| Genre {

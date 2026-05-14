@@ -90,7 +90,11 @@ impl TableWidget {
             .take(visible_rows)
             .map(|(index, row)| {
                 let cells = (0..column_count).map(|cell_index| {
-                    Cell::from(row.get(cell_index).map(String::as_str).unwrap_or_default())
+                    Cell::from(
+                        row.get(cell_index)
+                            .map(String::as_str)
+                            .unwrap_or_default(),
+                    )
                 });
 
                 let mut rendered_row = Row::new(cells);
