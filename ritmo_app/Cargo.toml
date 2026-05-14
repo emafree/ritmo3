@@ -8,7 +8,7 @@ repository.workspace = true
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-dotenv = "0.15"
+dotenv = { package = "dotenvy", version = "0.15" }
 ritmo_db = { path = "../ritmo_db" }
 ritmo_tui = { path = "../ritmo_tui" }
 ritmo_errors = { path = "../ritmo_errors" }

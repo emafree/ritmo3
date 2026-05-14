@@ -1,8 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{
-    prelude::Frame,
-    layout::Rect,
-};
+use ratatui::{layout::Rect, prelude::Frame};
 use ritmo_presenter::ContentListItem;
 
 use crate::widgets::{statusbar::StatusBar, table::TableWidget};
@@ -49,7 +46,9 @@ impl ContentListScreen {
     }
 
     pub fn selected_id(&self) -> Option<i64> {
-        self.items.get(self.table.selected_index()).map(|item| item.id)
+        self.items
+            .get(self.table.selected_index())
+            .map(|item| item.id)
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -87,10 +86,7 @@ mod tests {
     fn new_builds_table_headers_and_rows() {
         let screen = ContentListScreen::new(vec![item(1, "Il Nome della Rosa")]);
 
-        assert_eq!(
-            screen.table.headers,
-            vec!["Titolo", "Autori", "Genere"]
-        );
+        assert_eq!(screen.table.headers, vec!["Titolo", "Autori", "Genere"]);
         assert_eq!(
             screen.table.rows,
             vec![vec![

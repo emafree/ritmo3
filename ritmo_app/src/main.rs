@@ -9,8 +9,9 @@ async fn main() -> RitmoResult<()> {
 
     let database_url = env::var("DATABASE_URL").map_err(|_| RitmoErr::ConfigNotFound)?;
 
-    let _pool = ritmo_db::create_sqlite_pool(&database_url).await?;
-    let _app_state = ritmo_tui::AppState::default();
+    let pool = ritmo_db::create_sqlite_pool(&database_url).await?;
+    ritmo_tui::run()?;
+    drop(pool);
 
     Ok(())
 }

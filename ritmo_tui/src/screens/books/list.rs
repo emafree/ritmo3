@@ -1,8 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{
-    prelude::Frame,
-    layout::Rect,
-};
+use ratatui::{layout::Rect, prelude::Frame};
 use ritmo_presenter::BookListItem;
 
 use crate::widgets::{statusbar::StatusBar, table::TableWidget};
@@ -51,7 +48,9 @@ impl BookListScreen {
     }
 
     pub fn selected_id(&self) -> Option<i64> {
-        self.items.get(self.table.selected_index()).map(|item| item.id)
+        self.items
+            .get(self.table.selected_index())
+            .map(|item| item.id)
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
