@@ -306,8 +306,17 @@ impl AppState {
                 AppAction::ScrollDown
             }
             TableAction::Select => {
-                self.level = self.level.descend();
-                AppAction::EnterLevel
+                let has_selection = match self.main_window {
+                    MainWindow::Books => self.book_list.selected_id().is_some(),
+                    MainWindow::Contents => self.content_list.selected_id().is_some(),
+                    MainWindow::Filters => false,
+                };
+                if has_selection {
+                    self.level = self.level.descend();
+                    AppAction::EnterLevel
+                } else {
+                    AppAction::None
+                }
             }
             TableAction::New => AppAction::NewRecord,
             TableAction::Delete => AppAction::DeleteRecord,
@@ -466,11 +475,45 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn enter_key_descends_level_via_table_select() {
+    async fn enter_key_on_empty_list_returns_none() {
         let mut app = make_test_state().await;
         app.main_window = MainWindow::Books;
+        // In-memory DB starts empty — no selection possible.
         assert_eq!(app.level, ScreenLevel::List);
+        assert_eq!(app.handle_key(key(KeyCode::Enter)), AppAction::None);
+        assert_eq!(app.level, ScreenLevel::List);
+    }
 
+    #[tokio::test]
+    async fn enter_key_descends_level_when_item_is_selected() {
+        use ritmo_domain::Book;
+        use ritmo_presenter::{BookDetail, PersonRoleView};
+
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        // Inject a book directly so the list is non-empty.
+        let detail = BookDetail {
+            book: Book {
+                id: 1,
+                title: "Test".to_string(),
+                isbn: None,
+                publication_year: None,
+                notes: None,
+            },
+            people_with_roles: vec![PersonRoleView {
+                person_id: 1,
+                name: "Author".to_string(),
+                role: "author".to_string(),
+            }],
+            tags: vec![],
+            linked_contents: vec![],
+            format: None,
+            series: None,
+        };
+        app.books = vec![detail];
+        app.book_list = crate::screens::books::list::BookListScreen::new(&app.books);
+
+        assert_eq!(app.level, ScreenLevel::List);
         assert_eq!(app.handle_key(key(KeyCode::Enter)), AppAction::EnterLevel);
         assert_eq!(app.level, ScreenLevel::Detail);
     }
