@@ -84,8 +84,11 @@ impl InputWidget {
             return;
         }
 
-        let layout =
-            Layout::vertical([Constraint::Length(input_height), Constraint::Min(0)]).split(area);
+        let layout = Layout::vertical([
+            Constraint::Length(input_height),
+            Constraint::Min(0),
+        ])
+        .split(area);
         let input_area = layout[0];
 
         let input = Paragraph::new(self.value.as_str())
@@ -122,22 +125,18 @@ impl InputWidget {
             height: popup_height,
         };
 
-        let items = self
-            .suggestions
-            .iter()
-            .enumerate()
-            .map(|(index, suggestion)| {
-                let style = if Some(index) == self.selected_suggestion {
-                    Style::default().add_modifier(Modifier::REVERSED)
-                } else {
-                    Style::default()
-                };
+        let items = self.suggestions.iter().enumerate().map(|(index, suggestion)| {
+            let style = if Some(index) == self.selected_suggestion {
+                Style::default().add_modifier(Modifier::REVERSED)
+            } else {
+                Style::default()
+            };
 
-                ListItem::new(suggestion.as_str()).style(style)
-            });
+            ListItem::new(suggestion.as_str()).style(style)
+        });
 
-        let popup =
-            List::new(items).block(Block::default().borders(Borders::ALL).title("Suggestions"));
+        let popup = List::new(items)
+            .block(Block::default().borders(Borders::ALL).title("Suggestions"));
 
         frame.render_widget(Clear, popup_area);
         frame.render_widget(popup, popup_area);

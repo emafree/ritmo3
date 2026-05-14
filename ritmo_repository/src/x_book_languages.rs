@@ -13,12 +13,7 @@ impl XBookLanguagesRepository {
         }
     }
 
-    pub async fn create(
-        &self,
-        book_id: i64,
-        language_id: i64,
-        language_role_id: i64,
-    ) -> RitmoResult<()> {
+    pub async fn create(&self, book_id: i64, language_id: i64, language_role_id: i64) -> RitmoResult<()> {
         sqlx::query("INSERT INTO book_languages(book_id, language_id, role_id) VALUES (?, ?, ?)")
             .bind(book_id)
             .bind(language_id)
@@ -29,21 +24,14 @@ impl XBookLanguagesRepository {
         Ok(())
     }
 
-    pub async fn delete(
-        &self,
-        book_id: i64,
-        language_id: i64,
-        language_role_id: i64,
-    ) -> RitmoResult<()> {
-        sqlx::query(
-            "DELETE FROM book_languages WHERE book_id = ? AND language_id = ? AND role_id = ?",
-        )
-        .bind(book_id)
-        .bind(language_id)
-        .bind(language_role_id)
-        .execute(&self.pool)
-        .await
-        .map_err(map_delete)?;
+    pub async fn delete(&self, book_id: i64, language_id: i64, language_role_id: i64) -> RitmoResult<()> {
+        sqlx::query("DELETE FROM book_languages WHERE book_id = ? AND language_id = ? AND role_id = ?")
+            .bind(book_id)
+            .bind(language_id)
+            .bind(language_role_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_delete)?;
         Ok(())
     }
 
@@ -65,14 +53,16 @@ impl XBookLanguagesRepository {
         language_role_id: Option<i64>,
     ) -> RitmoResult<Vec<(i64, i64)>> {
         let rows = match language_role_id {
-            Some(role_id) => sqlx::query(
-                "SELECT book_id, role_id FROM book_languages WHERE language_id = ? AND role_id = ?",
-            )
-            .bind(language_id)
-            .bind(role_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_query)?,
+            Some(role_id) => {
+                sqlx::query(
+                    "SELECT book_id, role_id FROM book_languages WHERE language_id = ? AND role_id = ?",
+                )
+                .bind(language_id)
+                .bind(role_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?
+            }
             None => {
                 sqlx::query("SELECT book_id, role_id FROM book_languages WHERE language_id = ?")
                     .bind(language_id)

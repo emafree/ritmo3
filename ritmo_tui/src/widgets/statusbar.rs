@@ -45,12 +45,9 @@ impl StatusBar {
 
 impl Widget for &StatusBar {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let sections = Layout::horizontal([
-            Constraint::Fill(1),
-            Constraint::Fill(1),
-            Constraint::Fill(1),
-        ])
-        .split(area);
+        let sections =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
+                .split(area);
 
         Paragraph::new(Line::from(self.keys_text()))
             .alignment(Alignment::Left)
@@ -67,7 +64,11 @@ impl Widget for &StatusBar {
 #[cfg(test)]
 mod tests {
     use super::StatusBar;
-    use ratatui::{buffer::Buffer, layout::Rect, widgets::Widget};
+    use ratatui::{
+        buffer::Buffer,
+        layout::Rect,
+        widgets::Widget,
+    };
 
     fn buffer_line(buffer: &Buffer, width: u16, y: u16) -> String {
         let mut line = String::new();
