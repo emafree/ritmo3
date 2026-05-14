@@ -157,9 +157,8 @@ impl InputWidget {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::{KeyCode, KeyEvent};
-
     use super::InputWidget;
+    use crossterm::event::{KeyCode, KeyEvent};
     use ratatui::{backend::TestBackend, Terminal};
 
     #[test]
@@ -177,17 +176,18 @@ mod tests {
     }
 
     #[test]
-    fn handle_key_routes_supported_keys() {
+    fn handle_key_delegates_input_actions() {
         let mut input = InputWidget::new();
         input.set_suggestions(vec!["alpha".into(), "beta".into()]);
 
+        input.handle_key(KeyEvent::from(KeyCode::Char('a')));
         input.handle_key(KeyEvent::from(KeyCode::Down));
-        input.handle_key(KeyEvent::from(KeyCode::Char('ß')));
+        input.handle_key(KeyEvent::from(KeyCode::Up));
         input.handle_key(KeyEvent::from(KeyCode::Backspace));
 
-        assert_eq!(input.selected_suggestion, None);
-        assert!(input.value.is_empty());
+        assert_eq!(input.value, "");
         assert_eq!(input.cursor, 0);
+        assert_eq!(input.selected_suggestion, Some(0));
     }
 
     #[test]

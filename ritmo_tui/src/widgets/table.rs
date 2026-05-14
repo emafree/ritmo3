@@ -121,11 +121,7 @@ impl TableWidget {
             .take(visible_rows)
             .map(|(index, row)| {
                 let cells = (0..column_count).map(|cell_index| {
-                    Cell::from(
-                        row.get(cell_index)
-                            .map(String::as_str)
-                            .unwrap_or_default(),
-                    )
+                    Cell::from(row.get(cell_index).map(String::as_str).unwrap_or_default())
                 });
 
                 let mut rendered_row = Row::new(cells);
@@ -276,10 +272,7 @@ mod tests {
             table.handle_key(key(KeyCode::Char('d'))),
             TableAction::Delete
         );
-        assert_eq!(
-            table.handle_key(key(KeyCode::Delete)),
-            TableAction::Delete
-        );
+        assert_eq!(table.handle_key(key(KeyCode::Delete)), TableAction::Delete);
     }
 
     #[test]
@@ -294,9 +287,6 @@ mod tests {
     #[test]
     fn handle_key_unhandled_key_returns_none() {
         let mut table = table_with_rows(2);
-        assert_eq!(
-            table.handle_key(key(KeyCode::Char('x'))),
-            TableAction::None
-        );
+        assert_eq!(table.handle_key(key(KeyCode::Char('x'))), TableAction::None);
     }
 }

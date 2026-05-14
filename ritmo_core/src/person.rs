@@ -31,7 +31,9 @@ pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
     let place_repo = PlaceRepository::new(&ctx.ctx);
     let person_places_repo = XPersonPlacesRepository::new(&ctx.ctx);
     for (place_id, place_type_id) in person_places_repo.list_by_person(id).await? {
-        person_places_repo.delete(id, place_id, place_type_id).await?;
+        person_places_repo
+            .delete(id, place_id, place_type_id)
+            .await?;
         place_repo.delete(place_id).await?;
     }
 
