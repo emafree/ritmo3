@@ -177,12 +177,16 @@ mod tests {
     #[test]
     fn handle_key_delegates_input_actions() {
         let mut input = InputWidget::new();
+        input.set_suggestions(vec!["alpha".into(), "beta".into()]);
 
         input.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        input.handle_key(KeyEvent::from(KeyCode::Down));
+        input.handle_key(KeyEvent::from(KeyCode::Up));
         input.handle_key(KeyEvent::from(KeyCode::Backspace));
 
         assert_eq!(input.value, "");
         assert_eq!(input.cursor, 0);
+        assert_eq!(input.selected_suggestion, Some(0));
     }
 
     #[test]
