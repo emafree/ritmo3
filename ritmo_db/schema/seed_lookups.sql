@@ -4,7 +4,7 @@
 -- ============================================================
 -- roles
 -- ============================================================
-INSERT INTO roles (key, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO roles (key, created_at, updated_at) VALUES
     ('author', strftime('%s', 'now'), strftime('%s', 'now')),
     ('translator', strftime('%s', 'now'), strftime('%s', 'now')),
     ('editor', strftime('%s', 'now'), strftime('%s', 'now')),
@@ -17,7 +17,7 @@ INSERT INTO roles (key, created_at, updated_at) VALUES
     ('commentator', strftime('%s', 'now'), strftime('%s', 'now')),
     ('other', strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO role_translations (role_id, language_code, name) VALUES
+INSERT OR IGNORE INTO role_translations (role_id, language_code, name) VALUES
     -- author
     ((SELECT id FROM roles WHERE key = 'author'), 'it', 'Autore'),
     ((SELECT id FROM roles WHERE key = 'author'), 'en', 'Author'),
@@ -88,7 +88,7 @@ INSERT INTO role_translations (role_id, language_code, name) VALUES
 -- ============================================================
 -- types
 -- ============================================================
-INSERT INTO types (key, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO types (key, created_at, updated_at) VALUES
     ('novel', strftime('%s', 'now'), strftime('%s', 'now')),
     ('essay', strftime('%s', 'now'), strftime('%s', 'now')),
     ('short_story', strftime('%s', 'now'), strftime('%s', 'now')),
@@ -101,7 +101,7 @@ INSERT INTO types (key, created_at, updated_at) VALUES
     ('theatre', strftime('%s', 'now'), strftime('%s', 'now')),
     ('other', strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO type_translations (type_id, language_code, name) VALUES
+INSERT OR IGNORE INTO type_translations (type_id, language_code, name) VALUES
     ((SELECT id FROM types WHERE key = 'novel'), 'it', 'Romanzo'),
     ((SELECT id FROM types WHERE key = 'novel'), 'en', 'Novel'),
     ((SELECT id FROM types WHERE key = 'novel'), 'fr', 'Roman'),
@@ -162,7 +162,7 @@ INSERT INTO type_translations (type_id, language_code, name) VALUES
 -- ============================================================
 -- formats
 -- ============================================================
-INSERT INTO formats (key, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO formats (key, created_at, updated_at) VALUES
     ('epub', strftime('%s', 'now'), strftime('%s', 'now')),
     ('pdf', strftime('%s', 'now'), strftime('%s', 'now')),
     ('mobi', strftime('%s', 'now'), strftime('%s', 'now')),
@@ -173,7 +173,7 @@ INSERT INTO formats (key, created_at, updated_at) VALUES
     ('txt', strftime('%s', 'now'), strftime('%s', 'now')),
     ('other', strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO format_translations (format_id, language_code, name) VALUES
+INSERT OR IGNORE INTO format_translations (format_id, language_code, name) VALUES
     ((SELECT id FROM formats WHERE key = 'epub'), 'it', 'EPUB'),
     ((SELECT id FROM formats WHERE key = 'epub'), 'en', 'EPUB'),
     ((SELECT id FROM formats WHERE key = 'epub'), 'fr', 'EPUB'),
@@ -224,7 +224,7 @@ INSERT INTO format_translations (format_id, language_code, name) VALUES
 -- ============================================================
 -- genres
 -- ============================================================
-INSERT INTO genres (key, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO genres (key, created_at, updated_at) VALUES
     ('adventure', strftime('%s', 'now'), strftime('%s', 'now')),
     ('biography', strftime('%s', 'now'), strftime('%s', 'now')),
     ('crime', strftime('%s', 'now'), strftime('%s', 'now')),
@@ -241,7 +241,7 @@ INSERT INTO genres (key, created_at, updated_at) VALUES
     ('travel', strftime('%s', 'now'), strftime('%s', 'now')),
     ('other', strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO genre_translations (genre_id, language_code, name) VALUES
+INSERT OR IGNORE INTO genre_translations (genre_id, language_code, name) VALUES
     ((SELECT id FROM genres WHERE key = 'adventure'), 'it', 'Avventura'),
     ((SELECT id FROM genres WHERE key = 'adventure'), 'en', 'Adventure'),
     ((SELECT id FROM genres WHERE key = 'adventure'), 'fr', 'Aventure'),
@@ -319,14 +319,14 @@ INSERT INTO genre_translations (genre_id, language_code, name) VALUES
     ((SELECT id FROM genres WHERE key = 'other'), 'de', 'Andere'),
     ((SELECT id FROM genres WHERE key = 'other'), 'es', 'Otro');
 
-INSERT INTO person_language_roles (code, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO person_language_roles (code, created_at, updated_at) VALUES
     ('native',  strftime('%s', 'now'), strftime('%s', 'now')),
     ('writing', strftime('%s', 'now'), strftime('%s', 'now')),
     ('fluent',  strftime('%s', 'now'), strftime('%s', 'now')),
     ('reading', strftime('%s', 'now'), strftime('%s', 'now')),
     ('other',   strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO person_language_role_translations (role_id, language_code, label) VALUES
+INSERT OR IGNORE INTO person_language_role_translations (role_id, language_code, label) VALUES
     ((SELECT id FROM person_language_roles WHERE code = 'native'), 'it', 'Madrelingua'),
     ((SELECT id FROM person_language_roles WHERE code = 'native'), 'en', 'Native language'),
     ((SELECT id FROM person_language_roles WHERE code = 'native'), 'fr', 'Langue maternelle'),
@@ -348,39 +348,39 @@ INSERT INTO person_language_role_translations (role_id, language_code, label) VA
     ((SELECT id FROM person_language_roles WHERE code = 'other'), 'fr', 'Autre'),
     ((SELECT id FROM person_language_roles WHERE code = 'other'), 'de', 'Andere');
 
-INSERT INTO s_place_types (key, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO s_place_types (key, created_at, updated_at) VALUES
     ('birth',    strftime('%s', 'now'), strftime('%s', 'now')),
     ('death',    strftime('%s', 'now'), strftime('%s', 'now')),
     ('activity', strftime('%s', 'now'), strftime('%s', 'now')),
     ('residence',strftime('%s', 'now'), strftime('%s', 'now')),
     ('other',    strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
-INSERT INTO s_place_type_translations (place_type_id, language_code, label) VALUES
-    ((SELECT id FROM person_place_types WHERE key = 'birth'), 'it', 'Luogo di nascita'),
-    ((SELECT id FROM person_place_types WHERE key = 'birth'), 'en', 'Place of birth'),
-    ((SELECT id FROM person_place_types WHERE key = 'birth'), 'fr', 'Lieu de naissance'),
-    ((SELECT id FROM person_place_types WHERE key = 'birth'), 'de', 'Geburtsort'),
-    ((SELECT id FROM person_place_types WHERE key = 'death'), 'it', 'Luogo di morte'),
-    ((SELECT id FROM person_place_types WHERE key = 'death'), 'en', 'Place of death'),
-    ((SELECT id FROM person_place_types WHERE key = 'death'), 'fr', 'Lieu de décès'),
-    ((SELECT id FROM person_place_types WHERE key = 'death'), 'de', 'Sterbeort'),
-    ((SELECT id FROM person_place_types WHERE key = 'activity'), 'it', 'Luogo di attività'),
-    ((SELECT id FROM person_place_types WHERE key = 'activity'), 'en', 'Place of activity'),
-    ((SELECT id FROM person_place_types WHERE key = 'activity'), 'fr', 'Lieu d''activité'),
-    ((SELECT id FROM person_place_types WHERE key = 'activity'), 'de', 'Wirkungsort'),
-    ((SELECT id FROM person_place_types WHERE key = 'residence'), 'it', 'Residenza'),
-    ((SELECT id FROM person_place_types WHERE key = 'residence'), 'en', 'Residence'),
-    ((SELECT id FROM person_place_types WHERE key = 'residence'), 'fr', 'Résidence'),
-    ((SELECT id FROM person_place_types WHERE key = 'residence'), 'de', 'Wohnort'),
-    ((SELECT id FROM person_place_types WHERE key = 'other'), 'it', 'Altro'),
-    ((SELECT id FROM person_place_types WHERE key = 'other'), 'en', 'Other'),
-    ((SELECT id FROM person_place_types WHERE key = 'other'), 'fr', 'Autre'),
-    ((SELECT id FROM person_place_types WHERE key = 'other'), 'de', 'Andere');
+INSERT OR IGNORE INTO s_place_type_translations (place_type_id, language_code, label) VALUES
+    ((SELECT id FROM s_place_types WHERE key = 'birth'), 'it', 'Luogo di nascita'),
+    ((SELECT id FROM s_place_types WHERE key = 'birth'), 'en', 'Place of birth'),
+    ((SELECT id FROM s_place_types WHERE key = 'birth'), 'fr', 'Lieu de naissance'),
+    ((SELECT id FROM s_place_types WHERE key = 'birth'), 'de', 'Geburtsort'),
+    ((SELECT id FROM s_place_types WHERE key = 'death'), 'it', 'Luogo di morte'),
+    ((SELECT id FROM s_place_types WHERE key = 'death'), 'en', 'Place of death'),
+    ((SELECT id FROM s_place_types WHERE key = 'death'), 'fr', 'Lieu de décès'),
+    ((SELECT id FROM s_place_types WHERE key = 'death'), 'de', 'Sterbeort'),
+    ((SELECT id FROM s_place_types WHERE key = 'activity'), 'it', 'Luogo di attività'),
+    ((SELECT id FROM s_place_types WHERE key = 'activity'), 'en', 'Place of activity'),
+    ((SELECT id FROM s_place_types WHERE key = 'activity'), 'fr', 'Lieu d''activité'),
+    ((SELECT id FROM s_place_types WHERE key = 'activity'), 'de', 'Wirkungsort'),
+    ((SELECT id FROM s_place_types WHERE key = 'residence'), 'it', 'Residenza'),
+    ((SELECT id FROM s_place_types WHERE key = 'residence'), 'en', 'Residence'),
+    ((SELECT id FROM s_place_types WHERE key = 'residence'), 'fr', 'Résidence'),
+    ((SELECT id FROM s_place_types WHERE key = 'residence'), 'de', 'Wohnort'),
+    ((SELECT id FROM s_place_types WHERE key = 'other'), 'it', 'Altro'),
+    ((SELECT id FROM s_place_types WHERE key = 'other'), 'en', 'Other'),
+    ((SELECT id FROM s_place_types WHERE key = 'other'), 'fr', 'Autre'),
+    ((SELECT id FROM s_place_types WHERE key = 'other'), 'de', 'Andere');
 
 -- ============================================================
 -- 11. languages
 -- ============================================================
-INSERT INTO languages (iso_code_2char, iso_code_3char, official_name, native_name, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO languages (iso_code_2char, iso_code_3char, official_name, native_name, created_at, updated_at) VALUES
     ('it', 'ita', 'Italian',      'italiano',          strftime('%s', 'now'), strftime('%s', 'now')),
     ('en', 'eng', 'English',      'English',           strftime('%s', 'now'), strftime('%s', 'now')),
     ('fr', 'fra', 'French',       'français',          strftime('%s', 'now'), strftime('%s', 'now')),
@@ -395,13 +395,13 @@ INSERT INTO languages (iso_code_2char, iso_code_3char, official_name, native_nam
 -- ============================================================
 -- 12. content_language_roles
 -- ============================================================
-INSERT INTO content_language_roles (code, created_at, updated_at) VALUES
+INSERT OR IGNORE INTO content_language_roles (code, created_at, updated_at) VALUES
     ('original', strftime('%s', 'now'), strftime('%s', 'now')),
     ('source', strftime('%s', 'now'), strftime('%s', 'now')),
     ('actual', strftime('%s', 'now'), strftime('%s', 'now')),
     ('other',    strftime('%s', 'now'), strftime('%s', 'now'));
 
-INSERT INTO content_language_role_translations (role_id, language_code, label) VALUES
+INSERT OR IGNORE INTO content_language_role_translations (role_id, language_code, label) VALUES
     ((SELECT id FROM content_language_roles WHERE code = 'original'), 'it', 'Lingua originale'),
     ((SELECT id FROM content_language_roles WHERE code = 'original'), 'en', 'Original language'),
     ((SELECT id FROM content_language_roles WHERE code = 'original'), 'fr', 'Langue originale'),
@@ -422,11 +422,11 @@ INSERT INTO content_language_role_translations (role_id, language_code, label) V
 -- ============================================================
 -- 13. book_language_roles
 -- ============================================================
-INSERT INTO book_language_roles (code, created_at) VALUES
+INSERT OR IGNORE INTO book_language_roles (code, created_at) VALUES
     ('actual', strftime('%s', 'now')),
     ('other',  strftime('%s', 'now'));
 
-INSERT INTO book_language_role_translations (role_id, language_code, label) VALUES
+INSERT OR IGNORE INTO book_language_role_translations (role_id, language_code, label) VALUES
     ((SELECT id FROM book_language_roles WHERE code = 'actual'), 'it', 'Lingua del testo'),
     ((SELECT id FROM book_language_roles WHERE code = 'actual'), 'en', 'Text language'),
     ((SELECT id FROM book_language_roles WHERE code = 'actual'), 'fr', 'Langue du texte'),

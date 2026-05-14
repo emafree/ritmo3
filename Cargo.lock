@@ -1032,6 +1032,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ritmo_app"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "ritmo_db",
+ "ritmo_errors",
+ "ritmo_tui",
+ "tokio",
+]
+
+[[package]]
 name = "ritmo_core"
 version = "0.1.0"
 dependencies = [

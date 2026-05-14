@@ -15,7 +15,7 @@ impl SeriesRepository {
     }
 
     pub async fn save(&self, item: &Series) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT INTO series(name) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO series(name) VALUES (?)")
             .bind(&item.name)
             .execute(&self.pool)
             .await

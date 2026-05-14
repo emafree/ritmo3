@@ -15,7 +15,7 @@ impl XBooksPeopleRolesRepository {
 
     pub async fn create(&self, book_id: i64, person_id: i64, role_id: i64) -> RitmoResult<()> {
         sqlx::query(
-            "INSERT INTO x_books_people_roles(book_id, person_id, role_id) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO x_books_people_roles(book_id, person_id, role_id) VALUES (?, ?, ?)",
         )
         .bind(book_id)
         .bind(person_id)
@@ -27,22 +27,25 @@ impl XBooksPeopleRolesRepository {
     }
 
     pub async fn delete(&self, book_id: i64, person_id: i64, role_id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM x_books_people_roles WHERE book_id = ? AND person_id = ? AND role_id = ?")
-            .bind(book_id)
-            .bind(person_id)
-            .bind(role_id)
-            .execute(&self.pool)
-            .await
-            .map_err(map_delete)?;
+        sqlx::query(
+            "DELETE FROM x_books_people_roles WHERE book_id = ? AND person_id = ? AND role_id = ?",
+        )
+        .bind(book_id)
+        .bind(person_id)
+        .bind(role_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_delete)?;
         Ok(())
     }
 
     pub async fn list_by_book(&self, book_id: i64) -> RitmoResult<Vec<(i64, i64)>> {
-        let rows = sqlx::query("SELECT person_id, role_id FROM x_books_people_roles WHERE book_id = ?")
-            .bind(book_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_query)?;
+        let rows =
+            sqlx::query("SELECT person_id, role_id FROM x_books_people_roles WHERE book_id = ?")
+                .bind(book_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| (row.get("person_id"), row.get("role_id")))
@@ -50,11 +53,12 @@ impl XBooksPeopleRolesRepository {
     }
 
     pub async fn list_by_person(&self, person_id: i64) -> RitmoResult<Vec<(i64, i64)>> {
-        let rows = sqlx::query("SELECT book_id, role_id FROM x_books_people_roles WHERE person_id = ?")
-            .bind(person_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_query)?;
+        let rows =
+            sqlx::query("SELECT book_id, role_id FROM x_books_people_roles WHERE person_id = ?")
+                .bind(person_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| (row.get("book_id"), row.get("role_id")))
@@ -62,11 +66,12 @@ impl XBooksPeopleRolesRepository {
     }
 
     pub async fn list_by_role(&self, role_id: i64) -> RitmoResult<Vec<(i64, i64)>> {
-        let rows = sqlx::query("SELECT book_id, person_id FROM x_books_people_roles WHERE role_id = ?")
-            .bind(role_id)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_query)?;
+        let rows =
+            sqlx::query("SELECT book_id, person_id FROM x_books_people_roles WHERE role_id = ?")
+                .bind(role_id)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| (row.get("book_id"), row.get("person_id")))

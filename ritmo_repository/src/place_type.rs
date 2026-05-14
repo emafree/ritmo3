@@ -15,7 +15,7 @@ impl PlaceTypeRepository {
     }
 
     pub async fn save(&self, place_type: &PlaceType) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT INTO person_place_types(key) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO s_place_types(key) VALUES (?)")
             .bind(&place_type.name)
             .execute(&self.pool)
             .await
@@ -24,7 +24,7 @@ impl PlaceTypeRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<PlaceType> {
-        let row = sqlx::query("SELECT id, key FROM person_place_types WHERE id = ?")
+        let row = sqlx::query("SELECT id, key FROM s_place_types WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -37,7 +37,7 @@ impl PlaceTypeRepository {
     }
 
     pub async fn update(&self, place_type: &PlaceType) -> RitmoResult<()> {
-        sqlx::query("UPDATE person_place_types SET key = ? WHERE id = ?")
+        sqlx::query("UPDATE s_place_types SET key = ? WHERE id = ?")
             .bind(&place_type.name)
             .bind(place_type.id)
             .execute(&self.pool)
@@ -47,7 +47,7 @@ impl PlaceTypeRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM person_place_types WHERE id = ?")
+        sqlx::query("DELETE FROM s_place_types WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -56,7 +56,7 @@ impl PlaceTypeRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<PlaceType>> {
-        let rows = sqlx::query("SELECT id, key FROM person_place_types ORDER BY key")
+        let rows = sqlx::query("SELECT id, key FROM s_place_types ORDER BY key")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;

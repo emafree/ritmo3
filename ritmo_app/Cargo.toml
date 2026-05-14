@@ -1,0 +1,14 @@
+[package]
+name = "ritmo_app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+dotenv = { package = "dotenvy", version = "0.15" }
+ritmo_db = { path = "../ritmo_db" }
+ritmo_tui = { path = "../ritmo_tui" }
+ritmo_errors = { path = "../ritmo_errors" }

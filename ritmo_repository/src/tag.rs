@@ -15,7 +15,7 @@ impl TagRepository {
     }
 
     pub async fn save(&self, item: &Tag) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT INTO tags(name) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO tags(name) VALUES (?)")
             .bind(&item.name)
             .execute(&self.pool)
             .await
@@ -71,13 +71,12 @@ impl TagRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Tag>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query(
-            "SELECT id, name FROM tags WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
-        )
-        .bind(pattern)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let rows =
+            sqlx::query("SELECT id, name FROM tags WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+                .bind(pattern)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| Tag {

@@ -1,4 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::layout::{Constraint, Layout};
+use ratatui::{
+    prelude::Frame,
+    widgets::{Block, Borders, Paragraph},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainWindow {
@@ -75,6 +80,7 @@ pub enum AppAction {
 pub struct AppState {
     pub main_window: MainWindow,
     pub level: ScreenLevel,
+    should_quit: bool,
 }
 
 impl Default for AppState {
@@ -82,64 +88,101 @@ impl Default for AppState {
         Self {
             main_window: MainWindow::Filters,
             level: ScreenLevel::List,
+            should_quit: false,
         }
     }
 }
 
 impl AppState {
+    pub fn should_quit(&self) -> bool {
+        self.should_quit
+    }
+
+    pub fn render(&self, frame: &mut Frame) {
+        let chunks =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
+
+        // Contenuto principale
+        let content = match self.main_window {
+            MainWindow::Books => Paragraph::new("Books — da implementare"),
+            MainWindow::Contents => Paragraph::new("Contents — da implementare"),
+            MainWindow::Filters => Paragraph::new("Filters — da implementare"),
+        };
+        frame.render_widget(
+            content.block(Block::default().borders(Borders::ALL).title("Ritmo")),
+            chunks[0],
+        );
+
+        // Statusbar in basso
+        let status = format!(
+            " Window: {:?} | Level: {:?} | q: esci | f/b/c: cambia finestra",
+            self.main_window, self.level
+        );
+        frame.render_widget(Paragraph::new(status), chunks[1]);
+    }
+
     pub fn handle_key(&mut self, key: KeyEvent) -> AppAction {
-        if self.level == ScreenLevel::Popup {
-            return match key.code {
+        let action = if self.level == ScreenLevel::Popup {
+            match key.code {
                 KeyCode::Enter => AppAction::ConfirmPopup,
                 KeyCode::Esc => {
                     self.level = self.level.ascend();
                     AppAction::CancelPopup
                 }
                 _ => AppAction::None,
-            };
+            }
+        } else {
+            match key.code {
+                KeyCode::Char('q') if self.level == ScreenLevel::List => AppAction::Quit,
+                KeyCode::Left if self.level == ScreenLevel::List => {
+                    self.main_window = self.main_window.previous();
+                    AppAction::SwitchWindow(self.main_window)
+                }
+                KeyCode::Right if self.level == ScreenLevel::List => {
+                    self.main_window = self.main_window.next();
+                    AppAction::SwitchWindow(self.main_window)
+                }
+                KeyCode::Char('f') if self.level == ScreenLevel::List => {
+                    self.main_window = MainWindow::Filters;
+                    AppAction::SwitchWindow(self.main_window)
+                }
+                KeyCode::Char('b') if self.level == ScreenLevel::List => {
+                    self.main_window = MainWindow::Books;
+                    AppAction::SwitchWindow(self.main_window)
+                }
+                KeyCode::Char('c') if self.level == ScreenLevel::List => {
+                    self.main_window = MainWindow::Contents;
+                    AppAction::SwitchWindow(self.main_window)
+                }
+                KeyCode::Up | KeyCode::Char('k') => AppAction::ScrollUp,
+                KeyCode::Down | KeyCode::Char('j') => AppAction::ScrollDown,
+                KeyCode::Enter => {
+                    self.level = self.level.descend();
+                    AppAction::EnterLevel
+                }
+                KeyCode::Esc => {
+                    self.level = self.level.ascend();
+                    AppAction::ExitLevel
+                }
+                KeyCode::Char('/') => AppAction::Search,
+                KeyCode::Char('n') | KeyCode::Char('+') => AppAction::NewRecord,
+                KeyCode::Char('e') => AppAction::EditRecord,
+                KeyCode::Char('d') | KeyCode::Delete => AppAction::DeleteRecord,
+                KeyCode::Char(' ')
+                    if self.main_window == MainWindow::Filters
+                        && self.level == ScreenLevel::List =>
+                {
+                    AppAction::ToggleFilterSet
+                }
+                _ => AppAction::None,
+            }
+        };
+
+        if matches!(action, AppAction::Quit) {
+            self.should_quit = true;
         }
 
-        match key.code {
-            KeyCode::Char('q') if self.level == ScreenLevel::List => AppAction::Quit,
-            KeyCode::Left if self.level == ScreenLevel::List => {
-                self.main_window = self.main_window.previous();
-                AppAction::SwitchWindow(self.main_window)
-            }
-            KeyCode::Right if self.level == ScreenLevel::List => {
-                self.main_window = self.main_window.next();
-                AppAction::SwitchWindow(self.main_window)
-            }
-            KeyCode::Char('f') if self.level == ScreenLevel::List => {
-                self.main_window = MainWindow::Filters;
-                AppAction::SwitchWindow(self.main_window)
-            }
-            KeyCode::Char('b') if self.level == ScreenLevel::List => {
-                self.main_window = MainWindow::Books;
-                AppAction::SwitchWindow(self.main_window)
-            }
-            KeyCode::Char('c') if self.level == ScreenLevel::List => {
-                self.main_window = MainWindow::Contents;
-                AppAction::SwitchWindow(self.main_window)
-            }
-            KeyCode::Up | KeyCode::Char('k') => AppAction::ScrollUp,
-            KeyCode::Down | KeyCode::Char('j') => AppAction::ScrollDown,
-            KeyCode::Enter => {
-                self.level = self.level.descend();
-                AppAction::EnterLevel
-            }
-            KeyCode::Esc => {
-                self.level = self.level.ascend();
-                AppAction::ExitLevel
-            }
-            KeyCode::Char('/') => AppAction::Search,
-            KeyCode::Char('n') | KeyCode::Char('+') => AppAction::NewRecord,
-            KeyCode::Char('e') => AppAction::EditRecord,
-            KeyCode::Char('d') | KeyCode::Delete => AppAction::DeleteRecord,
-            KeyCode::Char(' ') if self.main_window == MainWindow::Filters && self.level == ScreenLevel::List => {
-                AppAction::ToggleFilterSet
-            }
-            _ => AppAction::None,
-        }
+        action
     }
 }
 
@@ -154,7 +197,10 @@ mod tests {
     #[test]
     fn fbc_are_only_enabled_on_list_level() {
         let mut app = AppState::default();
-        assert_eq!(app.handle_key(key(KeyCode::Char('b'))), AppAction::SwitchWindow(MainWindow::Books));
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('b'))),
+            AppAction::SwitchWindow(MainWindow::Books)
+        );
         assert_eq!(app.main_window, MainWindow::Books);
 
         app.level = ScreenLevel::Detail;
@@ -176,6 +222,7 @@ mod tests {
         let mut app = AppState {
             main_window: MainWindow::Filters,
             level: ScreenLevel::Popup,
+            should_quit: false,
         };
 
         assert_eq!(app.handle_key(key(KeyCode::Enter)), AppAction::ConfirmPopup);
@@ -188,9 +235,29 @@ mod tests {
     #[test]
     fn arrows_cycle_main_windows_from_list_level() {
         let mut app = AppState::default();
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Books));
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Contents));
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Filters));
-        assert_eq!(app.handle_key(key(KeyCode::Left)), AppAction::SwitchWindow(MainWindow::Contents));
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Books)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Contents)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Filters)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Left)),
+            AppAction::SwitchWindow(MainWindow::Contents)
+        );
+    }
+
+    #[test]
+    fn should_quit_is_set_after_quit_action() {
+        let mut app = AppState::default();
+        assert!(!app.should_quit());
+        assert_eq!(app.handle_key(key(KeyCode::Char('q'))), AppAction::Quit);
+        assert!(app.should_quit());
     }
 }

@@ -7,19 +7,20 @@ pub async fn save_filter_set(pool: &SqlitePool, filter_set: &FilterSet) -> Ritmo
     let mut tx = pool.begin().await.map_err(map_query)?;
 
     let operator = logical_operator_to_db(&filter_set.operator);
-    let result = sqlx::query("INSERT INTO s_filter_sets(name, active, operator) VALUES (?, ?, ?)")
-        .bind(&filter_set.name)
-        .bind(i64::from(filter_set.active))
-        .bind(operator)
-        .execute(&mut *tx)
-        .await
-        .map_err(map_insert)?;
+    let result =
+        sqlx::query("INSERT OR IGNORE INTO s_filter_sets(name, active, operator) VALUES (?, ?, ?)")
+            .bind(&filter_set.name)
+            .bind(i64::from(filter_set.active))
+            .bind(operator)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_insert)?;
 
     let filter_set_id = result.last_insert_rowid();
 
     for filter in &filter_set.filters {
         sqlx::query(
-            "INSERT INTO s_filter_conditions(filter_set_id, field, operator, values) VALUES (?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO s_filter_conditions(filter_set_id, field, operator, values) VALUES (?, ?, ?, ?)",
         )
         .bind(filter_set_id)
         .bind(serialize_json(&filter.field)?)
@@ -73,7 +74,7 @@ pub async fn update_filter_set(pool: &SqlitePool, filter_set: &FilterSet) -> Rit
 
     for filter in &filter_set.filters {
         sqlx::query(
-            "INSERT INTO s_filter_conditions(filter_set_id, field, operator, values) VALUES (?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO s_filter_conditions(filter_set_id, field, operator, values) VALUES (?, ?, ?, ?)",
         )
         .bind(filter_set.id)
         .bind(serialize_json(&filter.field)?)

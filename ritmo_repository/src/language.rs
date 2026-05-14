@@ -16,7 +16,7 @@ impl LanguageRepository {
 
     pub async fn save(&self, language: &Language) -> RitmoResult<i64> {
         let result = sqlx::query(
-            "INSERT INTO languages(iso_code_2char, iso_code_3char, official_name) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO languages(iso_code_2char, iso_code_3char, official_name) VALUES (?, ?, ?)",
         )
         .bind(&language.iso_639_2)
         .bind(&language.iso_639_3)

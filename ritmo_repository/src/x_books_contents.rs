@@ -14,7 +14,7 @@ impl XBooksContentsRepository {
     }
 
     pub async fn create(&self, book_id: i64, content_id: i64) -> RitmoResult<()> {
-        sqlx::query("INSERT INTO x_books_contents(book_id, content_id) VALUES (?, ?)")
+        sqlx::query("INSERT OR IGNORE INTO x_books_contents(book_id, content_id) VALUES (?, ?)")
             .bind(book_id)
             .bind(content_id)
             .execute(&self.pool)

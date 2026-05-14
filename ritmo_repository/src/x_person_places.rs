@@ -20,7 +20,7 @@ impl XPersonPlacesRepository {
         place_type_id: i64,
     ) -> RitmoResult<()> {
         sqlx::query(
-            "INSERT INTO x_person_places(person_id, place_id, place_type_id) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO x_person_places(person_id, place_id, place_type_id) VALUES (?, ?, ?)",
         )
         .bind(person_id)
         .bind(place_id)

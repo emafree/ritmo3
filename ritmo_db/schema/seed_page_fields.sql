@@ -4,7 +4,7 @@
 
 DELETE FROM page_fields;
 
-INSERT INTO page_fields (page, field_key, data_kind, sort_order, enum_values, relation_type, target_table, target_field) VALUES
+INSERT OR IGNORE INTO page_fields (page, field_key, data_kind, sort_order, enum_values, relation_type, target_table, target_field) VALUES
     -- book_page
     ('book_page', 'field-original-title',   'string', 10, NULL, 'direct',   NULL,             NULL),
     ('book_page', 'field-publication-date', 'date',   20, NULL, 'direct',   NULL,             NULL),

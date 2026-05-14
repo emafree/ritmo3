@@ -20,7 +20,7 @@ impl BookRepository {
     pub async fn save(&self, book: &Book) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         let result = sqlx::query(
-            "INSERT INTO books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&book.title)
         .bind(&book.isbn)

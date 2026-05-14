@@ -20,7 +20,7 @@ impl ContentRepository {
     pub async fn save(&self, content: &Content) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         let result = sqlx::query(
-            "INSERT INTO contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(&content.title)
         .bind(year)
