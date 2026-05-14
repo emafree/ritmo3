@@ -14,7 +14,6 @@ use crossterm::{
 };
 use ratatui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders, Paragraph},
     Terminal,
 };
 use ritmo_errors::RitmoResult;
@@ -47,22 +46,12 @@ pub fn run() -> RitmoResult<()> {
     let mut app_state = AppState::default();
 
     loop {
-        terminal.draw(|frame| {
-            let area = frame.area();
-            let status = format!(
-                "Window: {:?} | Level: {:?} | q per uscire",
-                app_state.main_window, app_state.level
-            );
-            frame.render_widget(
-                Paragraph::new(status)
-                    .block(Block::default().borders(Borders::ALL).title("Ritmo")),
-                area,
-            );
-        })?;
+        terminal.draw(|frame| app_state.render(frame))?;
 
         if event::poll(EVENT_POLL_TIMEOUT)? {
             if let Event::Key(key) = event::read()? {
-                if matches!(app_state.handle_key(key), AppAction::Quit) {
+                app_state.handle_key(key);
+                if app_state.should_quit() {
                     break;
                 }
             }
