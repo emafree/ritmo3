@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::{Constraint, Frame, Layout, Rect},
     style::{Modifier, Style},
@@ -15,6 +16,16 @@ pub struct InputWidget {
 impl InputWidget {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char(c) => self.handle_char(c),
+            KeyCode::Backspace => self.handle_backspace(),
+            KeyCode::Up => self.handle_up(),
+            KeyCode::Down => self.handle_down(),
+            _ => {}
+        }
     }
 
     pub fn handle_char(&mut self, c: char) {
@@ -146,6 +157,7 @@ impl InputWidget {
 #[cfg(test)]
 mod tests {
     use super::InputWidget;
+    use crossterm::event::{KeyCode, KeyEvent};
     use ratatui::{backend::TestBackend, Terminal};
 
     #[test]
@@ -160,6 +172,17 @@ mod tests {
         assert_eq!(input.value, "a");
         assert_eq!(input.cursor, 1);
         assert_eq!(input.selected_suggestion, None);
+    }
+
+    #[test]
+    fn handle_key_delegates_input_actions() {
+        let mut input = InputWidget::new();
+
+        input.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        input.handle_key(KeyEvent::from(KeyCode::Backspace));
+
+        assert_eq!(input.value, "");
+        assert_eq!(input.cursor, 0);
     }
 
     #[test]
