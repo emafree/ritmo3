@@ -101,13 +101,13 @@ impl AppState {
         let mut books = Vec::new();
         for book in book_repo.list_all().await? {
             let detail = book_repo.get(book.id).await?;
-            books.push(present_book_detail(detail));
+            books.push(present_book_detail_from_book_entity(detail));
         }
 
         let mut contents = Vec::new();
         for content in content_repo.list_all().await? {
             let detail = content_repo.get(content.id).await?;
-            contents.push(present_content_detail(detail));
+            contents.push(present_content_detail_from_content_entity(detail));
         }
 
         Ok(Self {
@@ -123,7 +123,7 @@ impl AppState {
     pub async fn reload_book(&mut self, id: i64) -> RitmoResult<()> {
         let ctx = RepositoryContext::new(self.pool.clone());
         let repo = BookRepository::new(&ctx);
-        let book = present_book_detail(repo.get(id).await?);
+        let book = present_book_detail_from_book_entity(repo.get(id).await?);
 
         if let Some(index) = self.books.iter().position(|item| item.book.id == id) {
             self.books[index] = book;
@@ -137,7 +137,7 @@ impl AppState {
     pub async fn reload_content(&mut self, id: i64) -> RitmoResult<()> {
         let ctx = RepositoryContext::new(self.pool.clone());
         let repo = ContentRepository::new(&ctx);
-        let content = present_content_detail(repo.get(id).await?);
+        let content = present_content_detail_from_content_entity(repo.get(id).await?);
 
         if let Some(index) = self.contents.iter().position(|item| item.content.id == id) {
             self.contents[index] = content;
@@ -246,7 +246,7 @@ impl AppState {
     }
 }
 
-fn present_book_detail(book: ritmo_domain::Book) -> BookDetail {
+fn present_book_detail_from_book_entity(book: ritmo_domain::Book) -> BookDetail {
     BookDetail {
         book,
         linked_contents: Vec::new(),
@@ -255,7 +255,7 @@ fn present_book_detail(book: ritmo_domain::Book) -> BookDetail {
     }
 }
 
-fn present_content_detail(content: ritmo_domain::Content) -> ContentDetail {
+fn present_content_detail_from_content_entity(content: ritmo_domain::Content) -> ContentDetail {
     ContentDetail {
         content,
         linked_books: Vec::new(),
