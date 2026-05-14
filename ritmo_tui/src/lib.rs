@@ -51,7 +51,22 @@ pub async fn run(pool: SqlitePool) -> RitmoResult<()> {
 
         if event::poll(EVENT_POLL_TIMEOUT)? {
             if let Event::Key(key) = event::read()? {
-                app_state.handle_key(key);
+                let action = app_state.handle_key(key);
+                match action {
+                    AppAction::NewRecord => {
+                        // TODO: open creation screen
+                    }
+                    AppAction::DeleteRecord => {
+                        // TODO: open confirmation popup
+                    }
+                    AppAction::EnterLevel => {
+                        // TODO: load and show detail
+                    }
+                    AppAction::Search => {
+                        // TODO: activate search bar
+                    }
+                    _ => {}
+                }
                 if app_state.should_quit() {
                     break;
                 }
