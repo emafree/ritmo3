@@ -1108,6 +1108,7 @@ dependencies = [
  "crossterm 0.29.0",
  "ratatui",
  "ritmo_core",
+ "ritmo_db",
  "ritmo_domain",
  "ritmo_errors",
  "ritmo_presenter",

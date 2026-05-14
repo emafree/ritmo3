@@ -133,8 +133,8 @@ impl AppState {
     pub async fn new(pool: SqlitePool) -> RitmoResult<Self> {
         let ctx = CoreContext::from_pool(pool.clone());
 
-        let books = load_books(&ctx).await.unwrap_or_default();
-        let contents = load_contents(&ctx).await.unwrap_or_default();
+        let books = load_books(&ctx).await?;
+        let contents = load_contents(&ctx).await?;
 
         let book_list = BookListScreen::new(&books);
         let content_list = ContentListScreen::new(&contents);
@@ -330,9 +330,9 @@ mod tests {
     }
 
     async fn make_test_state() -> AppState {
-        let pool = SqlitePool::connect("sqlite::memory:")
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
             .await
-            .expect("in-memory sqlite");
+            .expect("in-memory sqlite with schema");
         AppState::new(pool).await.expect("AppState::new")
     }
 

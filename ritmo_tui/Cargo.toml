@@ -15,3 +15,6 @@ ritmo_presenter = { path = "../ritmo_presenter" }
 ritmo_core = { path = "../ritmo_core" }
 ritmo_errors = { path = "../ritmo_errors" }
 ritmo_domain = { path = "../ritmo_domain" }
+
+[dev-dependencies]
+ritmo_db = { path = "../ritmo_db" }
