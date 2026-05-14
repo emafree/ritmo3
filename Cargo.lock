@@ -1110,6 +1110,9 @@ dependencies = [
  "ritmo_domain",
  "ritmo_errors",
  "ritmo_presenter",
+ "ritmo_repository",
+ "sqlx",
+ "tokio",
 ]
 
 [[package]]

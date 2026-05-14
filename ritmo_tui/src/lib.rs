@@ -2,21 +2,16 @@ pub mod app;
 pub mod screens;
 pub mod widgets;
 
-use std::{
-    io::stdout,
-    time::Duration,
-};
+use std::{io::stdout, time::Duration};
 
 use crossterm::{
     event::{self, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use ratatui::{backend::CrosstermBackend, Terminal};
 use ritmo_errors::RitmoResult;
+use sqlx::SqlitePool;
 
 pub use app::{AppAction, AppState, MainWindow, ScreenLevel};
 
@@ -39,11 +34,11 @@ impl Drop for TerminalSession {
     }
 }
 
-pub fn run() -> RitmoResult<()> {
+pub async fn run(pool: SqlitePool) -> RitmoResult<()> {
     let _session = TerminalSession::start()?;
     let backend = CrosstermBackend::new(stdout());
     let mut terminal = Terminal::new(backend)?;
-    let mut app_state = AppState::default();
+    let mut app_state = AppState::new(pool).await?;
 
     loop {
         terminal.draw(|frame| app_state.render(frame))?;

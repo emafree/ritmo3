@@ -13,3 +13,8 @@ ritmo_presenter = { path = "../ritmo_presenter" }
 ritmo_core = { path = "../ritmo_core" }
 ritmo_errors = { path = "../ritmo_errors" }
 ritmo_domain = { path = "../ritmo_domain" }
+ritmo_repository = { path = "../ritmo_repository" }
+sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio-rustls"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

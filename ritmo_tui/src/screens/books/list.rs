@@ -1,28 +1,29 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{
-    prelude::Frame,
-    layout::Rect,
-};
-use ritmo_presenter::BookListItem;
+use ratatui::{layout::Rect, prelude::Frame};
+use ritmo_presenter::BookDetail;
 
 use crate::widgets::{statusbar::StatusBar, table::TableWidget};
 
 #[derive(Debug, Clone)]
 pub struct BookListScreen {
     pub table: TableWidget,
-    pub items: Vec<BookListItem>,
+    pub items: Vec<BookDetail>,
 }
 
 impl BookListScreen {
-    pub fn new(items: Vec<BookListItem>) -> Self {
+    pub fn new(items: &[BookDetail]) -> Self {
         let rows = items
             .iter()
             .map(|item| {
                 vec![
-                    item.title.clone(),
-                    item.authors.join(", "),
-                    item.format.clone().unwrap_or_default(),
-                    item.series.clone().unwrap_or_default(),
+                    item.book.title.clone(),
+                    item.people_with_roles
+                        .iter()
+                        .map(|person| person.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    String::new(),
+                    String::new(),
                 ]
             })
             .collect();
@@ -37,7 +38,10 @@ impl BookListScreen {
             rows,
         );
 
-        Self { table, items }
+        Self {
+            table,
+            items: items.to_vec(),
+        }
     }
 
     pub fn handle_key(&mut self, key: KeyEvent, statusbar: &mut StatusBar) {
@@ -51,7 +55,9 @@ impl BookListScreen {
     }
 
     pub fn selected_id(&self) -> Option<i64> {
-        self.items.get(self.table.selected_index()).map(|item| item.id)
+        self.items
+            .get(self.table.selected_index())
+            .map(|item| item.book.id)
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -74,21 +80,28 @@ mod tests {
     use super::BookListScreen;
     use crate::widgets::statusbar::StatusBar;
     use crossterm::event::{KeyCode, KeyEvent};
-    use ritmo_presenter::BookListItem;
+    use ritmo_domain::Book;
+    use ritmo_presenter::BookDetail;
 
-    fn item(id: i64, title: &str) -> BookListItem {
-        BookListItem {
-            id,
-            title: title.to_string(),
-            authors: vec!["Author".to_string()],
-            format: Some("Paperback".to_string()),
-            series: Some("Saga".to_string()),
+    fn item(id: i64, title: &str) -> BookDetail {
+        BookDetail {
+            book: Book {
+                id,
+                title: title.to_string(),
+                isbn: None,
+                publication_year: None,
+                notes: None,
+            },
+            linked_contents: vec![],
+            people_with_roles: vec![],
+            tags: vec![],
         }
     }
 
     #[test]
     fn new_builds_table_headers_and_rows() {
-        let screen = BookListScreen::new(vec![item(1, "Dune")]);
+        let items = vec![item(1, "Dune")];
+        let screen = BookListScreen::new(&items);
 
         assert_eq!(
             screen.table.headers,
@@ -98,16 +111,17 @@ mod tests {
             screen.table.rows,
             vec![vec![
                 "Dune".to_string(),
-                "Author".to_string(),
-                "Paperback".to_string(),
-                "Saga".to_string()
+                "".to_string(),
+                "".to_string(),
+                "".to_string()
             ]]
         );
     }
 
     #[test]
     fn handle_key_moves_selection_and_updates_statusbar_info() {
-        let mut screen = BookListScreen::new(vec![item(1, "A"), item(2, "B")]);
+        let items = vec![item(1, "A"), item(2, "B")];
+        let mut screen = BookListScreen::new(&items);
         let mut statusbar = StatusBar::new();
 
         screen.handle_key(KeyEvent::from(KeyCode::Down), &mut statusbar);
@@ -121,7 +135,8 @@ mod tests {
 
     #[test]
     fn selected_id_returns_selected_book_id() {
-        let mut screen = BookListScreen::new(vec![item(10, "A"), item(20, "B")]);
+        let items = vec![item(10, "A"), item(20, "B")];
+        let mut screen = BookListScreen::new(&items);
 
         assert_eq!(screen.selected_id(), Some(10));
         screen.table.next(screen.items.len());
@@ -130,7 +145,7 @@ mod tests {
 
     #[test]
     fn selected_id_is_none_when_there_are_no_items() {
-        let screen = BookListScreen::new(vec![]);
+        let screen = BookListScreen::new(&[]);
 
         assert_eq!(screen.selected_id(), None);
     }
