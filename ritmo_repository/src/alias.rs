@@ -15,7 +15,7 @@ impl AliasRepository {
     }
 
     pub async fn save(&self, alias: &Alias) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT INTO aliases(name, person_id) VALUES (?, ?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO aliases(name, person_id) VALUES (?, ?)")
             .bind(&alias.alternative_name)
             .bind(alias.person_id)
             .execute(&self.pool)
@@ -100,14 +100,13 @@ impl AliasRepository {
         person_id: i64,
         name: &str,
     ) -> RitmoResult<Option<Alias>> {
-        let row = sqlx::query(
-            "SELECT id, name, person_id FROM aliases WHERE person_id = ? AND name = ?",
-        )
-        .bind(person_id)
-        .bind(name)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let row =
+            sqlx::query("SELECT id, name, person_id FROM aliases WHERE person_id = ? AND name = ?")
+                .bind(person_id)
+                .bind(name)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?;
 
         Ok(row.map(|value| Alias {
             id: value.get("id"),

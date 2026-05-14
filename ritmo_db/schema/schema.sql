@@ -147,21 +147,21 @@ CREATE TABLE IF NOT EXISTS "people" (
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
-CREATE TABLE s_place_types (
+CREATE TABLE IF NOT EXISTS s_place_types (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     key         TEXT NOT NULL UNIQUE,
     created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
-CREATE TABLE s_place_type_translations (
+CREATE TABLE IF NOT EXISTS s_place_type_translations (
     place_type_id   INTEGER NOT NULL REFERENCES s_place_types(id),
     language_code   TEXT NOT NULL,
     label           TEXT NOT NULL,
     PRIMARY KEY (place_type_id, language_code)
 );
 
-CREATE TABLE d_places (
+CREATE TABLE IF NOT EXISTS d_places (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     continent   TEXT,
     country     TEXT,
@@ -172,14 +172,14 @@ CREATE TABLE d_places (
     updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
-CREATE TABLE x_person_places (
+CREATE TABLE IF NOT EXISTS x_person_places (
     person_id       INTEGER NOT NULL REFERENCES d_people(id),
     place_id        INTEGER NOT NULL REFERENCES d_places(id),
     place_type_id   INTEGER NOT NULL REFERENCES s_place_types(id),
     PRIMARY KEY (person_id, place_id, place_type_id)
 );
 
-CREATE TABLE x_publisher_places (
+CREATE TABLE IF NOT EXISTS x_publisher_places (
     publisher_id    INTEGER NOT NULL REFERENCES d_publishers(id),
     place_id        INTEGER NOT NULL REFERENCES d_places(id),
     place_type_id   INTEGER NOT NULL REFERENCES s_place_types(id),
@@ -368,7 +368,7 @@ CREATE TABLE IF NOT EXISTS s_filter_conditions (
     filter_set_id   INTEGER NOT NULL REFERENCES s_filter_sets(id),
     field           TEXT NOT NULL,
     operator        TEXT NOT NULL,
-    values          TEXT NOT NULL  -- JSON array di FilterValue
+    filter_values   TEXT NOT NULL  -- JSON array di FilterValue
 );
 
 CREATE TABLE IF NOT EXISTS "pending_metadata_sync" (
@@ -548,7 +548,7 @@ CREATE INDEX IF NOT EXISTS "idx_pending_sync_composite" ON "pending_metadata_syn
 
 
 -- 1. Normalizzazione nome persona (nessuna ricorsione, ma aggiungo WHEN più robusto)
-CREATE TRIGGER normalize_person_name
+CREATE TRIGGER IF NOT EXISTS normalize_person_name
     AFTER INSERT ON people
     FOR EACH ROW
     WHEN NEW.normalized_key IS NULL
@@ -559,7 +559,7 @@ BEGIN
 END;
 
 -- 2. Timestamp people  ← CORRETTO (aggiunta guardia WHEN)
-CREATE TRIGGER update_people_timestamp
+CREATE TRIGGER IF NOT EXISTS update_people_timestamp
     AFTER UPDATE ON people
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -570,7 +570,7 @@ BEGIN
 END;
 
 -- 3. Timestamp publishers  ← CORRETTO
-CREATE TRIGGER update_publishers_timestamp
+CREATE TRIGGER IF NOT EXISTS update_publishers_timestamp
     AFTER UPDATE ON publishers
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -581,7 +581,7 @@ BEGIN
 END;
 
 -- 4. Normalizzazione alias (nessuna ricorsione)
-CREATE TRIGGER normalize_alias_name
+CREATE TRIGGER IF NOT EXISTS normalize_alias_name
     AFTER INSERT ON aliases
     FOR EACH ROW
     WHEN NEW.alias_normalized IS NULL
@@ -592,7 +592,7 @@ BEGIN
 END;
 
 -- 5. Timestamp system_config  ← CORRETTO (PK è key, non id)
-CREATE TRIGGER update_config_timestamp
+CREATE TRIGGER IF NOT EXISTS update_config_timestamp
     AFTER UPDATE ON system_config
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -603,38 +603,38 @@ BEGIN
 END;
 
 -- 6. Audit insert (nessuna ricorsione, invariato)
-CREATE TRIGGER audit_people_insert
+CREATE TRIGGER IF NOT EXISTS audit_people_insert
     AFTER INSERT ON people
     FOR EACH ROW
 BEGIN
-    INSERT INTO audit_log (table_name, record_id, operation, new_values)
+    INSERT OR IGNORE INTO audit_log (table_name, record_id, operation, new_values)
     VALUES ('people', NEW.id, 'INSERT',
             json_object('name', NEW.name, 'verified', NEW.verified));
 END;
 
 -- 7. Audit update (nessuna ricorsione, invariato)
-CREATE TRIGGER audit_people_update
+CREATE TRIGGER IF NOT EXISTS audit_people_update
     AFTER UPDATE ON people
     FOR EACH ROW
 BEGIN
-    INSERT INTO audit_log (table_name, record_id, operation, old_values, new_values)
+    INSERT OR IGNORE INTO audit_log (table_name, record_id, operation, old_values, new_values)
     VALUES ('people', NEW.id, 'UPDATE',
             json_object('name', OLD.name, 'verified', OLD.verified),
             json_object('name', NEW.name, 'verified', NEW.verified));
 END;
 
 -- 8. Audit delete (nessuna ricorsione, invariato)
-CREATE TRIGGER audit_people_delete
+CREATE TRIGGER IF NOT EXISTS audit_people_delete
     AFTER DELETE ON people
     FOR EACH ROW
 BEGIN
-    INSERT INTO audit_log (table_name, record_id, operation, old_values)
+    INSERT OR IGNORE INTO audit_log (table_name, record_id, operation, old_values)
     VALUES ('people', OLD.id, 'DELETE',
             json_object('name', OLD.name, 'verified', OLD.verified));
 END;
 
 -- 10. Timestamp series  ← CORRETTO
-CREATE TRIGGER update_series_timestamp
+CREATE TRIGGER IF NOT EXISTS update_series_timestamp
     AFTER UPDATE ON series
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -645,7 +645,7 @@ BEGIN
 END;
 
 -- 11. Timestamp tags  ← CORRETTO
-CREATE TRIGGER update_tags_timestamp
+CREATE TRIGGER IF NOT EXISTS update_tags_timestamp
     AFTER UPDATE ON tags
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -656,7 +656,7 @@ BEGIN
 END;
 
 -- 12. Timestamp aliases  ← CORRETTO
-CREATE TRIGGER update_aliases_timestamp
+CREATE TRIGGER IF NOT EXISTS update_aliases_timestamp
     AFTER UPDATE ON aliases
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -667,7 +667,7 @@ BEGIN
 END;
 
 -- 13. last_modified_date books (già corretto nell'originale, invariato)
-CREATE TRIGGER update_books_modified_date
+CREATE TRIGGER IF NOT EXISTS update_books_modified_date
     AFTER UPDATE ON books
     FOR EACH ROW
     WHEN NEW.last_modified_date = OLD.last_modified_date
@@ -678,7 +678,7 @@ BEGIN
 END;
 
 -- 14. Cleanup audit_log (nessuna ricorsione, invariato)
-CREATE TRIGGER cleanup_old_audit_logs
+CREATE TRIGGER IF NOT EXISTS cleanup_old_audit_logs
     AFTER INSERT ON audit_log
     WHEN (SELECT COUNT(*) FROM audit_log) > 10000
 BEGIN
@@ -692,14 +692,14 @@ BEGIN
 END;
 
 -- 15. Cleanup stats_cache (nessuna ricorsione, invariato)
-CREATE TRIGGER cleanup_expired_cache
+CREATE TRIGGER IF NOT EXISTS cleanup_expired_cache
     AFTER INSERT ON stats_cache
 BEGIN
     DELETE FROM stats_cache WHERE expires_at < strftime('%s', 'now');
 END;
 
 -- languages (sostituisce update_languages_timestamp, già droppato al step 16)
-CREATE TRIGGER update_languages_timestamp
+CREATE TRIGGER IF NOT EXISTS update_languages_timestamp
     AFTER UPDATE ON languages
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -708,7 +708,7 @@ BEGIN
 END;
 
 -- person_language_roles
-CREATE TRIGGER update_person_language_roles_timestamp
+CREATE TRIGGER IF NOT EXISTS update_person_language_roles_timestamp
     AFTER UPDATE ON person_language_roles
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -716,17 +716,17 @@ BEGIN
     UPDATE person_language_roles SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
 END;
 
--- person_place_types
-CREATE TRIGGER update_person_place_types_timestamp
-    AFTER UPDATE ON person_place_types
+-- s_place_types
+CREATE TRIGGER IF NOT EXISTS update_s_place_types_timestamp
+    AFTER UPDATE ON s_place_types
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
 BEGIN
-    UPDATE person_place_types SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
+    UPDATE s_place_types SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
 END;
 
 -- content_language_roles
-CREATE TRIGGER update_content_language_roles_timestamp
+CREATE TRIGGER IF NOT EXISTS update_content_language_roles_timestamp
     AFTER UPDATE ON content_language_roles
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
@@ -735,21 +735,12 @@ BEGIN
 END;
 
 -- book_language_roles
-CREATE TRIGGER update_book_language_roles_timestamp
+CREATE TRIGGER IF NOT EXISTS update_book_language_roles_timestamp
     AFTER UPDATE ON book_language_roles
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at
 BEGIN
     UPDATE book_language_roles SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
-END;
-
--- person_places
-CREATE TRIGGER update_person_places_timestamp
-    AFTER UPDATE ON person_places
-    FOR EACH ROW
-    WHEN NEW.updated_at = OLD.updated_at
-BEGIN
-    UPDATE person_places SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
 END;
 
 CREATE TABLE IF NOT EXISTS "page_fields" (

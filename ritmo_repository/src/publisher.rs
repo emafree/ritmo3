@@ -15,7 +15,7 @@ impl PublisherRepository {
     }
 
     pub async fn save(&self, item: &Publisher) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT INTO publishers(name) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO publishers(name) VALUES (?)")
             .bind(&item.name)
             .execute(&self.pool)
             .await

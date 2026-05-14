@@ -13,8 +13,13 @@ impl XContentLanguagesRepository {
         }
     }
 
-    pub async fn create(&self, content_id: i64, language_id: i64, language_role_id: i64) -> RitmoResult<()> {
-        sqlx::query("INSERT INTO content_languages(content_id, language_id, role_id) VALUES (?, ?, ?)")
+    pub async fn create(
+        &self,
+        content_id: i64,
+        language_id: i64,
+        language_role_id: i64,
+    ) -> RitmoResult<()> {
+        sqlx::query("INSERT OR IGNORE INTO content_languages(content_id, language_id, role_id) VALUES (?, ?, ?)")
             .bind(content_id)
             .bind(language_id)
             .bind(language_role_id)
@@ -24,7 +29,12 @@ impl XContentLanguagesRepository {
         Ok(())
     }
 
-    pub async fn delete(&self, content_id: i64, language_id: i64, language_role_id: i64) -> RitmoResult<()> {
+    pub async fn delete(
+        &self,
+        content_id: i64,
+        language_id: i64,
+        language_role_id: i64,
+    ) -> RitmoResult<()> {
         sqlx::query("DELETE FROM content_languages WHERE content_id = ? AND language_id = ? AND role_id = ?")
             .bind(content_id)
             .bind(language_id)

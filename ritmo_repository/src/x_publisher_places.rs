@@ -20,7 +20,7 @@ impl XPublisherPlacesRepository {
         place_type_id: i64,
     ) -> RitmoResult<()> {
         sqlx::query(
-            "INSERT INTO x_publisher_places(publisher_id, place_id, place_type_id) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO x_publisher_places(publisher_id, place_id, place_type_id) VALUES (?, ?, ?)",
         )
         .bind(publisher_id)
         .bind(place_id)

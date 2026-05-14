@@ -1,4 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::layout::{Constraint, Layout};
 use ratatui::{
     prelude::Frame,
     widgets::{Block, Borders, Paragraph},
@@ -98,15 +99,26 @@ impl AppState {
     }
 
     pub fn render(&self, frame: &mut Frame) {
-        let area = frame.area();
+        let chunks =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
+
+        // Contenuto principale
+        let content = match self.main_window {
+            MainWindow::Books => Paragraph::new("Books — da implementare"),
+            MainWindow::Contents => Paragraph::new("Contents — da implementare"),
+            MainWindow::Filters => Paragraph::new("Filters — da implementare"),
+        };
+        frame.render_widget(
+            content.block(Block::default().borders(Borders::ALL).title("Ritmo")),
+            chunks[0],
+        );
+
+        // Statusbar in basso
         let status = format!(
-            "Window: {:?} | Level: {:?} | q per uscire",
+            " Window: {:?} | Level: {:?} | q: esci | f/b/c: cambia finestra",
             self.main_window, self.level
         );
-        frame.render_widget(
-            Paragraph::new(status).block(Block::default().borders(Borders::ALL).title("Ritmo")),
-            area,
-        );
+        frame.render_widget(Paragraph::new(status), chunks[1]);
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> AppAction {
@@ -157,7 +169,8 @@ impl AppState {
                 KeyCode::Char('e') => AppAction::EditRecord,
                 KeyCode::Char('d') | KeyCode::Delete => AppAction::DeleteRecord,
                 KeyCode::Char(' ')
-                    if self.main_window == MainWindow::Filters && self.level == ScreenLevel::List =>
+                    if self.main_window == MainWindow::Filters
+                        && self.level == ScreenLevel::List =>
                 {
                     AppAction::ToggleFilterSet
                 }
@@ -184,7 +197,10 @@ mod tests {
     #[test]
     fn fbc_are_only_enabled_on_list_level() {
         let mut app = AppState::default();
-        assert_eq!(app.handle_key(key(KeyCode::Char('b'))), AppAction::SwitchWindow(MainWindow::Books));
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('b'))),
+            AppAction::SwitchWindow(MainWindow::Books)
+        );
         assert_eq!(app.main_window, MainWindow::Books);
 
         app.level = ScreenLevel::Detail;
@@ -219,10 +235,22 @@ mod tests {
     #[test]
     fn arrows_cycle_main_windows_from_list_level() {
         let mut app = AppState::default();
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Books));
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Contents));
-        assert_eq!(app.handle_key(key(KeyCode::Right)), AppAction::SwitchWindow(MainWindow::Filters));
-        assert_eq!(app.handle_key(key(KeyCode::Left)), AppAction::SwitchWindow(MainWindow::Contents));
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Books)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Contents)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Right)),
+            AppAction::SwitchWindow(MainWindow::Filters)
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Left)),
+            AppAction::SwitchWindow(MainWindow::Contents)
+        );
     }
 
     #[test]

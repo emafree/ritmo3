@@ -16,7 +16,7 @@ impl PlaceRepository {
 
     pub async fn save(&self, place: &Place) -> RitmoResult<i64> {
         let result = sqlx::query(
-            "INSERT INTO d_places(continent, country, city, circa, disputed) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_places(continent, country, city, circa, disputed) VALUES (?, ?, ?, ?, ?)",
         )
         .bind(&place.continent)
         .bind(&place.country)

@@ -14,7 +14,7 @@ impl XContentsTagsRepository {
     }
 
     pub async fn create(&self, content_id: i64, tag_id: i64) -> RitmoResult<()> {
-        sqlx::query("INSERT INTO x_contents_tags(content_id, tag_id) VALUES (?, ?)")
+        sqlx::query("INSERT OR IGNORE INTO x_contents_tags(content_id, tag_id) VALUES (?, ?)")
             .bind(content_id)
             .bind(tag_id)
             .execute(&self.pool)

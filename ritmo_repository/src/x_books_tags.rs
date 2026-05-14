@@ -14,7 +14,7 @@ impl XBooksTagsRepository {
     }
 
     pub async fn create(&self, book_id: i64, tag_id: i64) -> RitmoResult<()> {
-        sqlx::query("INSERT INTO x_books_tags(book_id, tag_id) VALUES (?, ?)")
+        sqlx::query("INSERT OR IGNORE INTO x_books_tags(book_id, tag_id) VALUES (?, ?)")
             .bind(book_id)
             .bind(tag_id)
             .execute(&self.pool)
