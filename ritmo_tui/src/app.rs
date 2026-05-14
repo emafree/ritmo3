@@ -4,6 +4,16 @@ use ratatui::{
     prelude::Frame,
     widgets::{Block, Borders, Paragraph},
 };
+use ritmo_core::CoreContext;
+use ritmo_errors::RitmoResult;
+use ritmo_presenter::{
+    build_book_detail, build_content_detail, build_person_role_views, BookDetail, ContentDetail,
+};
+use sqlx::SqlitePool;
+
+use crate::screens::books::list::BookListScreen;
+use crate::screens::contents::list::ContentListScreen;
+use crate::widgets::statusbar::StatusBar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainWindow {
@@ -76,44 +86,139 @@ pub enum AppAction {
     CancelPopup,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AppState {
+    pub pool: SqlitePool,
+    pub books: Vec<BookDetail>,
+    pub contents: Vec<ContentDetail>,
     pub main_window: MainWindow,
     pub level: ScreenLevel,
+    book_list: BookListScreen,
+    content_list: ContentListScreen,
+    statusbar: StatusBar,
     should_quit: bool,
 }
 
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            main_window: MainWindow::Filters,
-            level: ScreenLevel::List,
-            should_quit: false,
-        }
+async fn load_books(ctx: &CoreContext) -> RitmoResult<Vec<BookDetail>> {
+    let books = ritmo_core::book::list_all(ctx).await?;
+    let mut result = Vec::new();
+    for book in books {
+        let people_roles = ritmo_core::book::list_people_with_roles(ctx, book.id).await?;
+        let tags = ritmo_core::book::list_tags(ctx, book.id).await?;
+        let format = ritmo_core::book::get_format_name(ctx, book.id).await?;
+        let series = ritmo_core::book::get_series_name(ctx, book.id).await?;
+        let views = build_person_role_views(&people_roles);
+        result.push(build_book_detail(book, views, tags, vec![], format, series));
     }
+    Ok(result)
+}
+
+async fn load_contents(ctx: &CoreContext) -> RitmoResult<Vec<ContentDetail>> {
+    let contents = ritmo_core::content::list_all(ctx).await?;
+    let mut result = Vec::new();
+    for content in contents {
+        let people_roles =
+            ritmo_core::content::list_people_with_roles(ctx, content.id).await?;
+        let tags = ritmo_core::content::list_tags(ctx, content.id).await?;
+        let languages = ritmo_core::content::list_languages(ctx, content.id).await?;
+        let genre = ritmo_core::content::get_genre_name(ctx, content.id).await?;
+        let views = build_person_role_views(&people_roles);
+        result.push(build_content_detail(
+            content, views, tags, vec![], languages, genre,
+        ));
+    }
+    Ok(result)
 }
 
 impl AppState {
+    pub async fn new(pool: SqlitePool) -> RitmoResult<Self> {
+        let ctx = CoreContext::from_pool(pool.clone());
+
+        let books = load_books(&ctx).await.unwrap_or_default();
+        let contents = load_contents(&ctx).await.unwrap_or_default();
+
+        let book_list = BookListScreen::new(&books);
+        let content_list = ContentListScreen::new(&contents);
+
+        Ok(Self {
+            pool,
+            books,
+            contents,
+            main_window: MainWindow::Filters,
+            level: ScreenLevel::List,
+            book_list,
+            content_list,
+            statusbar: StatusBar::new(),
+            should_quit: false,
+        })
+    }
+
+    pub async fn reload_book(&mut self, id: i64) -> RitmoResult<()> {
+        let ctx = CoreContext::from_pool(self.pool.clone());
+        let book = ritmo_core::book::get(&ctx, id).await?;
+        let people_roles = ritmo_core::book::list_people_with_roles(&ctx, id).await?;
+        let tags = ritmo_core::book::list_tags(&ctx, id).await?;
+        let format = ritmo_core::book::get_format_name(&ctx, id).await?;
+        let series = ritmo_core::book::get_series_name(&ctx, id).await?;
+        let views = build_person_role_views(&people_roles);
+        let detail = build_book_detail(book, views, tags, vec![], format, series);
+        if let Some(pos) = self.books.iter().position(|b| b.book.id == id) {
+            self.books[pos] = detail;
+        } else {
+            self.books.push(detail);
+        }
+        self.book_list = BookListScreen::new(&self.books);
+        Ok(())
+    }
+
+    pub async fn reload_content(&mut self, id: i64) -> RitmoResult<()> {
+        let ctx = CoreContext::from_pool(self.pool.clone());
+        let content = ritmo_core::content::get(&ctx, id).await?;
+        let people_roles = ritmo_core::content::list_people_with_roles(&ctx, id).await?;
+        let tags = ritmo_core::content::list_tags(&ctx, id).await?;
+        let languages = ritmo_core::content::list_languages(&ctx, id).await?;
+        let genre = ritmo_core::content::get_genre_name(&ctx, id).await?;
+        let views = build_person_role_views(&people_roles);
+        let detail = build_content_detail(content, views, tags, vec![], languages, genre);
+        if let Some(pos) = self.contents.iter().position(|c| c.content.id == id) {
+            self.contents[pos] = detail;
+        } else {
+            self.contents.push(detail);
+        }
+        self.content_list = ContentListScreen::new(&self.contents);
+        Ok(())
+    }
+
     pub fn should_quit(&self) -> bool {
         self.should_quit
     }
 
-    pub fn render(&self, frame: &mut Frame) {
+    pub fn render(&mut self, frame: &mut Frame) {
         let chunks =
             Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
 
-        // Contenuto principale
-        let content = match self.main_window {
-            MainWindow::Books => Paragraph::new("Books — da implementare"),
-            MainWindow::Contents => Paragraph::new("Contents — da implementare"),
-            MainWindow::Filters => Paragraph::new("Filters — da implementare"),
-        };
-        frame.render_widget(
-            content.block(Block::default().borders(Borders::ALL).title("Ritmo")),
-            chunks[0],
-        );
+        match self.main_window {
+            MainWindow::Books => {
+                let block = Block::default().borders(Borders::ALL).title("Ritmo — Libri");
+                let inner = block.inner(chunks[0]);
+                frame.render_widget(block, chunks[0]);
+                self.book_list.render(frame, inner);
+            }
+            MainWindow::Contents => {
+                let block =
+                    Block::default().borders(Borders::ALL).title("Ritmo — Contenuti");
+                let inner = block.inner(chunks[0]);
+                frame.render_widget(block, chunks[0]);
+                self.content_list.render(frame, inner);
+            }
+            MainWindow::Filters => {
+                let content = Paragraph::new("Filters — da implementare");
+                frame.render_widget(
+                    content.block(Block::default().borders(Borders::ALL).title("Ritmo")),
+                    chunks[0],
+                );
+            }
+        }
 
-        // Statusbar in basso
         let status = format!(
             " Window: {:?} | Level: {:?} | q: esci | f/b/c: cambia finestra",
             self.main_window, self.level
@@ -154,8 +259,14 @@ impl AppState {
                     self.main_window = MainWindow::Contents;
                     AppAction::SwitchWindow(self.main_window)
                 }
-                KeyCode::Up | KeyCode::Char('k') => AppAction::ScrollUp,
-                KeyCode::Down | KeyCode::Char('j') => AppAction::ScrollDown,
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.handle_scroll_up(key);
+                    AppAction::ScrollUp
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.handle_scroll_down(key);
+                    AppAction::ScrollDown
+                }
                 KeyCode::Enter => {
                     self.level = self.level.descend();
                     AppAction::EnterLevel
@@ -184,6 +295,30 @@ impl AppState {
 
         action
     }
+
+    fn handle_scroll_up(&mut self, key: KeyEvent) {
+        if self.level == ScreenLevel::List {
+            match self.main_window {
+                MainWindow::Books => self.book_list.handle_key(key, &mut self.statusbar),
+                MainWindow::Contents => {
+                    self.content_list.handle_key(key, &mut self.statusbar)
+                }
+                MainWindow::Filters => {}
+            }
+        }
+    }
+
+    fn handle_scroll_down(&mut self, key: KeyEvent) {
+        if self.level == ScreenLevel::List {
+            match self.main_window {
+                MainWindow::Books => self.book_list.handle_key(key, &mut self.statusbar),
+                MainWindow::Contents => {
+                    self.content_list.handle_key(key, &mut self.statusbar)
+                }
+                MainWindow::Filters => {}
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -194,9 +329,16 @@ mod tests {
         KeyEvent::from(code)
     }
 
-    #[test]
-    fn fbc_are_only_enabled_on_list_level() {
-        let mut app = AppState::default();
+    async fn make_test_state() -> AppState {
+        let pool = SqlitePool::connect("sqlite::memory:")
+            .await
+            .expect("in-memory sqlite");
+        AppState::new(pool).await.expect("AppState::new")
+    }
+
+    #[tokio::test]
+    async fn fbc_are_only_enabled_on_list_level() {
+        let mut app = make_test_state().await;
         assert_eq!(
             app.handle_key(key(KeyCode::Char('b'))),
             AppAction::SwitchWindow(MainWindow::Books)
@@ -208,22 +350,20 @@ mod tests {
         assert_eq!(app.main_window, MainWindow::Books);
     }
 
-    #[test]
-    fn q_only_quits_on_list_level() {
-        let mut app = AppState::default();
+    #[tokio::test]
+    async fn q_only_quits_on_list_level() {
+        let mut app = make_test_state().await;
         assert_eq!(app.handle_key(key(KeyCode::Char('q'))), AppAction::Quit);
 
-        app.level = ScreenLevel::Detail;
-        assert_eq!(app.handle_key(key(KeyCode::Char('q'))), AppAction::None);
+        let mut app2 = make_test_state().await;
+        app2.level = ScreenLevel::Detail;
+        assert_eq!(app2.handle_key(key(KeyCode::Char('q'))), AppAction::None);
     }
 
-    #[test]
-    fn popup_keys_confirm_or_cancel() {
-        let mut app = AppState {
-            main_window: MainWindow::Filters,
-            level: ScreenLevel::Popup,
-            should_quit: false,
-        };
+    #[tokio::test]
+    async fn popup_keys_confirm_or_cancel() {
+        let mut app = make_test_state().await;
+        app.level = ScreenLevel::Popup;
 
         assert_eq!(app.handle_key(key(KeyCode::Enter)), AppAction::ConfirmPopup);
         assert_eq!(app.level, ScreenLevel::Popup);
@@ -232,9 +372,9 @@ mod tests {
         assert_eq!(app.level, ScreenLevel::Editing);
     }
 
-    #[test]
-    fn arrows_cycle_main_windows_from_list_level() {
-        let mut app = AppState::default();
+    #[tokio::test]
+    async fn arrows_cycle_main_windows_from_list_level() {
+        let mut app = make_test_state().await;
         assert_eq!(
             app.handle_key(key(KeyCode::Right)),
             AppAction::SwitchWindow(MainWindow::Books)
@@ -253,11 +393,12 @@ mod tests {
         );
     }
 
-    #[test]
-    fn should_quit_is_set_after_quit_action() {
-        let mut app = AppState::default();
+    #[tokio::test]
+    async fn should_quit_is_set_after_quit_action() {
+        let mut app = make_test_state().await;
         assert!(!app.should_quit());
         assert_eq!(app.handle_key(key(KeyCode::Char('q'))), AppAction::Quit);
         assert!(app.should_quit());
     }
 }
+

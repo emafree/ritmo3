@@ -126,6 +126,17 @@ impl ContentRepository {
             .collect())
     }
 
+    pub async fn get_genre_name(&self, content_id: i64) -> RitmoResult<Option<String>> {
+        let row = sqlx::query(
+            "SELECT g.key FROM contents c INNER JOIN genres g ON c.genre_id = g.id WHERE c.id = ?",
+        )
+        .bind(content_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(row.map(|r| r.get::<String, _>("key")))
+    }
+
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Content> {
         if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE name = ?")
             .bind(title)

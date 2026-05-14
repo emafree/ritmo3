@@ -660,6 +660,8 @@ mod tests {
                 role: "Autore".to_string(),
             }],
             tags: vec!["tag1".to_string()],
+            format: None,
+            series: None,
         }
     }
 

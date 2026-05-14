@@ -131,6 +131,28 @@ impl BookRepository {
             .collect())
     }
 
+    pub async fn get_format_name(&self, book_id: i64) -> RitmoResult<Option<String>> {
+        let row = sqlx::query(
+            "SELECT f.key FROM books b INNER JOIN formats f ON b.format_id = f.id WHERE b.id = ?",
+        )
+        .bind(book_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(row.map(|r| r.get::<String, _>("key")))
+    }
+
+    pub async fn get_series_name(&self, book_id: i64) -> RitmoResult<Option<String>> {
+        let row = sqlx::query(
+            "SELECT s.name FROM books b INNER JOIN series s ON b.series_id = s.id WHERE b.id = ?",
+        )
+        .bind(book_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(row.map(|r| r.get::<String, _>("name")))
+    }
+
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Book> {
         if let Some(row) = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE name = ?")
             .bind(title)
