@@ -117,14 +117,18 @@ async fn load_contents(ctx: &CoreContext) -> RitmoResult<Vec<ContentDetail>> {
     let contents = ritmo_core::content::list_all(ctx).await?;
     let mut result = Vec::new();
     for content in contents {
-        let people_roles =
-            ritmo_core::content::list_people_with_roles(ctx, content.id).await?;
+        let people_roles = ritmo_core::content::list_people_with_roles(ctx, content.id).await?;
         let tags = ritmo_core::content::list_tags(ctx, content.id).await?;
         let languages = ritmo_core::content::list_languages(ctx, content.id).await?;
         let genre = ritmo_core::content::get_genre_name(ctx, content.id).await?;
         let views = build_person_role_views(&people_roles);
         result.push(build_content_detail(
-            content, views, tags, vec![], languages, genre,
+            content,
+            views,
+            tags,
+            vec![],
+            languages,
+            genre,
         ));
     }
     Ok(result)
@@ -199,14 +203,17 @@ impl AppState {
 
         match self.main_window {
             MainWindow::Books => {
-                let block = Block::default().borders(Borders::ALL).title("Ritmo — Libri");
+                let block = Block::default()
+                    .borders(Borders::ALL)
+                    .title("Ritmo — Libri");
                 let inner = block.inner(chunks[0]);
                 frame.render_widget(block, chunks[0]);
                 self.book_list.render(frame, inner);
             }
             MainWindow::Contents => {
-                let block =
-                    Block::default().borders(Borders::ALL).title("Ritmo — Contenuti");
+                let block = Block::default()
+                    .borders(Borders::ALL)
+                    .title("Ritmo — Contenuti");
                 let inner = block.inner(chunks[0]);
                 frame.render_widget(block, chunks[0]);
                 self.content_list.render(frame, inner);
@@ -318,7 +325,8 @@ impl AppState {
                 } else {
                     self.book_list.table.selected_index() + 1
                 };
-                self.statusbar.set_info(format!("Book {selected} of {total}"));
+                self.statusbar
+                    .set_info(format!("Book {selected} of {total}"));
             }
             MainWindow::Contents => {
                 let total = self.content_list.items.len();
@@ -421,7 +429,10 @@ mod tests {
         app.main_window = MainWindow::Books;
 
         assert_eq!(app.handle_key(key(KeyCode::Down)), AppAction::ScrollDown);
-        assert_eq!(app.handle_key(key(KeyCode::Char('j'))), AppAction::ScrollDown);
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('j'))),
+            AppAction::ScrollDown
+        );
         assert_eq!(app.handle_key(key(KeyCode::Up)), AppAction::ScrollUp);
         assert_eq!(app.handle_key(key(KeyCode::Char('k'))), AppAction::ScrollUp);
 
@@ -435,10 +446,22 @@ mod tests {
         let mut app = make_test_state().await;
         app.main_window = MainWindow::Books;
 
-        assert_eq!(app.handle_key(key(KeyCode::Char('n'))), AppAction::NewRecord);
-        assert_eq!(app.handle_key(key(KeyCode::Char('+'))), AppAction::NewRecord);
-        assert_eq!(app.handle_key(key(KeyCode::Char('d'))), AppAction::DeleteRecord);
-        assert_eq!(app.handle_key(key(KeyCode::Delete)), AppAction::DeleteRecord);
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('n'))),
+            AppAction::NewRecord
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('+'))),
+            AppAction::NewRecord
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Char('d'))),
+            AppAction::DeleteRecord
+        );
+        assert_eq!(
+            app.handle_key(key(KeyCode::Delete)),
+            AppAction::DeleteRecord
+        );
         assert_eq!(app.handle_key(key(KeyCode::Char('/'))), AppAction::Search);
     }
 
@@ -452,5 +475,3 @@ mod tests {
         assert_eq!(app.level, ScreenLevel::Detail);
     }
 }
-
-

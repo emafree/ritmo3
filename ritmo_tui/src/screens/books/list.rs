@@ -1,7 +1,4 @@
-use ratatui::{
-    prelude::Frame,
-    layout::Rect,
-};
+use ratatui::{layout::Rect, prelude::Frame};
 use ritmo_presenter::BookDetail;
 
 use crate::widgets::table::TableWidget;
@@ -49,7 +46,9 @@ impl BookListScreen {
     }
 
     pub fn selected_id(&self) -> Option<i64> {
-        self.items.get(self.table.selected_index()).map(|detail| detail.book.id)
+        self.items
+            .get(self.table.selected_index())
+            .map(|detail| detail.book.id)
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
