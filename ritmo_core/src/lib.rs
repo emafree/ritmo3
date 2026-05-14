@@ -18,6 +18,7 @@ pub mod series;
 pub mod tag;
 
 use ritmo_repository::RepositoryContext;
+use sqlx::SqlitePool;
 
 pub struct CoreContext {
     pub(crate) ctx: RepositoryContext,
@@ -26,5 +27,11 @@ pub struct CoreContext {
 impl CoreContext {
     pub fn new(ctx: RepositoryContext) -> Self {
         Self { ctx }
+    }
+
+    pub fn from_pool(pool: SqlitePool) -> Self {
+        Self {
+            ctx: RepositoryContext::new(pool),
+        }
     }
 }

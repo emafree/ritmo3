@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio-rustls"] }
 ritmo_domain = { path = "../ritmo_domain" }
 ritmo_repository = { path = "../ritmo_repository" }
 ritmo_errors = { path = "../ritmo_errors" }

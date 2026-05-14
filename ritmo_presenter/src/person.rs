@@ -1,4 +1,4 @@
-use ritmo_domain::Person;
+use ritmo_domain::{Person, Role};
 
 use crate::{BookListItem, ContentListItem};
 
@@ -31,4 +31,22 @@ pub struct PersonRoleView {
     pub person_id: i64,
     pub name: String,
     pub role: String,
+}
+
+pub fn build_person_role_view(person: &Person, role: &Role) -> PersonRoleView {
+    PersonRoleView {
+        person_id: person.id,
+        name: person
+            .display_name
+            .clone()
+            .unwrap_or_else(|| person.name.clone()),
+        role: role.i18n_key.clone(),
+    }
+}
+
+pub fn build_person_role_views(people_roles: &[(Person, Role)]) -> Vec<PersonRoleView> {
+    people_roles
+        .iter()
+        .map(|(person, role)| build_person_role_view(person, role))
+        .collect()
 }
