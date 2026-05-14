@@ -181,7 +181,9 @@ impl BookDetailScreen {
         if self.in_related_sections {
             match self.related_section {
                 RelatedSection::LinkedContents => self.in_related_sections = false,
-                RelatedSection::PeopleWithRoles => self.related_section = RelatedSection::LinkedContents,
+                RelatedSection::PeopleWithRoles => {
+                    self.related_section = RelatedSection::LinkedContents
+                }
                 RelatedSection::Tags => self.related_section = RelatedSection::PeopleWithRoles,
                 RelatedSection::Languages => self.related_section = RelatedSection::Tags,
             }
@@ -230,9 +232,9 @@ impl BookDetailScreen {
         }
 
         self.pending_related_action = match self.related_section {
-            RelatedSection::LinkedContents => self.selected_linked_content_id().map(
-                |content_id| BookDetailRelatedAction::OpenLinkedContent { content_id },
-            ),
+            RelatedSection::LinkedContents => self
+                .selected_linked_content_id()
+                .map(|content_id| BookDetailRelatedAction::OpenLinkedContent { content_id }),
             RelatedSection::PeopleWithRoles => self
                 .selected_person_with_role_id()
                 .map(|person_id| BookDetailRelatedAction::OpenPersonWithRole { person_id }),
@@ -259,9 +261,9 @@ impl BookDetailScreen {
         }
 
         self.pending_related_action = match self.related_section {
-            RelatedSection::LinkedContents => self.selected_linked_content_id().map(
-                |content_id| BookDetailRelatedAction::RemoveLinkedContent { content_id },
-            ),
+            RelatedSection::LinkedContents => self
+                .selected_linked_content_id()
+                .map(|content_id| BookDetailRelatedAction::RemoveLinkedContent { content_id }),
             RelatedSection::PeopleWithRoles => self
                 .selected_person_with_role_id()
                 .map(|person_id| BookDetailRelatedAction::RemovePersonWithRole { person_id }),
@@ -356,7 +358,10 @@ impl BookDetailScreen {
         let info = match self.related_section {
             RelatedSection::LinkedContents => format!(
                 "Sezione: contenuti collegati ({}/{})",
-                current_position(self.selected_linked_content, self.item.linked_contents.len()),
+                current_position(
+                    self.selected_linked_content,
+                    self.item.linked_contents.len()
+                ),
                 self.item.linked_contents.len()
             ),
             RelatedSection::PeopleWithRoles => format!(
@@ -453,7 +458,8 @@ impl BookDetailScreen {
             chunks[0],
             "contenuti collegati",
             &linked_contents,
-            self.related_section == RelatedSection::LinkedContents && self.is_related_section_active(),
+            self.related_section == RelatedSection::LinkedContents
+                && self.is_related_section_active(),
             self.selected_linked_content,
         );
         self.render_related_block(
@@ -461,7 +467,8 @@ impl BookDetailScreen {
             chunks[1],
             "persone con ruoli",
             &people_with_roles,
-            self.related_section == RelatedSection::PeopleWithRoles && self.is_related_section_active(),
+            self.related_section == RelatedSection::PeopleWithRoles
+                && self.is_related_section_active(),
             self.selected_person_with_role,
         );
         self.render_related_block(
@@ -503,7 +510,8 @@ impl BookDetailScreen {
         let display = if items.is_empty() {
             "—".to_string()
         } else {
-            items.iter()
+            items
+                .iter()
                 .enumerate()
                 .map(|(idx, item)| {
                     if is_active && idx == clamped_index(selected_index, items.len()) {
@@ -533,18 +541,20 @@ impl BookDetailScreen {
     fn selected_linked_content_id(&self) -> Option<i64> {
         self.item
             .linked_contents
-            .get(
-                clamped_index(self.selected_linked_content, self.item.linked_contents.len()),
-            )
+            .get(clamped_index(
+                self.selected_linked_content,
+                self.item.linked_contents.len(),
+            ))
             .map(|item| item.id)
     }
 
     fn selected_person_with_role_id(&self) -> Option<i64> {
         self.item
             .people_with_roles
-            .get(
-                clamped_index(self.selected_person_with_role, self.item.people_with_roles.len()),
-            )
+            .get(clamped_index(
+                self.selected_person_with_role,
+                self.item.people_with_roles.len(),
+            ))
             .map(|person| person.person_id)
     }
 
@@ -745,7 +755,9 @@ mod tests {
         }
         assert_eq!(
             statusbar.keys,
-            vec!["↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi | Enter: apri"]
+            vec![
+                "↑↓: naviga sezioni | j/k: seleziona | n: aggiungi | d/Del: rimuovi | Enter: apri"
+            ]
         );
         assert_eq!(statusbar.info, "Sezione: contenuti collegati (1/1)");
 
