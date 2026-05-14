@@ -14,6 +14,7 @@ use sqlx::SqlitePool;
 use crate::screens::books::list::BookListScreen;
 use crate::screens::contents::list::ContentListScreen;
 use crate::widgets::statusbar::StatusBar;
+use crate::widgets::table::TableAction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainWindow {
@@ -259,33 +260,18 @@ impl AppState {
                     self.main_window = MainWindow::Contents;
                     AppAction::SwitchWindow(self.main_window)
                 }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.handle_scroll_up(key);
-                    AppAction::ScrollUp
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.handle_scroll_down(key);
-                    AppAction::ScrollDown
-                }
-                KeyCode::Enter => {
-                    self.level = self.level.descend();
-                    AppAction::EnterLevel
-                }
                 KeyCode::Esc => {
                     self.level = self.level.ascend();
                     AppAction::ExitLevel
                 }
-                KeyCode::Char('/') => AppAction::Search,
-                KeyCode::Char('n') | KeyCode::Char('+') => AppAction::NewRecord,
                 KeyCode::Char('e') => AppAction::EditRecord,
-                KeyCode::Char('d') | KeyCode::Delete => AppAction::DeleteRecord,
                 KeyCode::Char(' ')
                     if self.main_window == MainWindow::Filters
                         && self.level == ScreenLevel::List =>
                 {
                     AppAction::ToggleFilterSet
                 }
-                _ => AppAction::None,
+                _ => self.delegate_to_table(key),
             }
         };
 
@@ -296,27 +282,55 @@ impl AppState {
         action
     }
 
-    fn handle_scroll_up(&mut self, key: KeyEvent) {
-        if self.level == ScreenLevel::List {
-            match self.main_window {
-                MainWindow::Books => self.book_list.handle_key(key, &mut self.statusbar),
-                MainWindow::Contents => {
-                    self.content_list.handle_key(key, &mut self.statusbar)
-                }
-                MainWindow::Filters => {}
+    fn delegate_to_table(&mut self, key: KeyEvent) -> AppAction {
+        let table_action = match self.main_window {
+            MainWindow::Books => self.book_list.table.handle_key(key),
+            MainWindow::Contents => self.content_list.table.handle_key(key),
+            MainWindow::Filters => TableAction::None,
+        };
+
+        match table_action {
+            TableAction::ScrollUp => {
+                self.update_statusbar_after_scroll();
+                AppAction::ScrollUp
             }
+            TableAction::ScrollDown => {
+                self.update_statusbar_after_scroll();
+                AppAction::ScrollDown
+            }
+            TableAction::Select => {
+                self.level = self.level.descend();
+                AppAction::EnterLevel
+            }
+            TableAction::New => AppAction::NewRecord,
+            TableAction::Delete => AppAction::DeleteRecord,
+            TableAction::Search => AppAction::Search,
+            TableAction::None => AppAction::None,
         }
     }
 
-    fn handle_scroll_down(&mut self, key: KeyEvent) {
-        if self.level == ScreenLevel::List {
-            match self.main_window {
-                MainWindow::Books => self.book_list.handle_key(key, &mut self.statusbar),
-                MainWindow::Contents => {
-                    self.content_list.handle_key(key, &mut self.statusbar)
-                }
-                MainWindow::Filters => {}
+    fn update_statusbar_after_scroll(&mut self) {
+        match self.main_window {
+            MainWindow::Books => {
+                let total = self.book_list.items.len();
+                let selected = if total == 0 {
+                    0
+                } else {
+                    self.book_list.table.selected_index() + 1
+                };
+                self.statusbar.set_info(format!("Book {selected} of {total}"));
             }
+            MainWindow::Contents => {
+                let total = self.content_list.items.len();
+                let selected = if total == 0 {
+                    0
+                } else {
+                    self.content_list.table.selected_index() + 1
+                };
+                self.statusbar
+                    .set_info(format!("Contenuto {selected} di {total}"));
+            }
+            MainWindow::Filters => {}
         }
     }
 }
@@ -400,5 +414,43 @@ mod tests {
         assert_eq!(app.handle_key(key(KeyCode::Char('q'))), AppAction::Quit);
         assert!(app.should_quit());
     }
+
+    #[tokio::test]
+    async fn table_scroll_keys_delegated_to_active_table() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+
+        assert_eq!(app.handle_key(key(KeyCode::Down)), AppAction::ScrollDown);
+        assert_eq!(app.handle_key(key(KeyCode::Char('j'))), AppAction::ScrollDown);
+        assert_eq!(app.handle_key(key(KeyCode::Up)), AppAction::ScrollUp);
+        assert_eq!(app.handle_key(key(KeyCode::Char('k'))), AppAction::ScrollUp);
+
+        app.main_window = MainWindow::Contents;
+        assert_eq!(app.handle_key(key(KeyCode::Down)), AppAction::ScrollDown);
+        assert_eq!(app.handle_key(key(KeyCode::Up)), AppAction::ScrollUp);
+    }
+
+    #[tokio::test]
+    async fn table_action_keys_map_to_app_actions() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+
+        assert_eq!(app.handle_key(key(KeyCode::Char('n'))), AppAction::NewRecord);
+        assert_eq!(app.handle_key(key(KeyCode::Char('+'))), AppAction::NewRecord);
+        assert_eq!(app.handle_key(key(KeyCode::Char('d'))), AppAction::DeleteRecord);
+        assert_eq!(app.handle_key(key(KeyCode::Delete)), AppAction::DeleteRecord);
+        assert_eq!(app.handle_key(key(KeyCode::Char('/'))), AppAction::Search);
+    }
+
+    #[tokio::test]
+    async fn enter_key_descends_level_via_table_select() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        assert_eq!(app.level, ScreenLevel::List);
+
+        assert_eq!(app.handle_key(key(KeyCode::Enter)), AppAction::EnterLevel);
+        assert_eq!(app.level, ScreenLevel::Detail);
+    }
 }
+
 

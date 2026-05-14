@@ -1,8 +1,20 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::{Constraint, Frame, Rect},
     style::{Modifier, Style},
     widgets::{Block, Borders, Cell, Row, Table},
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TableAction {
+    None,
+    ScrollUp,
+    ScrollDown,
+    Select,
+    New,
+    Delete,
+    Search,
+}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct TableWidgetState {
@@ -26,6 +38,25 @@ impl TableWidget {
         };
         table.clamp_state();
         table
+    }
+
+    pub fn handle_key(&mut self, key: KeyEvent) -> TableAction {
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.previous();
+                TableAction::ScrollUp
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                let count = self.rows.len();
+                self.next(count);
+                TableAction::ScrollDown
+            }
+            KeyCode::Enter => TableAction::Select,
+            KeyCode::Char('n') | KeyCode::Char('+') => TableAction::New,
+            KeyCode::Char('d') | KeyCode::Delete => TableAction::Delete,
+            KeyCode::Char('/') => TableAction::Search,
+            _ => TableAction::None,
+        }
     }
 
     pub fn next(&mut self, visible_rows: usize) {
@@ -127,7 +158,9 @@ impl TableWidget {
 
 #[cfg(test)]
 mod tests {
-    use super::{TableWidget, TableWidgetState};
+    use crossterm::event::{KeyCode, KeyEvent};
+
+    use super::{TableAction, TableWidget, TableWidgetState};
 
     #[test]
     fn new_initializes_state() {
@@ -178,5 +211,92 @@ mod tests {
         table.previous();
         assert_eq!(table.selected_index(), 0);
         assert_eq!(table.state.offset, 0);
+    }
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::from(code)
+    }
+
+    fn table_with_rows(n: usize) -> TableWidget {
+        let rows = (0..n).map(|i| vec![format!("row{i}")]).collect();
+        TableWidget::new(vec!["Col".to_string()], rows)
+    }
+
+    #[test]
+    fn handle_key_scroll_down_moves_selection() {
+        let mut table = table_with_rows(3);
+        let action = table.handle_key(key(KeyCode::Down));
+        assert_eq!(action, TableAction::ScrollDown);
+        assert_eq!(table.selected_index(), 1);
+    }
+
+    #[test]
+    fn handle_key_j_moves_selection_down() {
+        let mut table = table_with_rows(3);
+        let action = table.handle_key(key(KeyCode::Char('j')));
+        assert_eq!(action, TableAction::ScrollDown);
+        assert_eq!(table.selected_index(), 1);
+    }
+
+    #[test]
+    fn handle_key_scroll_up_moves_selection() {
+        let mut table = table_with_rows(3);
+        table.state.selected = 2;
+        let action = table.handle_key(key(KeyCode::Up));
+        assert_eq!(action, TableAction::ScrollUp);
+        assert_eq!(table.selected_index(), 1);
+    }
+
+    #[test]
+    fn handle_key_k_moves_selection_up() {
+        let mut table = table_with_rows(3);
+        table.state.selected = 2;
+        let action = table.handle_key(key(KeyCode::Char('k')));
+        assert_eq!(action, TableAction::ScrollUp);
+        assert_eq!(table.selected_index(), 1);
+    }
+
+    #[test]
+    fn handle_key_enter_returns_select() {
+        let mut table = table_with_rows(2);
+        assert_eq!(table.handle_key(key(KeyCode::Enter)), TableAction::Select);
+    }
+
+    #[test]
+    fn handle_key_n_returns_new() {
+        let mut table = table_with_rows(2);
+        assert_eq!(table.handle_key(key(KeyCode::Char('n'))), TableAction::New);
+        assert_eq!(table.handle_key(key(KeyCode::Char('+'))), TableAction::New);
+    }
+
+    #[test]
+    fn handle_key_d_and_delete_return_delete() {
+        let mut table = table_with_rows(2);
+        assert_eq!(
+            table.handle_key(key(KeyCode::Char('d'))),
+            TableAction::Delete
+        );
+        assert_eq!(
+            table.handle_key(key(KeyCode::Delete)),
+            TableAction::Delete
+        );
+    }
+
+    #[test]
+    fn handle_key_slash_returns_search() {
+        let mut table = table_with_rows(2);
+        assert_eq!(
+            table.handle_key(key(KeyCode::Char('/'))),
+            TableAction::Search
+        );
+    }
+
+    #[test]
+    fn handle_key_unhandled_key_returns_none() {
+        let mut table = table_with_rows(2);
+        assert_eq!(
+            table.handle_key(key(KeyCode::Char('x'))),
+            TableAction::None
+        );
     }
 }

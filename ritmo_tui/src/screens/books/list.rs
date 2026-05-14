@@ -1,11 +1,10 @@
-use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::Frame,
     layout::Rect,
 };
 use ritmo_presenter::BookDetail;
 
-use crate::widgets::{statusbar::StatusBar, table::TableWidget};
+use crate::widgets::table::TableWidget;
 
 #[derive(Debug, Clone)]
 pub struct BookListScreen {
@@ -49,16 +48,6 @@ impl BookListScreen {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent, statusbar: &mut StatusBar) {
-        match key.code {
-            KeyCode::Up | KeyCode::Char('k') => self.table.previous(),
-            KeyCode::Down | KeyCode::Char('j') => self.table.next(self.items.len()),
-            _ => return,
-        }
-
-        self.update_statusbar_info(statusbar);
-    }
-
     pub fn selected_id(&self) -> Option<i64> {
         self.items.get(self.table.selected_index()).map(|detail| detail.book.id)
     }
@@ -66,23 +55,11 @@ impl BookListScreen {
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.table.render(frame, area);
     }
-
-    fn update_statusbar_info(&self, statusbar: &mut StatusBar) {
-        let total = self.items.len();
-        let selected = if total == 0 {
-            0
-        } else {
-            self.table.selected_index() + 1
-        };
-        statusbar.set_info(format!("Book {selected} of {total}"));
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::BookListScreen;
-    use crate::widgets::statusbar::StatusBar;
-    use crossterm::event::{KeyCode, KeyEvent};
     use ritmo_domain::Book;
     use ritmo_presenter::{BookDetail, PersonRoleView};
 
@@ -124,20 +101,6 @@ mod tests {
                 "Saga".to_string()
             ]]
         );
-    }
-
-    #[test]
-    fn handle_key_moves_selection_and_updates_statusbar_info() {
-        let mut screen = BookListScreen::new(&[detail(1, "A", "Author A"), detail(2, "B", "Author B")]);
-        let mut statusbar = StatusBar::new();
-
-        screen.handle_key(KeyEvent::from(KeyCode::Down), &mut statusbar);
-        assert_eq!(screen.table.selected_index(), 1);
-        assert_eq!(statusbar.info, "Book 2 of 2");
-
-        screen.handle_key(KeyEvent::from(KeyCode::Char('k')), &mut statusbar);
-        assert_eq!(screen.table.selected_index(), 0);
-        assert_eq!(statusbar.info, "Book 1 of 2");
     }
 
     #[test]
