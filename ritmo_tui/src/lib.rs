@@ -2,20 +2,14 @@ pub mod app;
 pub mod screens;
 pub mod widgets;
 
-use std::{
-    io::stdout,
-    time::Duration,
-};
+use std::{io::stdout, time::Duration};
 
 use crossterm::{
     event::{self, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use ratatui::{backend::CrosstermBackend, Terminal};
 use ritmo_errors::RitmoResult;
 use sqlx::SqlitePool;
 
@@ -77,4 +71,3 @@ pub async fn run(pool: SqlitePool) -> RitmoResult<()> {
     terminal.show_cursor()?;
     Ok(())
 }
-

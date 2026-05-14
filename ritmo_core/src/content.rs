@@ -45,10 +45,7 @@ pub async fn list_tags(ctx: &CoreContext, content_id: i64) -> RitmoResult<Vec<Ta
     Ok(tags)
 }
 
-pub async fn list_languages(
-    ctx: &CoreContext,
-    content_id: i64,
-) -> RitmoResult<Vec<Language>> {
+pub async fn list_languages(ctx: &CoreContext, content_id: i64) -> RitmoResult<Vec<Language>> {
     let lang_rel_repo = XContentLanguagesRepository::new(&ctx.ctx);
     let lang_repo = LanguageRepository::new(&ctx.ctx);
 
@@ -61,7 +58,9 @@ pub async fn list_languages(
 }
 
 pub async fn get_genre_name(ctx: &CoreContext, content_id: i64) -> RitmoResult<Option<String>> {
-    ContentRepository::new(&ctx.ctx).get_genre_name(content_id).await
+    ContentRepository::new(&ctx.ctx)
+        .get_genre_name(content_id)
+        .await
 }
 
 pub async fn create(ctx: &CoreContext, item: &Content) -> RitmoResult<i64> {

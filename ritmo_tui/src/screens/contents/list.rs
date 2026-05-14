@@ -1,7 +1,4 @@
-use ratatui::{
-    prelude::Frame,
-    layout::Rect,
-};
+use ratatui::{layout::Rect, prelude::Frame};
 use ritmo_presenter::ContentDetail;
 
 use crate::widgets::table::TableWidget;
@@ -87,10 +84,7 @@ mod tests {
     fn new_builds_table_headers_and_rows() {
         let screen = ContentListScreen::new(&[detail(1, "Il Nome della Rosa", "Umberto Eco")]);
 
-        assert_eq!(
-            screen.table.headers,
-            vec!["Titolo", "Autori", "Genere"]
-        );
+        assert_eq!(screen.table.headers, vec!["Titolo", "Autori", "Genere"]);
         assert_eq!(
             screen.table.rows,
             vec![vec![
