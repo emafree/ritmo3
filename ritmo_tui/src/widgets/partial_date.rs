@@ -7,6 +7,9 @@ use ratatui::{
 };
 use ritmo_domain::PartialDate;
 
+const MIN_YEAR_WIDTH: usize = 4;
+const MAX_DATE_PART_DIGITS: usize = 2;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PartialDateField {
     Year,
@@ -82,9 +85,9 @@ impl PartialDateWidget {
             return;
         }
 
-        let year_width = self.year_input.len().max(4);
-        let month_width = 2;
-        let day_width = 2;
+        let year_width = self.year_input.len().max(MIN_YEAR_WIDTH);
+        let month_width = MAX_DATE_PART_DIGITS;
+        let day_width = MAX_DATE_PART_DIGITS;
 
         let year_text = padded_field(&self.year_input, year_width);
         let month_text = padded_field(&self.month_input, month_width);
@@ -108,12 +111,7 @@ impl PartialDateWidget {
 
         frame.render_widget(Paragraph::new(line), area);
 
-        let cursor_x = match self.active_field {
-            PartialDateField::Year => area.x + 7 + self.year_input.len() as u16,
-            PartialDateField::Month => area.x + 18 + self.month_input.len() as u16,
-            PartialDateField::Day => area.x + 31 + self.day_input.len() as u16,
-            PartialDateField::Circa => area.x + 43,
-        };
+        let cursor_x = area.x + self.cursor_offset(year_width) as u16;
         frame.set_cursor_position((cursor_x.min(area.x + area.width.saturating_sub(1)), area.y));
     }
 
@@ -189,7 +187,7 @@ impl PartialDateWidget {
             DatePart::Month => &self.month_input,
             DatePart::Day => &self.day_input,
         };
-        if buffer.len() >= 2 {
+        if buffer.len() >= MAX_DATE_PART_DIGITS {
             return;
         }
 
@@ -207,6 +205,20 @@ impl PartialDateWidget {
                 self.day_input = candidate;
                 self.day = Some(value);
             }
+        }
+    }
+
+    fn cursor_offset(&self, year_width: usize) -> usize {
+        let year_prefix = "Anno: [".len();
+        let month_prefix = year_prefix + year_width + "] Mese: [".len();
+        let day_prefix = month_prefix + MAX_DATE_PART_DIGITS + "] Giorno: [".len();
+        let circa_prefix = day_prefix + MAX_DATE_PART_DIGITS + "] Circa: [".len();
+
+        match self.active_field {
+            PartialDateField::Year => year_prefix + self.year_input.len(),
+            PartialDateField::Month => month_prefix + self.month_input.len(),
+            PartialDateField::Day => day_prefix + self.day_input.len(),
+            PartialDateField::Circa => circa_prefix,
         }
     }
 }
