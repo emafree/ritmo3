@@ -12,9 +12,9 @@ use ritmo_presenter::{
 use sqlx::SqlitePool;
 
 use crate::screens::books::list::BookListScreen;
-use crate::screens::contents::create::ContentCreateScreen;
+use crate::screens::contents::create::{ContentCreateAction, ContentCreateScreen};
 use crate::screens::contents::list::ContentListScreen;
-use crate::screens::people::create::PersonCreateScreen;
+use crate::screens::people::create::{PersonCreateAction, PersonCreateScreen};
 use crate::widgets::statusbar::StatusBar;
 use crate::widgets::table::TableAction;
 
@@ -272,6 +272,40 @@ impl AppState {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> AppAction {
+        // When a create screen is open, delegate all keys to it first.
+        if self.level == ScreenLevel::Editing {
+            if let Some(screen) = self.content_create.as_mut() {
+                match screen.handle_key(key) {
+                    ContentCreateAction::Cancel => {
+                        self.content_create = None;
+                        self.level = ScreenLevel::List;
+                    }
+                    ContentCreateAction::Submit => {
+                        // TODO: save content via ritmo_core
+                        self.content_create = None;
+                        self.level = ScreenLevel::List;
+                    }
+                    ContentCreateAction::None => {}
+                }
+                return AppAction::None;
+            }
+            if let Some(screen) = self.person_create.as_mut() {
+                match screen.handle_key(key) {
+                    PersonCreateAction::Cancel => {
+                        self.person_create = None;
+                        self.level = ScreenLevel::List;
+                    }
+                    PersonCreateAction::Submit => {
+                        // TODO: save person via ritmo_core
+                        self.person_create = None;
+                        self.level = ScreenLevel::List;
+                    }
+                    PersonCreateAction::None => {}
+                }
+                return AppAction::None;
+            }
+        }
+
         let action = if self.level == ScreenLevel::Popup {
             match key.code {
                 KeyCode::Enter => AppAction::ConfirmPopup,
@@ -591,5 +625,23 @@ mod tests {
         assert_eq!(app.level, ScreenLevel::List);
         assert_eq!(app.handle_key(key(KeyCode::Enter)), AppAction::EnterLevel);
         assert_eq!(app.level, ScreenLevel::Detail);
+    }
+
+    #[tokio::test]
+    async fn content_create_screen_receives_keys_when_editing() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Contents;
+        app.open_create_screen();
+        assert_eq!(app.level, ScreenLevel::Editing);
+
+        // Typing a character should reach ContentCreateScreen::title.
+        app.handle_key(key(KeyCode::Char('A')));
+        let screen = app.content_create.as_ref().unwrap();
+        assert_eq!(screen.title.value, "A");
+
+        // Esc should close the screen and return to List.
+        app.handle_key(key(KeyCode::Esc));
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.content_create.is_none());
     }
 }
