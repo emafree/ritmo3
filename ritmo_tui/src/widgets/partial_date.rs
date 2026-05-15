@@ -80,7 +80,7 @@ impl PartialDateWidget {
         self.day_input = date.day.map(|value| value.to_string()).unwrap_or_default();
     }
 
-    pub fn render(&self, frame: &mut Frame, area: Rect) {
+    pub fn render(&self, frame: &mut Frame, area: Rect, is_active: bool) {
         if area.width == 0 || area.height == 0 {
             return;
         }
@@ -111,8 +111,10 @@ impl PartialDateWidget {
 
         frame.render_widget(Paragraph::new(line), area);
 
-        let cursor_x = area.x + self.cursor_offset(year_width) as u16;
-        frame.set_cursor_position((cursor_x.min(area.x + area.width.saturating_sub(1)), area.y));
+        if is_active {
+            let cursor_x = area.x + self.cursor_offset(year_width) as u16;
+            frame.set_cursor_position((cursor_x.min(area.x + area.width.saturating_sub(1)), area.y));
+        }
     }
 
     fn next_field(&mut self) {
@@ -388,7 +390,7 @@ mod tests {
         });
 
         terminal
-            .draw(|frame| widget.render(frame, frame.area()))
+            .draw(|frame| widget.render(frame, frame.area(), true))
             .unwrap();
 
         let buffer = terminal.backend().buffer().clone();

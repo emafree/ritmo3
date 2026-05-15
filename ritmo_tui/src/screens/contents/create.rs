@@ -10,7 +10,7 @@ use ritmo_domain::{Content, PartialDate};
 use crate::widgets::{
     input::InputWidget,
     language::LanguageWidget,
-    partial_date::PartialDateWidget,
+    partial_date::{PartialDateField, PartialDateWidget},
     person::PersonWidget,
 };
 
@@ -65,6 +65,35 @@ impl ContentCreateScreen {
         if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
             return ContentCreateAction::Submit;
         }
+
+        // Tab/BackTab always take priority for field navigation.
+        // Inside PublicationDate, Tab cycles sub-fields until Circa (the last),
+        // at which point it exits to the next field. BackTab cycles backwards until
+        // Year (the first), at which point it exits to the previous field.
+        match key.code {
+            KeyCode::Tab => {
+                if self.active_field == ContentField::PublicationDate
+                    && self.publication_date.active_field != PartialDateField::Circa
+                {
+                    self.publication_date.handle_key(key);
+                } else {
+                    self.next_field();
+                }
+                return ContentCreateAction::None;
+            }
+            KeyCode::BackTab => {
+                if self.active_field == ContentField::PublicationDate
+                    && self.publication_date.active_field != PartialDateField::Year
+                {
+                    self.publication_date.handle_key(key);
+                } else {
+                    self.previous_field();
+                }
+                return ContentCreateAction::None;
+            }
+            _ => {}
+        }
+
         if key.code == KeyCode::Enter {
             self.next_field();
             return ContentCreateAction::None;
@@ -73,18 +102,6 @@ impl ContentCreateScreen {
         if self.active_field == ContentField::PublicationDate {
             self.publication_date.handle_key(key);
             return ContentCreateAction::None;
-        }
-
-        match key.code {
-            KeyCode::Tab => {
-                self.next_field();
-                return ContentCreateAction::None;
-            }
-            KeyCode::BackTab => {
-                self.previous_field();
-                return ContentCreateAction::None;
-            }
-            _ => {}
         }
 
         match self.active_field {
@@ -186,7 +203,7 @@ impl ContentCreateScreen {
             let block = labeled_block("Data di pubblicazione", is_active);
             let date_inner = block.inner(rows[1]);
             frame.render_widget(block, rows[1]);
-            self.publication_date.render(frame, date_inner);
+            self.publication_date.render(frame, date_inner, is_active);
         }
 
         if af == ContentField::Genre {
@@ -374,18 +391,23 @@ mod tests {
     fn tab_and_backtab_navigate_fields_with_wrap() {
         let mut screen = ContentCreateScreen::new();
 
+        // Tab from Title → PublicationDate (lands on Year sub-field)
         screen.handle_key(KeyEvent::from(KeyCode::Tab));
         assert_eq!(screen.active_field, ContentField::PublicationDate);
 
+        // BackTab from PublicationDate while Year is active → exits to Title
         screen.handle_key(KeyEvent::from(KeyCode::BackTab));
-        assert_eq!(screen.active_field, ContentField::PublicationDate);
+        assert_eq!(screen.active_field, ContentField::Title);
 
+        // Enter from Title → PublicationDate
         screen.handle_key(KeyEvent::from(KeyCode::Enter));
-        assert_eq!(screen.active_field, ContentField::Genre);
-
-        screen.handle_key(KeyEvent::from(KeyCode::BackTab));
         assert_eq!(screen.active_field, ContentField::PublicationDate);
 
+        // BackTab from PublicationDate (Year sub-field) → back to Title
+        screen.handle_key(KeyEvent::from(KeyCode::BackTab));
+        assert_eq!(screen.active_field, ContentField::Title);
+
+        // Wrapping: BackTab from Title → Tags
         let mut wrap_screen = ContentCreateScreen::new();
         wrap_screen.handle_key(KeyEvent::from(KeyCode::BackTab));
         assert_eq!(wrap_screen.active_field, ContentField::Tags);

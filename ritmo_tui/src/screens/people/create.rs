@@ -257,14 +257,14 @@ impl PersonCreateScreen {
             let block = labeled_block("Data di nascita", is_active);
             let date_inner = block.inner(rows[6]);
             frame.render_widget(block, rows[6]);
-            self.birth_date.render(frame, date_inner);
+            self.birth_date.render(frame, date_inner, is_active);
         }
         {
             let is_active = af == PersonField::DeathDate;
             let block = labeled_block("Data di morte", is_active);
             let date_inner = block.inner(rows[7]);
             frame.render_widget(block, rows[7]);
-            self.death_date.render(frame, date_inner);
+            self.death_date.render(frame, date_inner, is_active);
         }
 
         // ── Biography ───────────────────────────────────────────────────────
