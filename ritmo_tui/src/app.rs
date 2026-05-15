@@ -12,7 +12,9 @@ use ritmo_presenter::{
 use sqlx::SqlitePool;
 
 use crate::screens::books::list::BookListScreen;
+use crate::screens::contents::create::ContentCreateScreen;
 use crate::screens::contents::list::ContentListScreen;
+use crate::screens::people::create::PersonCreateScreen;
 use crate::widgets::statusbar::StatusBar;
 use crate::widgets::table::TableAction;
 
@@ -93,6 +95,8 @@ pub struct AppState {
     pub contents: Vec<ContentDetail>,
     pub main_window: MainWindow,
     pub level: ScreenLevel,
+    pub content_create: Option<ContentCreateScreen>,
+    pub person_create: Option<PersonCreateScreen>,
     book_list: BookListScreen,
     content_list: ContentListScreen,
     statusbar: StatusBar,
@@ -150,6 +154,8 @@ impl AppState {
             contents,
             main_window: MainWindow::Filters,
             level: ScreenLevel::List,
+            content_create: None,
+            person_create: None,
             book_list,
             content_list,
             statusbar: StatusBar::new(),
@@ -197,6 +203,21 @@ impl AppState {
         self.should_quit
     }
 
+    pub fn open_create_screen(&mut self) {
+        match self.main_window {
+            MainWindow::Contents => {
+                self.content_create = Some(ContentCreateScreen::new());
+                self.level = ScreenLevel::Editing;
+            }
+            MainWindow::Books => {
+                // TODO: BookCreateScreen — da implementare in seguito
+            }
+            MainWindow::Filters => {
+                // TODO: FilterSetCreateScreen — da implementare in seguito
+            }
+        }
+    }
+
     pub fn render(&mut self, frame: &mut Frame) {
         let chunks =
             Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(frame.area());
@@ -208,7 +229,15 @@ impl AppState {
                     .title("Ritmo — Libri");
                 let inner = block.inner(chunks[0]);
                 frame.render_widget(block, chunks[0]);
-                self.book_list.render(frame, inner);
+                if self.level == ScreenLevel::Editing {
+                    if let Some(screen) = self.person_create.as_mut() {
+                        screen.render(frame, inner);
+                    } else {
+                        self.book_list.render(frame, inner);
+                    }
+                } else {
+                    self.book_list.render(frame, inner);
+                }
             }
             MainWindow::Contents => {
                 let block = Block::default()
@@ -216,7 +245,15 @@ impl AppState {
                     .title("Ritmo — Contenuti");
                 let inner = block.inner(chunks[0]);
                 frame.render_widget(block, chunks[0]);
-                self.content_list.render(frame, inner);
+                if self.level == ScreenLevel::Editing {
+                    if let Some(screen) = self.content_create.as_mut() {
+                        screen.render(frame, inner);
+                    } else {
+                        self.content_list.render(frame, inner);
+                    }
+                } else {
+                    self.content_list.render(frame, inner);
+                }
             }
             MainWindow::Filters => {
                 let content = Paragraph::new("Filters — da implementare");
@@ -354,6 +391,8 @@ impl AppState {
 
 #[cfg(test)]
 mod tests {
+    use ratatui::{backend::TestBackend, Terminal};
+
     use super::*;
 
     fn key(code: KeyCode) -> KeyEvent {
@@ -472,6 +511,42 @@ mod tests {
             AppAction::DeleteRecord
         );
         assert_eq!(app.handle_key(key(KeyCode::Char('/'))), AppAction::Search);
+    }
+
+    #[tokio::test]
+    async fn open_create_screen_from_contents_sets_editing_and_screen() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Contents;
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.content_create.is_none());
+
+        app.open_create_screen();
+
+        assert_eq!(app.level, ScreenLevel::Editing);
+        assert!(app.content_create.is_some());
+    }
+
+    #[tokio::test]
+    async fn render_shows_content_create_screen_when_editing_contents() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Contents;
+        app.open_create_screen();
+
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        terminal.draw(|frame| app.render(frame)).expect("draw");
+
+        let buffer = terminal.backend().buffer().clone();
+        let rendered = (0..buffer.area.height)
+            .map(|y| {
+                (0..buffer.area.width)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(rendered.contains("Crea Contenuto"));
     }
 
     #[tokio::test]

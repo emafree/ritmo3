@@ -48,7 +48,7 @@ pub async fn run(pool: SqlitePool) -> RitmoResult<()> {
                 let action = app_state.handle_key(key);
                 match action {
                     AppAction::NewRecord => {
-                        // TODO: open creation screen
+                        app_state.open_create_screen();
                     }
                     AppAction::DeleteRecord => {
                         // TODO: open confirmation popup
