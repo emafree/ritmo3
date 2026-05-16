@@ -84,8 +84,14 @@ impl PlaceWidget {
     }
 
     pub fn set_value(&mut self, place: Place) {
-        set_input_value(&mut self.continent, place.continent.as_deref().unwrap_or_default());
-        set_input_value(&mut self.country, place.country.as_deref().unwrap_or_default());
+        set_input_value(
+            &mut self.continent,
+            place.continent.as_deref().unwrap_or_default(),
+        );
+        set_input_value(
+            &mut self.country,
+            place.country.as_deref().unwrap_or_default(),
+        );
         set_input_value(&mut self.city, place.city.as_deref().unwrap_or_default());
         self.circa = place.circa;
         self.disputed = place.disputed;
@@ -216,7 +222,10 @@ fn render_checkbox(frame: &mut Frame, area: Rect, label: &str, checked: bool, ac
     if active {
         block = block.style(Style::default().add_modifier(Modifier::REVERSED));
     }
-    frame.render_widget(Paragraph::new(format!("{label}: [{marker}]")).block(block), area);
+    frame.render_widget(
+        Paragraph::new(format!("{label}: [{marker}]")).block(block),
+        area,
+    );
 }
 
 #[cfg(test)]

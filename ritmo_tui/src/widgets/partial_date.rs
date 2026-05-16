@@ -113,7 +113,8 @@ impl PartialDateWidget {
 
         if is_active {
             let cursor_x = area.x + self.cursor_offset(year_width) as u16;
-            frame.set_cursor_position((cursor_x.min(area.x + area.width.saturating_sub(1)), area.y));
+            frame
+                .set_cursor_position((cursor_x.min(area.x + area.width.saturating_sub(1)), area.y));
         }
     }
 

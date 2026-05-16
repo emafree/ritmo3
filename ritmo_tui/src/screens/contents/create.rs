@@ -25,10 +25,33 @@ pub enum ContentField {
     Tags,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
+pub struct ContentDraft {
+    pub name: String,
+    pub original_title: Option<String>,
+    pub type_id: Option<i64>,
+    pub genre_id: Option<i64>,
+    pub publication_date: Option<PartialDate>,
+    pub notes: Option<String>,
+}
+
+impl PartialEq for ContentDraft {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.original_title == other.original_title
+            && self.type_id == other.type_id
+            && self.genre_id == other.genre_id
+            && self.notes == other.notes
+            && partial_date_eq(&self.publication_date, &other.publication_date)
+    }
+}
+
+impl Eq for ContentDraft {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ContentCreateAction {
     None,
-    Submit,
+    Submit(ContentDraft),
     Cancel,
 }
 
@@ -63,7 +86,7 @@ impl ContentCreateScreen {
             return ContentCreateAction::Cancel;
         }
         if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
-            return ContentCreateAction::Submit;
+            return ContentCreateAction::Submit(self.to_draft());
         }
 
         // Tab/BackTab always take priority for field navigation.
@@ -120,10 +143,9 @@ impl ContentCreateScreen {
                 }
             },
             ContentField::Languages => match key.code {
-                KeyCode::Char('n') => {
-                    self.languages
-                        .push((LanguageWidget::new(), InputWidget::new()))
-                }
+                KeyCode::Char('n') => self
+                    .languages
+                    .push((LanguageWidget::new(), InputWidget::new())),
                 KeyCode::Char('d') | KeyCode::Delete => {
                     self.languages.pop();
                 }
@@ -168,7 +190,9 @@ impl ContentCreateScreen {
         };
         frame.render_widget(Paragraph::new(hint), hint_area);
 
-        let outer_block = Block::default().title("Crea Contenuto").borders(Borders::ALL);
+        let outer_block = Block::default()
+            .title("Crea Contenuto")
+            .borders(Borders::ALL);
         let inner = outer_block.inner(form_area);
         frame.render_widget(outer_block, form_area);
 
@@ -187,7 +211,8 @@ impl ContentCreateScreen {
         let title_val = self.title.value.clone();
         let genre_val = self.genre.value.clone();
         let notes_val = self.notes.value.clone();
-        let people_display = collection_text_summary(self.people.iter().map(|(p, _)| p.input.value.as_str()));
+        let people_display =
+            collection_text_summary(self.people.iter().map(|(p, _)| p.input.value.as_str()));
         let languages_display =
             collection_text_summary(self.languages.iter().map(|(l, _)| l.input.value.as_str()));
         let tags_display = collection_text_summary(self.tags.iter().map(|t| t.value.as_str()));
@@ -270,17 +295,23 @@ impl ContentCreateScreen {
     }
 
     pub fn to_content(&self) -> Option<Content> {
-        let title = self.title.value.trim().to_string();
-        if title.is_empty() {
-            return None;
+        let draft = self.to_draft();
+        if draft.name.is_empty() {
+            None
+        } else {
+            Some(draft.into())
         }
+    }
 
-        Some(Content {
-            id: 0,
-            title,
-            publication_year: date_to_opt(self.publication_date.value()),
+    fn to_draft(&self) -> ContentDraft {
+        ContentDraft {
+            name: self.title.value.trim().to_string(),
+            original_title: None,
+            type_id: None,
+            genre_id: self.genre.value.trim().parse().ok(),
+            publication_date: date_to_opt(self.publication_date.value()),
             notes: to_opt(&self.notes.value),
-        })
+        }
     }
 
     fn next_field(&mut self) {
@@ -339,7 +370,11 @@ fn labeled_block(title: &str, is_active: bool) -> Block<'_> {
 }
 
 fn render_label_row(frame: &mut Frame, area: Rect, label: &str, value: &str) {
-    let display = if value.trim().is_empty() { "—" } else { value };
+    let display = if value.trim().is_empty() {
+        "—"
+    } else {
+        value
+    };
     frame.render_widget(Paragraph::new(format!("{label}: {display}")), area);
 }
 
@@ -369,12 +404,36 @@ fn date_to_opt(date: PartialDate) -> Option<PartialDate> {
     }
 }
 
+impl From<ContentDraft> for Content {
+    fn from(value: ContentDraft) -> Self {
+        Content {
+            id: 0,
+            title: value.name,
+            publication_year: value.publication_date,
+            notes: value.notes,
+        }
+    }
+}
+
+fn partial_date_eq(a: &Option<PartialDate>, b: &Option<PartialDate>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(left), Some(right)) => {
+            left.year == right.year
+                && left.month == right.month
+                && left.day == right.day
+                && left.circa == right.circa
+        }
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{backend::TestBackend, Terminal};
 
-    use super::{ContentCreateAction, ContentCreateScreen, ContentField};
+    use super::{ContentCreateAction, ContentCreateScreen, ContentDraft, ContentField};
 
     #[test]
     fn new_starts_at_title_with_empty_state() {
@@ -420,9 +479,18 @@ mod tests {
         let cancel = screen.handle_key(KeyEvent::from(KeyCode::Esc));
         assert_eq!(cancel, ContentCreateAction::Cancel);
 
-        let submit =
-            screen.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
-        assert_eq!(submit, ContentCreateAction::Submit);
+        let submit = screen.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+        assert_eq!(
+            submit,
+            ContentCreateAction::Submit(ContentDraft {
+                name: "".into(),
+                original_title: None,
+                type_id: None,
+                genre_id: None,
+                publication_date: None,
+                notes: None,
+            })
+        );
     }
 
     #[test]
