@@ -15,7 +15,7 @@ impl RoleRepository {
     }
 
     pub async fn save(&self, item: &Role) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO roles(key) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_roles(key) VALUES (?)")
             .bind(&item.i18n_key)
             .execute(&self.pool)
             .await
@@ -24,7 +24,7 @@ impl RoleRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Role> {
-        let row = sqlx::query("SELECT id, key FROM roles WHERE id = ?")
+        let row = sqlx::query("SELECT id, key FROM d_roles WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -37,7 +37,7 @@ impl RoleRepository {
     }
 
     pub async fn update(&self, item: &Role) -> RitmoResult<()> {
-        sqlx::query("UPDATE roles SET key = ? WHERE id = ?")
+        sqlx::query("UPDATE d_roles SET key = ? WHERE id = ?")
             .bind(&item.i18n_key)
             .bind(item.id)
             .execute(&self.pool)
@@ -47,7 +47,7 @@ impl RoleRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM roles WHERE id = ?")
+        sqlx::query("DELETE FROM d_roles WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -56,7 +56,7 @@ impl RoleRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Role>> {
-        let rows = sqlx::query("SELECT id, key FROM roles ORDER BY key")
+        let rows = sqlx::query("SELECT id, key FROM d_roles ORDER BY key")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -72,7 +72,7 @@ impl RoleRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Role>> {
         let pattern = format!("%{query}%");
         let rows =
-            sqlx::query("SELECT id, key FROM roles WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
+            sqlx::query("SELECT id, key FROM d_roles WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
                 .bind(pattern)
                 .fetch_all(&self.pool)
                 .await
@@ -87,7 +87,7 @@ impl RoleRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Role> {
-        if let Some(row) = sqlx::query("SELECT id, key FROM roles WHERE key = ?")
+        if let Some(row) = sqlx::query("SELECT id, key FROM d_roles WHERE key = ?")
             .bind(value)
             .fetch_optional(&self.pool)
             .await

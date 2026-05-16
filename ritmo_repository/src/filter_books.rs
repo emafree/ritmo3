@@ -13,7 +13,7 @@ pub async fn search_books(pool: &SqlitePool, filter_sets: &[FilterSet]) -> Ritmo
         .collect();
 
     let mut builder = QueryBuilder::<Sqlite>::new(
-        "SELECT books.id, books.name, books.isbn, books.publication_date_year, books.publication_date_month, books.publication_date_day, books.publication_date_circa, books.notes FROM books",
+        "SELECT books.id, books.name, books.isbn, books.publication_date_year, books.publication_date_month, books.publication_date_day, books.publication_date_circa, books.notes FROM d_books books",
     );
 
     if !active_sets.is_empty() {
@@ -71,15 +71,15 @@ fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter
         FilterField::BookTitle => push_text_filter(builder, "books.name", filter),
         FilterField::BookIsbn => push_text_filter(builder, "books.isbn", filter),
         FilterField::BookFormat => {
-            push_relation_filter(builder, "books.format_id", "formats", "id", "key", filter)
+            push_relation_filter(builder, "books.format_id", "d_formats", "id", "key", filter)
         }
         FilterField::BookSeries => {
-            push_relation_filter(builder, "books.series_id", "series", "id", "name", filter)
+            push_relation_filter(builder, "books.series_id", "d_series", "id", "name", filter)
         }
         FilterField::BookPublisher => push_relation_filter(
             builder,
             "books.publisher_id",
-            "publishers",
+            "d_publishers",
             "id",
             "name",
             filter,
@@ -96,16 +96,16 @@ fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter
             "x_books_tags",
             "book_id",
             "tag_id",
-            Some(("tags", "id", "name")),
+            Some(("d_tags", "id", "name")),
             filter,
             None,
         ),
         FilterField::BookLanguage { role_id } => push_exists_relation_filter(
             builder,
-            "book_languages",
+            "x_book_languages",
             "book_id",
             "language_id",
-            Some(("languages", "id", "official_name")),
+            Some(("d_languages", "id", "official_name")),
             filter,
             role_id.map(|id| ("role_id", id)),
         ),
@@ -113,7 +113,7 @@ fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter
         FilterField::ContentGenre => push_content_relation_filter(
             builder,
             "contents.genre_id",
-            "genres",
+            "d_genres",
             "id",
             "key",
             filter,
@@ -130,16 +130,16 @@ fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter
             "x_contents_tags",
             "content_id",
             "tag_id",
-            Some(("tags", "id", "name")),
+            Some(("d_tags", "id", "name")),
             filter,
             None,
         ),
         FilterField::ContentLanguage { role_id } => push_content_exists_relation_filter(
             builder,
-            "content_languages",
+            "x_content_languages",
             "content_id",
             "language_id",
-            Some(("languages", "id", "official_name")),
+            Some(("d_languages", "id", "official_name")),
             filter,
             role_id.map(|id| ("role_id", id)),
         ),
@@ -384,7 +384,7 @@ fn push_content_text_filter(
     content_column: &str,
     filter: &Filter,
 ) {
-    builder.push("EXISTS (SELECT 1 FROM x_books_contents book_content JOIN contents ON contents.id = book_content.content_id WHERE book_content.book_id = books.id AND ");
+    builder.push("EXISTS (SELECT 1 FROM x_books_contents book_content JOIN d_contents contents ON contents.id = book_content.content_id WHERE book_content.book_id = books.id AND ");
     push_text_filter(builder, content_column, filter);
     builder.push(")");
 }
@@ -397,7 +397,7 @@ fn push_content_relation_filter(
     relation_text_column: &str,
     filter: &Filter,
 ) {
-    builder.push("EXISTS (SELECT 1 FROM x_books_contents book_content JOIN contents ON contents.id = book_content.content_id WHERE book_content.book_id = books.id AND ");
+    builder.push("EXISTS (SELECT 1 FROM x_books_contents book_content JOIN d_contents contents ON contents.id = book_content.content_id WHERE book_content.book_id = books.id AND ");
     push_relation_filter(
         builder,
         scalar_column,
@@ -416,7 +416,7 @@ fn push_content_date_filter(
     day_column: &str,
     filter: &Filter,
 ) {
-    builder.push("EXISTS (SELECT 1 FROM x_books_contents book_content JOIN contents ON contents.id = book_content.content_id WHERE book_content.book_id = books.id AND ");
+    builder.push("EXISTS (SELECT 1 FROM x_books_contents book_content JOIN d_contents contents ON contents.id = book_content.content_id WHERE book_content.book_id = books.id AND ");
     push_date_filter(builder, year_column, month_column, day_column, filter);
     builder.push(")");
 }
@@ -529,7 +529,7 @@ fn push_person_name_filter(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filt
                 return;
             }
 
-            builder.push("EXISTS (SELECT 1 FROM x_books_people_roles bpr JOIN people p ON p.id = bpr.person_id WHERE bpr.book_id = books.id AND (");
+            builder.push("EXISTS (SELECT 1 FROM x_books_people_roles bpr JOIN d_people p ON p.id = bpr.person_id WHERE bpr.book_id = books.id AND (");
             for (index, text) in texts.iter().enumerate() {
                 if index > 0 {
                     builder.push(" OR ");
@@ -544,7 +544,7 @@ fn push_person_name_filter(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filt
                 }
                 builder.push(" COLLATE NOCASE");
             }
-            builder.push(")) OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN people p ON p.id = cpr.person_id WHERE bc.book_id = books.id AND (");
+            builder.push(")) OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN d_people p ON p.id = cpr.person_id WHERE bc.book_id = books.id AND (");
             for (index, text) in texts.into_iter().enumerate() {
                 if index > 0 {
                     builder.push(" OR ");
@@ -600,14 +600,14 @@ fn push_person_language_filter(
         return;
     }
 
-    builder.push("(EXISTS (SELECT 1 FROM x_books_people_roles bpr JOIN person_languages pl ON pl.person_id = bpr.person_id WHERE bpr.book_id = books.id");
+    builder.push("(EXISTS (SELECT 1 FROM x_books_people_roles bpr JOIN x_person_languages pl ON pl.person_id = bpr.person_id WHERE bpr.book_id = books.id");
     if let Some(value) = role_id {
         builder.push(" AND pl.role_id = ");
         builder.push_bind(value);
     }
     builder.push(" AND ");
     push_id_list_or_single_prefixed(builder, "pl", "language_id", &language_ids);
-    builder.push(") OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN person_languages pl ON pl.person_id = cpr.person_id WHERE bc.book_id = books.id");
+    builder.push(") OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN x_person_languages pl ON pl.person_id = cpr.person_id WHERE bc.book_id = books.id");
     if let Some(value) = role_id {
         builder.push(" AND pl.role_id = ");
         builder.push_bind(value);
@@ -697,7 +697,7 @@ fn push_person_date_filter(
     date_prefix: &str,
     filter: &Filter,
 ) {
-    builder.push("(EXISTS (SELECT 1 FROM x_books_people_roles bpr JOIN people p ON p.id = bpr.person_id WHERE bpr.book_id = books.id AND ");
+    builder.push("(EXISTS (SELECT 1 FROM x_books_people_roles bpr JOIN d_people p ON p.id = bpr.person_id WHERE bpr.book_id = books.id AND ");
     push_date_filter(
         builder,
         &format!("p.{date_prefix}_date_year"),
@@ -705,7 +705,7 @@ fn push_person_date_filter(
         &format!("p.{date_prefix}_date_day"),
         filter,
     );
-    builder.push(") OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN people p ON p.id = cpr.person_id WHERE bc.book_id = books.id AND ");
+    builder.push(") OR EXISTS (SELECT 1 FROM x_books_contents bc JOIN x_contents_people_roles cpr ON cpr.content_id = bc.content_id JOIN d_people p ON p.id = cpr.person_id WHERE bc.book_id = books.id AND ");
     push_date_filter(
         builder,
         &format!("p.{date_prefix}_date_year"),

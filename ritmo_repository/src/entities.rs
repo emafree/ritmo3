@@ -21,7 +21,7 @@ impl AliasRepository {
     }
 
     pub async fn save(&self, alias: &Alias) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO aliases(name, person_id) VALUES (?, ?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_aliases(name, person_id) VALUES (?, ?)")
             .bind(&alias.alternative_name)
             .bind(alias.person_id)
             .execute(&self.pool)
@@ -31,7 +31,7 @@ impl AliasRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Alias> {
-        let row = sqlx::query("SELECT id, name, person_id FROM aliases WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, person_id FROM d_aliases WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -45,7 +45,7 @@ impl AliasRepository {
     }
 
     pub async fn update(&self, alias: &Alias) -> RitmoResult<()> {
-        sqlx::query("UPDATE aliases SET name = ?, person_id = ? WHERE id = ?")
+        sqlx::query("UPDATE d_aliases SET name = ?, person_id = ? WHERE id = ?")
             .bind(&alias.alternative_name)
             .bind(alias.person_id)
             .bind(alias.id)
@@ -56,7 +56,7 @@ impl AliasRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM aliases WHERE id = ?")
+        sqlx::query("DELETE FROM d_aliases WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -67,7 +67,7 @@ impl AliasRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Alias>> {
         let pattern = format!("%{query}%");
         let rows = sqlx::query(
-            "SELECT id, name, person_id FROM aliases WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
+            "SELECT id, name, person_id FROM d_aliases WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
         )
         .bind(pattern)
         .fetch_all(&self.pool)
@@ -85,7 +85,7 @@ impl AliasRepository {
 
     pub async fn list_by_person(&self, person_id: i64) -> RitmoResult<Vec<Alias>> {
         let rows = sqlx::query(
-            "SELECT id, name, person_id FROM aliases WHERE person_id = ? ORDER BY name",
+            "SELECT id, name, person_id FROM d_aliases WHERE person_id = ? ORDER BY name",
         )
         .bind(person_id)
         .fetch_all(&self.pool)
@@ -107,7 +107,7 @@ impl AliasRepository {
         name: &str,
     ) -> RitmoResult<Option<Alias>> {
         let row =
-            sqlx::query("SELECT id, name, person_id FROM aliases WHERE person_id = ? AND name = ?")
+            sqlx::query("SELECT id, name, person_id FROM d_aliases WHERE person_id = ? AND name = ?")
                 .bind(person_id)
                 .bind(name)
                 .fetch_optional(&self.pool)
@@ -136,7 +136,7 @@ impl BookRepository {
     pub async fn save(&self, book: &Book) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&book.title)
         .bind(&book.isbn)
@@ -152,7 +152,7 @@ impl BookRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Book> {
-        let row = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -176,7 +176,7 @@ impl BookRepository {
     pub async fn update(&self, book: &Book) -> RitmoResult<()> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         sqlx::query(
-            "UPDATE books SET name = ?, isbn = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
+            "UPDATE d_books SET name = ?, isbn = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
         )
         .bind(&book.title)
         .bind(&book.isbn)
@@ -193,7 +193,7 @@ impl BookRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM books WHERE id = ?")
+        sqlx::query("DELETE FROM d_books WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -202,7 +202,7 @@ impl BookRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Book>> {
-        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -225,7 +225,7 @@ impl BookRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Book>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -248,7 +248,7 @@ impl BookRepository {
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Book> {
-        if let Some(row) = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE name = ?")
             .bind(title)
             .fetch_optional(&self.pool)
             .await
@@ -294,7 +294,7 @@ impl ContentRepository {
     pub async fn save(&self, content: &Content) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(&content.title)
         .bind(year)
@@ -309,7 +309,7 @@ impl ContentRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Content> {
-        let row = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -332,7 +332,7 @@ impl ContentRepository {
     pub async fn update(&self, content: &Content) -> RitmoResult<()> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         sqlx::query(
-            "UPDATE contents SET name = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
+            "UPDATE d_contents SET name = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
         )
         .bind(&content.title)
         .bind(year)
@@ -348,7 +348,7 @@ impl ContentRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM contents WHERE id = ?")
+        sqlx::query("DELETE FROM d_contents WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -357,7 +357,7 @@ impl ContentRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Content>> {
-        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -379,7 +379,7 @@ impl ContentRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Content>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -401,7 +401,7 @@ impl ContentRepository {
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Content> {
-        if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name = ?")
             .bind(title)
             .fetch_optional(&self.pool)
             .await
@@ -598,7 +598,7 @@ impl LanguageRepository {
 
     pub async fn save(&self, language: &Language) -> RitmoResult<i64> {
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO languages(iso_code_2char, iso_code_3char, official_name) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO d_languages(iso_code_2char, iso_code_3char, official_name) VALUES (?, ?, ?)",
         )
         .bind(&language.iso_639_2)
         .bind(&language.iso_639_3)
@@ -611,7 +611,7 @@ impl LanguageRepository {
 
     pub async fn get(&self, id: i64) -> RitmoResult<Language> {
         let row = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages WHERE id = ?",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -629,7 +629,7 @@ impl LanguageRepository {
 
     pub async fn update(&self, language: &Language) -> RitmoResult<()> {
         sqlx::query(
-            "UPDATE languages SET iso_code_2char = ?, iso_code_3char = ?, official_name = ? WHERE id = ?",
+            "UPDATE d_languages SET iso_code_2char = ?, iso_code_3char = ?, official_name = ? WHERE id = ?",
         )
         .bind(&language.iso_639_2)
         .bind(&language.iso_639_3)
@@ -642,7 +642,7 @@ impl LanguageRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM languages WHERE id = ?")
+        sqlx::query("DELETE FROM d_languages WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -652,7 +652,7 @@ impl LanguageRepository {
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Language>> {
         let rows = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages ORDER BY official_name",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages ORDER BY official_name",
         )
         .fetch_all(&self.pool)
         .await
@@ -672,7 +672,7 @@ impl LanguageRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Language>> {
         let pattern = format!("%{query}%");
         let rows = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages WHERE official_name LIKE ? COLLATE NOCASE ORDER BY official_name",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE official_name LIKE ? COLLATE NOCASE ORDER BY official_name",
         )
         .bind(pattern)
         .fetch_all(&self.pool)
@@ -692,7 +692,7 @@ impl LanguageRepository {
 
     pub async fn get_or_create(&self, name: &str) -> RitmoResult<Language> {
         if let Some(row) = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages WHERE official_name = ?",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE official_name = ?",
         )
         .bind(name)
         .fetch_optional(&self.pool)
@@ -736,7 +736,7 @@ impl PersonRepository {
             partial_date_to_parts(&person.death_date);
 
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO people(name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_people(name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&person.name)
         .bind(&person.display_name)
@@ -762,7 +762,7 @@ impl PersonRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Person> {
-        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM people WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -794,7 +794,7 @@ impl PersonRepository {
     }
 
     pub async fn get_by_name(&self, name: &str) -> RitmoResult<Option<Person>> {
-        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM people WHERE name = ?")
+        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people WHERE name = ?")
             .bind(name)
             .fetch_optional(&self.pool)
             .await
@@ -831,7 +831,7 @@ impl PersonRepository {
         let (death_year, death_month, death_day, death_circa) =
             partial_date_to_parts(&person.death_date);
 
-        sqlx::query("UPDATE people SET name = ?, display_name = ?, given_name = ?, surname = ?, middle_names = ?, title = ?, suffix = ?, birth_date_year = ?, birth_date_month = ?, birth_date_day = ?, birth_date_circa = ?, death_date_year = ?, death_date_month = ?, death_date_day = ?, death_date_circa = ?, biography = ? WHERE id = ?")
+        sqlx::query("UPDATE d_people SET name = ?, display_name = ?, given_name = ?, surname = ?, middle_names = ?, title = ?, suffix = ?, birth_date_year = ?, birth_date_month = ?, birth_date_day = ?, birth_date_circa = ?, death_date_year = ?, death_date_month = ?, death_date_day = ?, death_date_circa = ?, biography = ? WHERE id = ?")
             .bind(&person.name)
             .bind(&person.display_name)
             .bind(&person.given_name)
@@ -857,7 +857,7 @@ impl PersonRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM people WHERE id = ?")
+        sqlx::query("DELETE FROM d_people WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -866,7 +866,7 @@ impl PersonRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Person>> {
-        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM people ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -900,7 +900,7 @@ impl PersonRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Person>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM people WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -1036,7 +1036,7 @@ impl PlaceRepository {
 
     pub async fn save(&self, place: &Place) -> RitmoResult<i64> {
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO person_places(person_id, place_type_id, place_name) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO x_person_places(person_id, place_type_id, place_name) VALUES (?, ?, ?)",
         )
         .bind(place.person_id)
         .bind(place.place_type_id)
@@ -1049,7 +1049,7 @@ impl PlaceRepository {
 
     pub async fn get(&self, id: i64) -> RitmoResult<Place> {
         let row = sqlx::query(
-            "SELECT id, place_name, place_type_id, person_id FROM person_places WHERE id = ?",
+            "SELECT id, place_name, place_type_id, person_id FROM x_person_places WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -1067,7 +1067,7 @@ impl PlaceRepository {
 
     pub async fn update(&self, place: &Place) -> RitmoResult<()> {
         sqlx::query(
-            "UPDATE person_places SET place_name = ?, place_type_id = ?, person_id = ? WHERE id = ?",
+            "UPDATE x_person_places SET place_name = ?, place_type_id = ?, person_id = ? WHERE id = ?",
         )
         .bind(&place.name)
         .bind(place.place_type_id)
@@ -1080,7 +1080,7 @@ impl PlaceRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM person_places WHERE id = ?")
+        sqlx::query("DELETE FROM x_person_places WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -1090,7 +1090,7 @@ impl PlaceRepository {
 
     pub async fn list_by_person(&self, person_id: i64) -> RitmoResult<Vec<Place>> {
         let rows = sqlx::query(
-            "SELECT id, place_name, place_type_id, person_id FROM person_places WHERE person_id = ? ORDER BY place_name",
+            "SELECT id, place_name, place_type_id, person_id FROM x_person_places WHERE person_id = ? ORDER BY place_name",
         )
         .bind(person_id)
         .fetch_all(&self.pool)

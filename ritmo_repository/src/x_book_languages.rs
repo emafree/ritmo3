@@ -20,7 +20,7 @@ impl XBookLanguagesRepository {
         language_role_id: i64,
     ) -> RitmoResult<()> {
         sqlx::query(
-            "INSERT OR IGNORE INTO book_languages(book_id, language_id, role_id) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO x_book_languages(book_id, language_id, role_id) VALUES (?, ?, ?)",
         )
         .bind(book_id)
         .bind(language_id)
@@ -38,7 +38,7 @@ impl XBookLanguagesRepository {
         language_role_id: i64,
     ) -> RitmoResult<()> {
         sqlx::query(
-            "DELETE FROM book_languages WHERE book_id = ? AND language_id = ? AND role_id = ?",
+            "DELETE FROM x_book_languages WHERE book_id = ? AND language_id = ? AND role_id = ?",
         )
         .bind(book_id)
         .bind(language_id)
@@ -50,7 +50,7 @@ impl XBookLanguagesRepository {
     }
 
     pub async fn list_by_book(&self, book_id: i64) -> RitmoResult<Vec<(i64, i64)>> {
-        let rows = sqlx::query("SELECT language_id, role_id FROM book_languages WHERE book_id = ?")
+        let rows = sqlx::query("SELECT language_id, role_id FROM x_book_languages WHERE book_id = ?")
             .bind(book_id)
             .fetch_all(&self.pool)
             .await
@@ -68,7 +68,7 @@ impl XBookLanguagesRepository {
     ) -> RitmoResult<Vec<(i64, i64)>> {
         let rows = match language_role_id {
             Some(role_id) => sqlx::query(
-                "SELECT book_id, role_id FROM book_languages WHERE language_id = ? AND role_id = ?",
+                "SELECT book_id, role_id FROM x_book_languages WHERE language_id = ? AND role_id = ?",
             )
             .bind(language_id)
             .bind(role_id)
@@ -76,7 +76,7 @@ impl XBookLanguagesRepository {
             .await
             .map_err(map_query)?,
             None => {
-                sqlx::query("SELECT book_id, role_id FROM book_languages WHERE language_id = ?")
+                sqlx::query("SELECT book_id, role_id FROM x_book_languages WHERE language_id = ?")
                     .bind(language_id)
                     .fetch_all(&self.pool)
                     .await

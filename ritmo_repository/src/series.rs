@@ -15,7 +15,7 @@ impl SeriesRepository {
     }
 
     pub async fn save(&self, item: &Series) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO series(name) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_series(name) VALUES (?)")
             .bind(&item.name)
             .execute(&self.pool)
             .await
@@ -24,7 +24,7 @@ impl SeriesRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Series> {
-        let row = sqlx::query("SELECT id, name FROM series WHERE id = ?")
+        let row = sqlx::query("SELECT id, name FROM d_series WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -37,7 +37,7 @@ impl SeriesRepository {
     }
 
     pub async fn update(&self, item: &Series) -> RitmoResult<()> {
-        sqlx::query("UPDATE series SET name = ? WHERE id = ?")
+        sqlx::query("UPDATE d_series SET name = ? WHERE id = ?")
             .bind(&item.name)
             .bind(item.id)
             .execute(&self.pool)
@@ -47,7 +47,7 @@ impl SeriesRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM series WHERE id = ?")
+        sqlx::query("DELETE FROM d_series WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -56,7 +56,7 @@ impl SeriesRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Series>> {
-        let rows = sqlx::query("SELECT id, name FROM series ORDER BY name")
+        let rows = sqlx::query("SELECT id, name FROM d_series ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -72,7 +72,7 @@ impl SeriesRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Series>> {
         let pattern = format!("%{query}%");
         let rows = sqlx::query(
-            "SELECT id, name FROM series WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
+            "SELECT id, name FROM d_series WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
         )
         .bind(pattern)
         .fetch_all(&self.pool)
@@ -88,7 +88,7 @@ impl SeriesRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Series> {
-        if let Some(row) = sqlx::query("SELECT id, name FROM series WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name FROM d_series WHERE name = ?")
             .bind(value)
             .fetch_optional(&self.pool)
             .await

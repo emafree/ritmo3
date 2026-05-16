@@ -20,7 +20,7 @@ impl ContentRepository {
     pub async fn save(&self, content: &Content) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(&content.title)
         .bind(year)
@@ -35,7 +35,7 @@ impl ContentRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Content> {
-        let row = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -58,7 +58,7 @@ impl ContentRepository {
     pub async fn update(&self, content: &Content) -> RitmoResult<()> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         sqlx::query(
-            "UPDATE contents SET name = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
+            "UPDATE d_contents SET name = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
         )
         .bind(&content.title)
         .bind(year)
@@ -74,7 +74,7 @@ impl ContentRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM contents WHERE id = ?")
+        sqlx::query("DELETE FROM d_contents WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -83,7 +83,7 @@ impl ContentRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Content>> {
-        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -105,7 +105,7 @@ impl ContentRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Content>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -128,7 +128,7 @@ impl ContentRepository {
 
     pub async fn get_genre_name(&self, content_id: i64) -> RitmoResult<Option<String>> {
         let row = sqlx::query(
-            "SELECT g.key FROM contents c INNER JOIN genres g ON c.genre_id = g.id WHERE c.id = ?",
+            "SELECT g.key FROM d_contents c INNER JOIN d_genres g ON c.genre_id = g.id WHERE c.id = ?",
         )
         .bind(content_id)
         .fetch_optional(&self.pool)
@@ -138,7 +138,7 @@ impl ContentRepository {
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Content> {
-        if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM contents WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name = ?")
             .bind(title)
             .fetch_optional(&self.pool)
             .await

@@ -13,7 +13,7 @@ pub async fn search_contents(
     let active_sets: Vec<&FilterSet> = filter_sets.iter().filter(|set| set.active).collect();
 
     let mut builder = QueryBuilder::<Sqlite>::new(
-        "SELECT contents.id, contents.name, contents.publication_date_year, contents.publication_date_month, contents.publication_date_day, contents.publication_date_circa, contents.notes FROM contents",
+        "SELECT contents.id, contents.name, contents.publication_date_year, contents.publication_date_month, contents.publication_date_day, contents.publication_date_circa, contents.notes FROM d_contents contents",
     );
 
     if !active_sets.is_empty() {
@@ -69,7 +69,7 @@ fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter
     match &filter.field {
         FilterField::ContentTitle => push_text_filter(builder, "contents.name", filter),
         FilterField::ContentGenre => {
-            push_relation_filter(builder, "contents.genre_id", "genres", "id", "key", filter)
+            push_relation_filter(builder, "contents.genre_id", "d_genres", "id", "key", filter)
         }
         FilterField::ContentPublicationDate => push_date_filter(
             builder,
@@ -83,16 +83,16 @@ fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter
             "x_contents_tags",
             "content_id",
             "tag_id",
-            Some(("tags", "id", "name")),
+            Some(("d_tags", "id", "name")),
             filter,
             None,
         ),
         FilterField::ContentLanguage { role_id } => push_exists_relation_filter(
             builder,
-            "content_languages",
+            "x_content_languages",
             "content_id",
             "language_id",
-            Some(("languages", "id", "official_name")),
+            Some(("d_languages", "id", "official_name")),
             filter,
             role_id.map(|id| ("role_id", id)),
         ),

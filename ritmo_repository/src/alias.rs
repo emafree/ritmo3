@@ -15,7 +15,7 @@ impl AliasRepository {
     }
 
     pub async fn save(&self, alias: &Alias) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO aliases(name, person_id) VALUES (?, ?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_aliases(name, person_id) VALUES (?, ?)")
             .bind(&alias.alternative_name)
             .bind(alias.person_id)
             .execute(&self.pool)
@@ -25,7 +25,7 @@ impl AliasRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Alias> {
-        let row = sqlx::query("SELECT id, name, person_id FROM aliases WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, person_id FROM d_aliases WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -39,7 +39,7 @@ impl AliasRepository {
     }
 
     pub async fn update(&self, alias: &Alias) -> RitmoResult<()> {
-        sqlx::query("UPDATE aliases SET name = ?, person_id = ? WHERE id = ?")
+        sqlx::query("UPDATE d_aliases SET name = ?, person_id = ? WHERE id = ?")
             .bind(&alias.alternative_name)
             .bind(alias.person_id)
             .bind(alias.id)
@@ -50,7 +50,7 @@ impl AliasRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM aliases WHERE id = ?")
+        sqlx::query("DELETE FROM d_aliases WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -61,7 +61,7 @@ impl AliasRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Alias>> {
         let pattern = format!("%{query}%");
         let rows = sqlx::query(
-            "SELECT id, name, person_id FROM aliases WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
+            "SELECT id, name, person_id FROM d_aliases WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
         )
         .bind(pattern)
         .fetch_all(&self.pool)
@@ -79,7 +79,7 @@ impl AliasRepository {
 
     pub async fn list_by_person(&self, person_id: i64) -> RitmoResult<Vec<Alias>> {
         let rows = sqlx::query(
-            "SELECT id, name, person_id FROM aliases WHERE person_id = ? ORDER BY name",
+            "SELECT id, name, person_id FROM d_aliases WHERE person_id = ? ORDER BY name",
         )
         .bind(person_id)
         .fetch_all(&self.pool)
@@ -101,7 +101,7 @@ impl AliasRepository {
         name: &str,
     ) -> RitmoResult<Option<Alias>> {
         let row =
-            sqlx::query("SELECT id, name, person_id FROM aliases WHERE person_id = ? AND name = ?")
+            sqlx::query("SELECT id, name, person_id FROM d_aliases WHERE person_id = ? AND name = ?")
                 .bind(person_id)
                 .bind(name)
                 .fetch_optional(&self.pool)

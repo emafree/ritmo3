@@ -19,7 +19,7 @@ impl XContentLanguagesRepository {
         language_id: i64,
         language_role_id: i64,
     ) -> RitmoResult<()> {
-        sqlx::query("INSERT OR IGNORE INTO content_languages(content_id, language_id, role_id) VALUES (?, ?, ?)")
+        sqlx::query("INSERT OR IGNORE INTO x_content_languages(content_id, language_id, role_id) VALUES (?, ?, ?)")
             .bind(content_id)
             .bind(language_id)
             .bind(language_role_id)
@@ -35,7 +35,7 @@ impl XContentLanguagesRepository {
         language_id: i64,
         language_role_id: i64,
     ) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM content_languages WHERE content_id = ? AND language_id = ? AND role_id = ?")
+        sqlx::query("DELETE FROM x_content_languages WHERE content_id = ? AND language_id = ? AND role_id = ?")
             .bind(content_id)
             .bind(language_id)
             .bind(language_role_id)
@@ -47,7 +47,7 @@ impl XContentLanguagesRepository {
 
     pub async fn list_by_content(&self, content_id: i64) -> RitmoResult<Vec<(i64, i64)>> {
         let rows =
-            sqlx::query("SELECT language_id, role_id FROM content_languages WHERE content_id = ?")
+            sqlx::query("SELECT language_id, role_id FROM x_content_languages WHERE content_id = ?")
                 .bind(content_id)
                 .fetch_all(&self.pool)
                 .await
@@ -66,7 +66,7 @@ impl XContentLanguagesRepository {
         let rows = match language_role_id {
             Some(role_id) => {
                 sqlx::query(
-                    "SELECT content_id, role_id FROM content_languages WHERE language_id = ? AND role_id = ?",
+                    "SELECT content_id, role_id FROM x_content_languages WHERE language_id = ? AND role_id = ?",
                 )
                 .bind(language_id)
                 .bind(role_id)
@@ -76,7 +76,7 @@ impl XContentLanguagesRepository {
             }
             None => {
                 sqlx::query(
-                    "SELECT content_id, role_id FROM content_languages WHERE language_id = ?",
+                    "SELECT content_id, role_id FROM x_content_languages WHERE language_id = ?",
                 )
                 .bind(language_id)
                 .fetch_all(&self.pool)

@@ -15,7 +15,7 @@ impl FormatRepository {
     }
 
     pub async fn save(&self, item: &Format) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO formats(key) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_formats(key) VALUES (?)")
             .bind(&item.i18n_key)
             .execute(&self.pool)
             .await
@@ -24,7 +24,7 @@ impl FormatRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Format> {
-        let row = sqlx::query("SELECT id, key FROM formats WHERE id = ?")
+        let row = sqlx::query("SELECT id, key FROM d_formats WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -37,7 +37,7 @@ impl FormatRepository {
     }
 
     pub async fn update(&self, item: &Format) -> RitmoResult<()> {
-        sqlx::query("UPDATE formats SET key = ? WHERE id = ?")
+        sqlx::query("UPDATE d_formats SET key = ? WHERE id = ?")
             .bind(&item.i18n_key)
             .bind(item.id)
             .execute(&self.pool)
@@ -47,7 +47,7 @@ impl FormatRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM formats WHERE id = ?")
+        sqlx::query("DELETE FROM d_formats WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -56,7 +56,7 @@ impl FormatRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Format>> {
-        let rows = sqlx::query("SELECT id, key FROM formats ORDER BY key")
+        let rows = sqlx::query("SELECT id, key FROM d_formats ORDER BY key")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -72,7 +72,7 @@ impl FormatRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Format>> {
         let pattern = format!("%{query}%");
         let rows =
-            sqlx::query("SELECT id, key FROM formats WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
+            sqlx::query("SELECT id, key FROM d_formats WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
                 .bind(pattern)
                 .fetch_all(&self.pool)
                 .await
@@ -87,7 +87,7 @@ impl FormatRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Format> {
-        if let Some(row) = sqlx::query("SELECT id, key FROM formats WHERE key = ?")
+        if let Some(row) = sqlx::query("SELECT id, key FROM d_formats WHERE key = ?")
             .bind(value)
             .fetch_optional(&self.pool)
             .await
