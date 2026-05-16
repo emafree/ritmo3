@@ -12,7 +12,7 @@ use ritmo_presenter::{
 use sqlx::SqlitePool;
 
 use crate::screens::books::list::BookListScreen;
-use crate::screens::contents::create::{ContentCreateAction, ContentCreateScreen};
+use crate::screens::contents::create::{ContentCreateAction, ContentCreateScreen, ContentDraft};
 use crate::screens::contents::list::ContentListScreen;
 use crate::screens::people::create::{PersonCreateAction, PersonCreateScreen};
 use crate::widgets::statusbar::StatusBar;
@@ -71,7 +71,7 @@ impl ScreenLevel {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppAction {
     None,
     Quit,
@@ -87,6 +87,7 @@ pub enum AppAction {
     ToggleFilterSet,
     ConfirmPopup,
     CancelPopup,
+    SubmitContentCreate(ContentDraft),
 }
 
 pub struct AppState {
@@ -199,6 +200,31 @@ impl AppState {
         Ok(())
     }
 
+    pub async fn submit_content_create(&mut self, draft: ContentDraft) {
+        let ctx = CoreContext::from_pool(self.pool.clone());
+        let content: ritmo_domain::Content = draft.into();
+
+        match ritmo_core::content::create(&ctx, &content).await {
+            Ok(_) => match load_contents(&ctx).await {
+                Ok(contents) => {
+                    self.contents = contents;
+                    self.content_list = ContentListScreen::new(&self.contents);
+                    self.content_create = None;
+                    self.level = ScreenLevel::List;
+                    self.statusbar.clear_message();
+                }
+                Err(e) => {
+                    self.statusbar
+                        .set_message(format!("Errore ricarica contenuti: {e}"));
+                }
+            },
+            Err(e) => {
+                self.statusbar
+                    .set_message(format!("Errore salvataggio: {e}"));
+            }
+        }
+    }
+
     pub fn should_quit(&self) -> bool {
         self.should_quit
     }
@@ -265,8 +291,14 @@ impl AppState {
         }
 
         let status = format!(
-            " Window: {:?} | Level: {:?} | q: esci | f/b/c: cambia finestra",
-            self.main_window, self.level
+            " Window: {:?} | Level: {:?} | q: esci | f/b/c: cambia finestra{}",
+            self.main_window,
+            self.level,
+            if self.statusbar.message.is_empty() {
+                String::new()
+            } else {
+                format!(" | {}", self.statusbar.message)
+            }
         );
         frame.render_widget(Paragraph::new(status), chunks[1]);
     }
@@ -280,10 +312,8 @@ impl AppState {
                         self.content_create = None;
                         self.level = ScreenLevel::List;
                     }
-                    ContentCreateAction::Submit => {
-                        // TODO: save content via ritmo_core
-                        self.content_create = None;
-                        self.level = ScreenLevel::List;
+                    ContentCreateAction::Submit(draft) => {
+                        return AppAction::SubmitContentCreate(draft);
                     }
                     ContentCreateAction::None => {}
                 }
@@ -643,5 +673,46 @@ mod tests {
         app.handle_key(key(KeyCode::Esc));
         assert_eq!(app.level, ScreenLevel::List);
         assert!(app.content_create.is_none());
+    }
+
+    #[tokio::test]
+    async fn content_create_submit_creates_content_reloads_list_and_closes_screen() {
+        use crossterm::event::KeyModifiers;
+
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Contents;
+        app.open_create_screen();
+
+        app.handle_key(key(KeyCode::Char('A')));
+        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+
+        let AppAction::SubmitContentCreate(draft) = action else {
+            panic!("expected submit content create action");
+        };
+        app.submit_content_create(draft).await;
+
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.content_create.is_none());
+        assert!(app.contents.iter().any(|c| c.content.title == "A"));
+    }
+
+    #[tokio::test]
+    async fn content_create_submit_error_keeps_screen_open_and_sets_error_message() {
+        use crossterm::event::KeyModifiers;
+
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Contents;
+        app.open_create_screen();
+
+        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+
+        let AppAction::SubmitContentCreate(draft) = action else {
+            panic!("expected submit content create action");
+        };
+        app.submit_content_create(draft).await;
+
+        assert_eq!(app.level, ScreenLevel::Editing);
+        assert!(app.content_create.is_some());
+        assert!(app.statusbar.message.contains("Errore salvataggio:"));
     }
 }
