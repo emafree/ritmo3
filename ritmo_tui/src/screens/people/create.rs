@@ -8,7 +8,9 @@ use ratatui::{
 use ritmo_domain::{PartialDate, Person};
 
 use crate::widgets::{
-    input::InputWidget, language::LanguageWidget, partial_date::PartialDateWidget,
+    input::InputWidget,
+    language::LanguageWidget,
+    partial_date::PartialDateWidget,
     place::PlaceWidget,
 };
 
@@ -161,7 +163,8 @@ impl PersonCreateScreen {
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let layout = Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(area);
+        let layout =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(area);
         let form_area = layout[0];
         let hint_area = layout[1];
 
@@ -206,8 +209,7 @@ impl PersonCreateScreen {
         let title_val = self.title.value.clone();
         let suffix_val = self.suffix.value.clone();
         let biography_val = self.biography.value.clone();
-        let aliases_display =
-            collection_text_summary(self.aliases.iter().map(|a| a.value.as_str()));
+        let aliases_display = collection_text_summary(self.aliases.iter().map(|a| a.value.as_str()));
         let places_count = self.places.len();
         let languages_display =
             collection_text_summary(self.languages.iter().map(|l| l.input.value.as_str()));
@@ -406,11 +408,7 @@ fn labeled_block(title: &str, is_active: bool) -> Block<'_> {
 }
 
 fn render_label_row(frame: &mut Frame, area: Rect, label: &str, value: &str) {
-    let display = if value.trim().is_empty() {
-        "—"
-    } else {
-        value
-    };
+    let display = if value.trim().is_empty() { "—" } else { value };
     frame.render_widget(Paragraph::new(format!("{label}: {display}")), area);
 }
 
@@ -559,7 +557,8 @@ mod tests {
     fn ctrl_s_returns_submit_action() {
         let mut screen = PersonCreateScreen::new();
 
-        let action = screen.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+        let action =
+            screen.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
 
         assert_eq!(action, PersonCreateAction::Submit);
     }

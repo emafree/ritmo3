@@ -71,13 +71,12 @@ impl TagRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Tag>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query(
-            "SELECT id, name FROM d_tags WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
-        )
-        .bind(pattern)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let rows =
+            sqlx::query("SELECT id, name FROM d_tags WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+                .bind(pattern)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| Tag {
