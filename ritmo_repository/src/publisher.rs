@@ -15,7 +15,7 @@ impl PublisherRepository {
     }
 
     pub async fn save(&self, item: &Publisher) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO publishers(name) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_publishers(name) VALUES (?)")
             .bind(&item.name)
             .execute(&self.pool)
             .await
@@ -24,7 +24,7 @@ impl PublisherRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Publisher> {
-        let row = sqlx::query("SELECT id, name FROM publishers WHERE id = ?")
+        let row = sqlx::query("SELECT id, name FROM d_publishers WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -37,7 +37,7 @@ impl PublisherRepository {
     }
 
     pub async fn update(&self, item: &Publisher) -> RitmoResult<()> {
-        sqlx::query("UPDATE publishers SET name = ? WHERE id = ?")
+        sqlx::query("UPDATE d_publishers SET name = ? WHERE id = ?")
             .bind(&item.name)
             .bind(item.id)
             .execute(&self.pool)
@@ -47,7 +47,7 @@ impl PublisherRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM publishers WHERE id = ?")
+        sqlx::query("DELETE FROM d_publishers WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -56,7 +56,7 @@ impl PublisherRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Publisher>> {
-        let rows = sqlx::query("SELECT id, name FROM publishers ORDER BY name")
+        let rows = sqlx::query("SELECT id, name FROM d_publishers ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -72,7 +72,7 @@ impl PublisherRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Publisher>> {
         let pattern = format!("%{query}%");
         let rows = sqlx::query(
-            "SELECT id, name FROM publishers WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
+            "SELECT id, name FROM d_publishers WHERE name LIKE ? COLLATE NOCASE ORDER BY name",
         )
         .bind(pattern)
         .fetch_all(&self.pool)
@@ -88,7 +88,7 @@ impl PublisherRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Publisher> {
-        if let Some(row) = sqlx::query("SELECT id, name FROM publishers WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name FROM d_publishers WHERE name = ?")
             .bind(value)
             .fetch_optional(&self.pool)
             .await

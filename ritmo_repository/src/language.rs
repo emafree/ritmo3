@@ -16,7 +16,7 @@ impl LanguageRepository {
 
     pub async fn save(&self, language: &Language) -> RitmoResult<i64> {
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO languages(iso_code_2char, iso_code_3char, official_name) VALUES (?, ?, ?)",
+            "INSERT OR IGNORE INTO d_languages(iso_code_2char, iso_code_3char, official_name) VALUES (?, ?, ?)",
         )
         .bind(&language.iso_639_2)
         .bind(&language.iso_639_3)
@@ -29,7 +29,7 @@ impl LanguageRepository {
 
     pub async fn get(&self, id: i64) -> RitmoResult<Language> {
         let row = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages WHERE id = ?",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -47,7 +47,7 @@ impl LanguageRepository {
 
     pub async fn update(&self, language: &Language) -> RitmoResult<()> {
         sqlx::query(
-            "UPDATE languages SET iso_code_2char = ?, iso_code_3char = ?, official_name = ? WHERE id = ?",
+            "UPDATE d_languages SET iso_code_2char = ?, iso_code_3char = ?, official_name = ? WHERE id = ?",
         )
         .bind(&language.iso_639_2)
         .bind(&language.iso_639_3)
@@ -60,7 +60,7 @@ impl LanguageRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM languages WHERE id = ?")
+        sqlx::query("DELETE FROM d_languages WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -70,7 +70,7 @@ impl LanguageRepository {
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Language>> {
         let rows = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages ORDER BY official_name",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages ORDER BY official_name",
         )
         .fetch_all(&self.pool)
         .await
@@ -90,7 +90,7 @@ impl LanguageRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Language>> {
         let pattern = format!("%{query}%");
         let rows = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages WHERE official_name LIKE ? COLLATE NOCASE ORDER BY official_name",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE official_name LIKE ? COLLATE NOCASE ORDER BY official_name",
         )
         .bind(pattern)
         .fetch_all(&self.pool)
@@ -110,7 +110,7 @@ impl LanguageRepository {
 
     pub async fn get_or_create(&self, name: &str) -> RitmoResult<Language> {
         if let Some(row) = sqlx::query(
-            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM languages WHERE official_name = ?",
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE official_name = ?",
         )
         .bind(name)
         .fetch_optional(&self.pool)

@@ -20,7 +20,7 @@ impl BookRepository {
     pub async fn save(&self, book: &Book) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&book.title)
         .bind(&book.isbn)
@@ -36,7 +36,7 @@ impl BookRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Book> {
-        let row = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -60,7 +60,7 @@ impl BookRepository {
     pub async fn update(&self, book: &Book) -> RitmoResult<()> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         sqlx::query(
-            "UPDATE books SET name = ?, isbn = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
+            "UPDATE d_books SET name = ?, isbn = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
         )
         .bind(&book.title)
         .bind(&book.isbn)
@@ -77,7 +77,7 @@ impl BookRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM books WHERE id = ?")
+        sqlx::query("DELETE FROM d_books WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -86,7 +86,7 @@ impl BookRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Book>> {
-        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -109,7 +109,7 @@ impl BookRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Book>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -133,7 +133,7 @@ impl BookRepository {
 
     pub async fn get_format_name(&self, book_id: i64) -> RitmoResult<Option<String>> {
         let row = sqlx::query(
-            "SELECT f.key FROM books b INNER JOIN formats f ON b.format_id = f.id WHERE b.id = ?",
+            "SELECT f.key FROM d_books b INNER JOIN d_formats f ON b.format_id = f.id WHERE b.id = ?",
         )
         .bind(book_id)
         .fetch_optional(&self.pool)
@@ -144,7 +144,7 @@ impl BookRepository {
 
     pub async fn get_series_name(&self, book_id: i64) -> RitmoResult<Option<String>> {
         let row = sqlx::query(
-            "SELECT s.name FROM books b INNER JOIN series s ON b.series_id = s.id WHERE b.id = ?",
+            "SELECT s.name FROM d_books b INNER JOIN d_series s ON b.series_id = s.id WHERE b.id = ?",
         )
         .bind(book_id)
         .fetch_optional(&self.pool)
@@ -154,7 +154,7 @@ impl BookRepository {
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Book> {
-        if let Some(row) = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM books WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE name = ?")
             .bind(title)
             .fetch_optional(&self.pool)
             .await

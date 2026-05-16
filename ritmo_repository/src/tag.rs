@@ -15,7 +15,7 @@ impl TagRepository {
     }
 
     pub async fn save(&self, item: &Tag) -> RitmoResult<i64> {
-        let result = sqlx::query("INSERT OR IGNORE INTO tags(name) VALUES (?)")
+        let result = sqlx::query("INSERT OR IGNORE INTO d_tags(name) VALUES (?)")
             .bind(&item.name)
             .execute(&self.pool)
             .await
@@ -24,7 +24,7 @@ impl TagRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Tag> {
-        let row = sqlx::query("SELECT id, name FROM tags WHERE id = ?")
+        let row = sqlx::query("SELECT id, name FROM d_tags WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -37,7 +37,7 @@ impl TagRepository {
     }
 
     pub async fn update(&self, item: &Tag) -> RitmoResult<()> {
-        sqlx::query("UPDATE tags SET name = ? WHERE id = ?")
+        sqlx::query("UPDATE d_tags SET name = ? WHERE id = ?")
             .bind(&item.name)
             .bind(item.id)
             .execute(&self.pool)
@@ -47,7 +47,7 @@ impl TagRepository {
     }
 
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
-        sqlx::query("DELETE FROM tags WHERE id = ?")
+        sqlx::query("DELETE FROM d_tags WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await
@@ -56,7 +56,7 @@ impl TagRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Tag>> {
-        let rows = sqlx::query("SELECT id, name FROM tags ORDER BY name")
+        let rows = sqlx::query("SELECT id, name FROM d_tags ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -72,7 +72,7 @@ impl TagRepository {
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Tag>> {
         let pattern = format!("%{query}%");
         let rows =
-            sqlx::query("SELECT id, name FROM tags WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+            sqlx::query("SELECT id, name FROM d_tags WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
                 .bind(pattern)
                 .fetch_all(&self.pool)
                 .await
@@ -87,7 +87,7 @@ impl TagRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Tag> {
-        if let Some(row) = sqlx::query("SELECT id, name FROM tags WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name FROM d_tags WHERE name = ?")
             .bind(value)
             .fetch_optional(&self.pool)
             .await

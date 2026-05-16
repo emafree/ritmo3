@@ -19,7 +19,7 @@ impl XPersonLanguagesRepository {
         language_id: i64,
         language_role_id: i64,
     ) -> RitmoResult<()> {
-        sqlx::query("INSERT OR IGNORE INTO person_languages(person_id, language_id, role_id) VALUES (?, ?, ?)")
+        sqlx::query("INSERT OR IGNORE INTO x_person_languages(person_id, language_id, role_id) VALUES (?, ?, ?)")
             .bind(person_id)
             .bind(language_id)
             .bind(language_role_id)
@@ -36,7 +36,7 @@ impl XPersonLanguagesRepository {
         language_role_id: i64,
     ) -> RitmoResult<()> {
         sqlx::query(
-            "DELETE FROM person_languages WHERE person_id = ? AND language_id = ? AND role_id = ?",
+            "DELETE FROM x_person_languages WHERE person_id = ? AND language_id = ? AND role_id = ?",
         )
         .bind(person_id)
         .bind(language_id)
@@ -49,7 +49,7 @@ impl XPersonLanguagesRepository {
 
     pub async fn list_by_person(&self, person_id: i64) -> RitmoResult<Vec<(i64, i64)>> {
         let rows =
-            sqlx::query("SELECT language_id, role_id FROM person_languages WHERE person_id = ?")
+            sqlx::query("SELECT language_id, role_id FROM x_person_languages WHERE person_id = ?")
                 .bind(person_id)
                 .fetch_all(&self.pool)
                 .await
@@ -68,7 +68,7 @@ impl XPersonLanguagesRepository {
         let rows = match language_role_id {
             Some(role_id) => {
                 sqlx::query(
-                    "SELECT person_id, role_id FROM person_languages WHERE language_id = ? AND role_id = ?",
+                    "SELECT person_id, role_id FROM x_person_languages WHERE language_id = ? AND role_id = ?",
                 )
                 .bind(language_id)
                 .bind(role_id)
@@ -78,7 +78,7 @@ impl XPersonLanguagesRepository {
             }
             None => {
                 sqlx::query(
-                    "SELECT person_id, role_id FROM person_languages WHERE language_id = ?",
+                    "SELECT person_id, role_id FROM x_person_languages WHERE language_id = ?",
                 )
                 .bind(language_id)
                 .fetch_all(&self.pool)
