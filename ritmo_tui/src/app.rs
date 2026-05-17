@@ -71,7 +71,7 @@ impl ScreenLevel {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum AppAction {
     None,
     Quit,
@@ -88,8 +88,34 @@ pub enum AppAction {
     ConfirmPopup,
     CancelPopup,
     SubmitContentCreate(ContentDraft),
-    CreatePersonForContent(String),
+    CreatePerson(ritmo_domain::Person),
 }
+
+impl PartialEq for AppAction {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::None, Self::None)
+            | (Self::Quit, Self::Quit)
+            | (Self::ScrollUp, Self::ScrollUp)
+            | (Self::ScrollDown, Self::ScrollDown)
+            | (Self::EnterLevel, Self::EnterLevel)
+            | (Self::ExitLevel, Self::ExitLevel)
+            | (Self::Search, Self::Search)
+            | (Self::NewRecord, Self::NewRecord)
+            | (Self::EditRecord, Self::EditRecord)
+            | (Self::DeleteRecord, Self::DeleteRecord)
+            | (Self::ToggleFilterSet, Self::ToggleFilterSet)
+            | (Self::ConfirmPopup, Self::ConfirmPopup)
+            | (Self::CancelPopup, Self::CancelPopup) => true,
+            (Self::SwitchWindow(a), Self::SwitchWindow(b)) => a == b,
+            (Self::SubmitContentCreate(a), Self::SubmitContentCreate(b)) => a == b,
+            (Self::CreatePerson(a), Self::CreatePerson(b)) => person_eq(a, b),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for AppAction {}
 
 pub struct AppState {
     pub pool: SqlitePool,
@@ -254,8 +280,8 @@ impl AppState {
         }
     }
 
-    pub async fn create_person_for_content(&mut self, name: String) {
-        let trimmed = name.trim();
+    pub async fn create_person(&mut self, person: ritmo_domain::Person) {
+        let trimmed = person.name.trim();
         if trimmed.is_empty() {
             self.statusbar
                 .set_message("Errore salvataggio: il nome è obbligatorio".to_string());
@@ -392,8 +418,8 @@ impl AppState {
                     ContentCreateAction::Submit(draft) => {
                         return AppAction::SubmitContentCreate(draft);
                     }
-                    ContentCreateAction::CreatePersonForContent(name) => {
-                        return AppAction::CreatePersonForContent(name);
+                    ContentCreateAction::CreatePerson(person) => {
+                        return AppAction::CreatePerson(person);
                     }
                     ContentCreateAction::None => {}
                 }
@@ -530,6 +556,30 @@ impl AppState {
             }
             MainWindow::Filters => {}
         }
+    }
+}
+
+fn person_eq(a: &ritmo_domain::Person, b: &ritmo_domain::Person) -> bool {
+    a.id == b.id
+        && a.name == b.name
+        && a.display_name == b.display_name
+        && a.given_name == b.given_name
+        && a.surname == b.surname
+        && a.middle_names == b.middle_names
+        && a.title == b.title
+        && a.suffix == b.suffix
+        && partial_date_eq(&a.birth_date, &b.birth_date)
+        && partial_date_eq(&a.death_date, &b.death_date)
+        && a.biography == b.biography
+}
+
+fn partial_date_eq(a: &Option<ritmo_domain::PartialDate>, b: &Option<ritmo_domain::PartialDate>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(a), Some(b)) => {
+            a.year == b.year && a.month == b.month && a.day == b.day && a.circa == b.circa
+        }
+        _ => false,
     }
 }
 
@@ -848,11 +898,26 @@ mod tests {
         app.handle_key(key(KeyCode::Char('u')));
         let action = app.handle_key(key(KeyCode::Enter));
 
-        assert_eq!(action, AppAction::CreatePersonForContent("Nu".to_string()));
+        assert_eq!(
+            action,
+            AppAction::CreatePerson(ritmo_domain::Person {
+                id: 0,
+                name: "Nu".to_string(),
+                display_name: None,
+                given_name: None,
+                surname: None,
+                middle_names: None,
+                title: None,
+                suffix: None,
+                birth_date: None,
+                death_date: None,
+                biography: None,
+            })
+        );
     }
 
     #[tokio::test]
-    async fn create_person_for_content_adds_person_to_flow() {
+    async fn create_person_adds_person_to_flow() {
         let mut app = make_test_state().await;
         app.main_window = MainWindow::Contents;
         app.open_create_screen();
@@ -863,10 +928,10 @@ mod tests {
         app.handle_key(key(KeyCode::Char('n')));
         app.handle_key(key(KeyCode::Char('X')));
         let action = app.handle_key(key(KeyCode::Enter));
-        let AppAction::CreatePersonForContent(name) = action else {
-            panic!("expected CreatePersonForContent action");
+        let AppAction::CreatePerson(person) = action else {
+            panic!("expected CreatePerson action");
         };
-        app.create_person_for_content(name).await;
+        app.create_person(person).await;
 
         let screen = app.content_create.as_mut().expect("content screen");
         screen.handle_key(key(KeyCode::Enter));
