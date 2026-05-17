@@ -24,6 +24,9 @@ impl InputWidget {
             KeyCode::Backspace => self.handle_backspace(),
             KeyCode::Up => self.handle_up(),
             KeyCode::Down => self.handle_down(),
+            KeyCode::Esc => {
+                self.dismiss_suggestions();
+            }
             _ => {}
         }
     }
@@ -78,6 +81,15 @@ impl InputWidget {
         self.cursor = 0;
         self.suggestions.clear();
         self.selected_suggestion = None;
+    }
+
+    pub fn dismiss_suggestions(&mut self) -> bool {
+        if self.suggestions.is_empty() && self.selected_suggestion.is_none() {
+            return false;
+        }
+        self.suggestions.clear();
+        self.selected_suggestion = None;
+        true
     }
 
     pub fn set_suggestions(&mut self, suggestions: Vec<String>) {
@@ -243,6 +255,22 @@ mod tests {
 
         input.set_suggestions(Vec::new());
 
+        assert!(input.suggestions.is_empty());
+        assert_eq!(input.selected_suggestion, None);
+    }
+
+    #[test]
+    fn esc_dismisses_suggestions_without_clearing_typed_value() {
+        let mut input = InputWidget::new();
+        input.value = "alp".into();
+        input.cursor = 3;
+        input.set_suggestions(vec!["alpha".into(), "alpine".into()]);
+        input.selected_suggestion = Some(1);
+
+        input.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(input.value, "alp");
+        assert_eq!(input.cursor, 3);
         assert!(input.suggestions.is_empty());
         assert_eq!(input.selected_suggestion, None);
     }
