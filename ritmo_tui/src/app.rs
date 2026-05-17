@@ -263,40 +263,25 @@ impl AppState {
         }
 
         let ctx = CoreContext::from_pool(self.pool.clone());
-        let existing = match ritmo_core::person::search(&ctx, trimmed).await {
-            Ok(people) => people
-                .into_iter()
-                .find(|person| person.name.eq_ignore_ascii_case(trimmed)),
+        let person = ritmo_domain::Person {
+            id: 0,
+            name: trimmed.to_string(),
+            display_name: None,
+            given_name: None,
+            surname: None,
+            middle_names: None,
+            title: None,
+            suffix: None,
+            birth_date: None,
+            death_date: None,
+            biography: None,
+        };
+        let (person_id, person_name) = match ritmo_core::person::create(&ctx, &person).await {
+            Ok(id) => (id, person.name),
             Err(e) => {
                 self.statusbar
-                    .set_message(format!("Errore ricerca persona: {e}"));
+                    .set_message(format!("Errore salvataggio persona: {e}"));
                 return;
-            }
-        };
-
-        let (person_id, person_name) = if let Some(person) = existing {
-            (person.id, person.name)
-        } else {
-            let person = ritmo_domain::Person {
-                id: 0,
-                name: trimmed.to_string(),
-                display_name: None,
-                given_name: None,
-                surname: None,
-                middle_names: None,
-                title: None,
-                suffix: None,
-                birth_date: None,
-                death_date: None,
-                biography: None,
-            };
-            match ritmo_core::person::create(&ctx, &person).await {
-                Ok(id) => (id, person.name),
-                Err(e) => {
-                    self.statusbar
-                        .set_message(format!("Errore salvataggio persona: {e}"));
-                    return;
-                }
             }
         };
 
