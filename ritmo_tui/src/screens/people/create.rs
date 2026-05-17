@@ -10,13 +10,14 @@ use ritmo_domain::{PartialDate, Person};
 use crate::widgets::{
     input::InputWidget,
     language::LanguageWidget,
-    partial_date::PartialDateWidget,
+    partial_date::{PartialDateField, PartialDateWidget},
     place::PlaceWidget,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PersonField {
     Name,
+    GivenName,
     Surname,
     DisplayName,
     MiddleNames,
@@ -30,17 +31,49 @@ pub enum PersonField {
     Languages,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PersonCreateAction {
     None,
-    Submit,
+    Submit(PersonDraft),
     Cancel,
 }
+
+#[derive(Debug, Clone)]
+pub struct PersonDraft {
+    pub name: String,
+    pub display_name: Option<String>,
+    pub given_name: Option<String>,
+    pub surname: Option<String>,
+    pub middle_names: Option<String>,
+    pub title: Option<String>,
+    pub suffix: Option<String>,
+    pub birth_date: Option<PartialDate>,
+    pub death_date: Option<PartialDate>,
+    pub biography: Option<String>,
+}
+
+impl PartialEq for PersonDraft {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.display_name == other.display_name
+            && self.given_name == other.given_name
+            && self.surname == other.surname
+            && self.middle_names == other.middle_names
+            && self.title == other.title
+            && self.suffix == other.suffix
+            && self.biography == other.biography
+            && partial_date_eq(&self.birth_date, &other.birth_date)
+            && partial_date_eq(&self.death_date, &other.death_date)
+    }
+}
+
+impl Eq for PersonDraft {}
 
 #[derive(Debug, Clone)]
 pub struct PersonCreateScreen {
     pub active_field: PersonField,
     pub name: InputWidget,
+    pub given_name: InputWidget,
     pub surname: InputWidget,
     pub display_name: InputWidget,
     pub middle_names: InputWidget,
@@ -59,6 +92,7 @@ impl PersonCreateScreen {
         Self {
             active_field: PersonField::Name,
             name: InputWidget::new(),
+            given_name: InputWidget::new(),
             surname: InputWidget::new(),
             display_name: InputWidget::new(),
             middle_names: InputWidget::new(),
@@ -75,10 +109,13 @@ impl PersonCreateScreen {
 
     pub fn handle_key(&mut self, key: KeyEvent) -> PersonCreateAction {
         if key.code == KeyCode::Esc {
+            if self.handle_escape() {
+                return PersonCreateAction::None;
+            }
             return PersonCreateAction::Cancel;
         }
         if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
-            return PersonCreateAction::Submit;
+            return PersonCreateAction::Submit(self.to_draft());
         }
         // Enter always advances to the next field.
         if key.code == KeyCode::Enter {
@@ -116,6 +153,7 @@ impl PersonCreateScreen {
         // Delegate remaining keys to the active widget.
         match self.active_field {
             PersonField::Name => self.name.handle_key(key),
+            PersonField::GivenName => self.given_name.handle_key(key),
             PersonField::Surname => self.surname.handle_key(key),
             PersonField::DisplayName => self.display_name.handle_key(key),
             PersonField::MiddleNames => self.middle_names.handle_key(key),
@@ -163,8 +201,7 @@ impl PersonCreateScreen {
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let layout =
-            Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(area);
+        let layout = Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(area);
         let form_area = layout[0];
         let hint_area = layout[1];
 
@@ -186,6 +223,7 @@ impl PersonCreateScreen {
         let af = self.active_field;
         let constraints = [
             text_field_height(af, PersonField::Name),
+            text_field_height(af, PersonField::GivenName),
             text_field_height(af, PersonField::Surname),
             text_field_height(af, PersonField::DisplayName),
             text_field_height(af, PersonField::MiddleNames),
@@ -203,13 +241,15 @@ impl PersonCreateScreen {
 
         // Pre-collect values for inactive field display (avoid borrow conflicts).
         let name_val = self.name.value.clone();
+        let given_name_val = self.given_name.value.clone();
         let surname_val = self.surname.value.clone();
         let display_name_val = self.display_name.value.clone();
         let middle_names_val = self.middle_names.value.clone();
         let title_val = self.title.value.clone();
         let suffix_val = self.suffix.value.clone();
         let biography_val = self.biography.value.clone();
-        let aliases_display = collection_text_summary(self.aliases.iter().map(|a| a.value.as_str()));
+        let aliases_display =
+            collection_text_summary(self.aliases.iter().map(|a| a.value.as_str()));
         let places_count = self.places.len();
         let languages_display =
             collection_text_summary(self.languages.iter().map(|l| l.input.value.as_str()));
@@ -221,57 +261,63 @@ impl PersonCreateScreen {
             render_label_row(frame, rows[0], "Nome", &name_val);
         }
 
-        if af == PersonField::Surname {
-            self.surname.render(frame, rows[1]);
+        if af == PersonField::GivenName {
+            self.given_name.render(frame, rows[1]);
         } else {
-            render_label_row(frame, rows[1], "Cognome", &surname_val);
+            render_label_row(frame, rows[1], "Nome proprio", &given_name_val);
+        }
+
+        if af == PersonField::Surname {
+            self.surname.render(frame, rows[2]);
+        } else {
+            render_label_row(frame, rows[2], "Cognome", &surname_val);
         }
 
         if af == PersonField::DisplayName {
-            self.display_name.render(frame, rows[2]);
+            self.display_name.render(frame, rows[3]);
         } else {
-            render_label_row(frame, rows[2], "Nome visualizzato", &display_name_val);
+            render_label_row(frame, rows[3], "Nome visualizzato", &display_name_val);
         }
 
         if af == PersonField::MiddleNames {
-            self.middle_names.render(frame, rows[3]);
+            self.middle_names.render(frame, rows[4]);
         } else {
-            render_label_row(frame, rows[3], "Secondo nome", &middle_names_val);
+            render_label_row(frame, rows[4], "Secondo nome", &middle_names_val);
         }
 
         if af == PersonField::Title {
-            self.title.render(frame, rows[4]);
+            self.title.render(frame, rows[5]);
         } else {
-            render_label_row(frame, rows[4], "Titolo", &title_val);
+            render_label_row(frame, rows[5], "Titolo", &title_val);
         }
 
         if af == PersonField::Suffix {
-            self.suffix.render(frame, rows[5]);
+            self.suffix.render(frame, rows[6]);
         } else {
-            render_label_row(frame, rows[5], "Suffisso", &suffix_val);
+            render_label_row(frame, rows[6], "Suffisso", &suffix_val);
         }
 
         // ── Date fields ─────────────────────────────────────────────────────
         {
             let is_active = af == PersonField::BirthDate;
             let block = labeled_block("Data di nascita", is_active);
-            let date_inner = block.inner(rows[6]);
-            frame.render_widget(block, rows[6]);
+            let date_inner = block.inner(rows[7]);
+            frame.render_widget(block, rows[7]);
             self.birth_date.render(frame, date_inner, is_active);
         }
         {
             let is_active = af == PersonField::DeathDate;
             let block = labeled_block("Data di morte", is_active);
-            let date_inner = block.inner(rows[7]);
-            frame.render_widget(block, rows[7]);
+            let date_inner = block.inner(rows[8]);
+            frame.render_widget(block, rows[8]);
             self.death_date.render(frame, date_inner, is_active);
         }
 
         // ── Biography ───────────────────────────────────────────────────────
         if af == PersonField::Biography {
-            self.biography.render(frame, rows[8]);
+            self.biography.render(frame, rows[9]);
         } else {
-            render_label_row(frame, rows[8], "Biografia", &biography_val);
+            render_label_row(frame, rows[9], "Biografia", &biography_val);
         }
 
         // ── Collections ─────────────────────────────────────────────────────
@@ -279,8 +325,8 @@ impl PersonCreateScreen {
         {
             let is_active = af == PersonField::Aliases;
             let block = labeled_block("Alias", is_active);
-            let coll_inner = block.inner(rows[9]);
-            frame.render_widget(block, rows[9]);
+            let coll_inner = block.inner(rows[10]);
+            frame.render_widget(block, rows[10]);
             if is_active && !self.aliases.is_empty() {
                 self.aliases.last_mut().unwrap().render(frame, coll_inner);
             } else {
@@ -291,8 +337,8 @@ impl PersonCreateScreen {
         {
             let is_active = af == PersonField::Places;
             let block = labeled_block("Luoghi", is_active);
-            let coll_inner = block.inner(rows[10]);
-            frame.render_widget(block, rows[10]);
+            let coll_inner = block.inner(rows[11]);
+            frame.render_widget(block, rows[11]);
             if is_active && !self.places.is_empty() {
                 self.places.last().unwrap().render(frame, coll_inner);
             } else {
@@ -308,8 +354,8 @@ impl PersonCreateScreen {
         {
             let is_active = af == PersonField::Languages;
             let block = labeled_block("Lingue", is_active);
-            let coll_inner = block.inner(rows[11]);
-            frame.render_widget(block, rows[11]);
+            let coll_inner = block.inner(rows[12]);
+            frame.render_widget(block, rows[12]);
             if is_active && !self.languages.is_empty() {
                 self.languages.last_mut().unwrap().render(frame, coll_inner);
             } else {
@@ -319,15 +365,18 @@ impl PersonCreateScreen {
     }
 
     pub fn to_person(&self) -> Option<Person> {
-        let name = self.name.value.trim().to_string();
-        if name.is_empty() {
+        let draft = self.to_draft();
+        if draft.name.is_empty() {
             return None;
         }
-        Some(Person {
-            id: 0,
-            name,
+        Some(draft.into())
+    }
+
+    fn to_draft(&self) -> PersonDraft {
+        PersonDraft {
+            name: self.name.value.trim().to_string(),
             display_name: to_opt(&self.display_name.value),
-            given_name: None,
+            given_name: to_opt(&self.given_name.value),
             surname: to_opt(&self.surname.value),
             middle_names: to_opt(&self.middle_names.value),
             title: to_opt(&self.title.value),
@@ -335,12 +384,13 @@ impl PersonCreateScreen {
             birth_date: date_to_opt(self.birth_date.value()),
             death_date: date_to_opt(self.death_date.value()),
             biography: to_opt(&self.biography.value),
-        })
+        }
     }
 
     fn next_field(&mut self) {
         self.active_field = match self.active_field {
-            PersonField::Name => PersonField::Surname,
+            PersonField::Name => PersonField::GivenName,
+            PersonField::GivenName => PersonField::Surname,
             PersonField::Surname => PersonField::DisplayName,
             PersonField::DisplayName => PersonField::MiddleNames,
             PersonField::MiddleNames => PersonField::Title,
@@ -358,7 +408,8 @@ impl PersonCreateScreen {
     fn previous_field(&mut self) {
         self.active_field = match self.active_field {
             PersonField::Name => PersonField::Languages,
-            PersonField::Surname => PersonField::Name,
+            PersonField::GivenName => PersonField::Name,
+            PersonField::Surname => PersonField::GivenName,
             PersonField::DisplayName => PersonField::Surname,
             PersonField::MiddleNames => PersonField::DisplayName,
             PersonField::Title => PersonField::MiddleNames,
@@ -370,6 +421,30 @@ impl PersonCreateScreen {
             PersonField::Places => PersonField::Aliases,
             PersonField::Languages => PersonField::Places,
         };
+    }
+
+    fn handle_escape(&mut self) -> bool {
+        match self.active_field {
+            PersonField::BirthDate => {
+                if self.birth_date.active_field != PartialDateField::Year {
+                    self.birth_date.active_field = PartialDateField::Year;
+                    return true;
+                }
+            }
+            PersonField::DeathDate => {
+                if self.death_date.active_field != PartialDateField::Year {
+                    self.death_date.active_field = PartialDateField::Year;
+                    return true;
+                }
+            }
+            PersonField::Languages => {
+                if let Some(language) = self.languages.last_mut() {
+                    return language.input.dismiss_suggestions();
+                }
+            }
+            _ => {}
+        }
+        false
     }
 }
 
@@ -408,7 +483,11 @@ fn labeled_block(title: &str, is_active: bool) -> Block<'_> {
 }
 
 fn render_label_row(frame: &mut Frame, area: Rect, label: &str, value: &str) {
-    let display = if value.trim().is_empty() { "—" } else { value };
+    let display = if value.trim().is_empty() {
+        "—"
+    } else {
+        value
+    };
     frame.render_widget(Paragraph::new(format!("{label}: {display}")), area);
 }
 
@@ -438,12 +517,43 @@ fn date_to_opt(date: PartialDate) -> Option<PartialDate> {
     }
 }
 
+impl From<PersonDraft> for Person {
+    fn from(value: PersonDraft) -> Self {
+        Person {
+            id: 0,
+            name: value.name,
+            display_name: value.display_name,
+            given_name: value.given_name,
+            surname: value.surname,
+            middle_names: value.middle_names,
+            title: value.title,
+            suffix: value.suffix,
+            birth_date: value.birth_date,
+            death_date: value.death_date,
+            biography: value.biography,
+        }
+    }
+}
+
+fn partial_date_eq(a: &Option<PartialDate>, b: &Option<PartialDate>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(left), Some(right)) => {
+            left.year == right.year
+                && left.month == right.month
+                && left.day == right.day
+                && left.circa == right.circa
+        }
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{backend::TestBackend, Terminal};
 
-    use super::{PersonCreateAction, PersonCreateScreen, PersonField};
+    use super::{PersonCreateAction, PersonCreateScreen, PersonDraft, PersonField};
 
     #[test]
     fn new_starts_at_name_field_with_empty_state() {
@@ -464,6 +574,7 @@ mod tests {
 
         // Tab advances through non-date fields normally.
         let tab_steps = [
+            PersonField::GivenName,
             PersonField::Surname,
             PersonField::DisplayName,
             PersonField::MiddleNames,
@@ -505,6 +616,7 @@ mod tests {
 
         // Enter always advances PersonField regardless of the active widget type.
         let expected_order = [
+            PersonField::GivenName,
             PersonField::Surname,
             PersonField::DisplayName,
             PersonField::MiddleNames,
@@ -541,11 +653,11 @@ mod tests {
         let mut screen = PersonCreateScreen::new();
 
         screen.handle_key(KeyEvent::from(KeyCode::Enter));
-        assert_eq!(screen.active_field, PersonField::Surname);
+        assert_eq!(screen.active_field, PersonField::GivenName);
     }
 
     #[test]
-    fn esc_returns_cancel_action() {
+    fn esc_returns_cancel_action_when_no_popup_is_open() {
         let mut screen = PersonCreateScreen::new();
 
         let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
@@ -557,10 +669,23 @@ mod tests {
     fn ctrl_s_returns_submit_action() {
         let mut screen = PersonCreateScreen::new();
 
-        let action =
-            screen.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+        let action = screen.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
 
-        assert_eq!(action, PersonCreateAction::Submit);
+        assert_eq!(
+            action,
+            PersonCreateAction::Submit(PersonDraft {
+                name: "".into(),
+                display_name: None,
+                given_name: None,
+                surname: None,
+                middle_names: None,
+                title: None,
+                suffix: None,
+                birth_date: None,
+                death_date: None,
+                biography: None,
+            })
+        );
     }
 
     #[test]
@@ -579,7 +704,7 @@ mod tests {
         let mut screen = PersonCreateScreen::new();
 
         // Navigate to BirthDate
-        for _ in 0..6 {
+        for _ in 0..7 {
             screen.handle_key(KeyEvent::from(KeyCode::Tab));
         }
         assert_eq!(screen.active_field, PersonField::BirthDate);
@@ -598,7 +723,7 @@ mod tests {
         let mut screen = PersonCreateScreen::new();
 
         // Navigate to BirthDate
-        for _ in 0..6 {
+        for _ in 0..7 {
             screen.handle_key(KeyEvent::from(KeyCode::Tab));
         }
         assert_eq!(screen.active_field, PersonField::BirthDate);
@@ -617,7 +742,7 @@ mod tests {
         let mut screen = PersonCreateScreen::new();
 
         // Navigate to Aliases using Enter (advances PersonField regardless of active widget).
-        for _ in 0..9 {
+        for _ in 0..10 {
             screen.handle_key(KeyEvent::from(KeyCode::Enter));
         }
         assert_eq!(screen.active_field, PersonField::Aliases);
@@ -637,7 +762,7 @@ mod tests {
         let mut screen = PersonCreateScreen::new();
 
         // Use Enter to navigate to Aliases (Enter always advances PersonField).
-        for _ in 0..9 {
+        for _ in 0..10 {
             screen.handle_key(KeyEvent::from(KeyCode::Enter));
         }
         screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
@@ -674,12 +799,14 @@ mod tests {
         let mut screen = PersonCreateScreen::new();
         screen.name.value = "Lovelace".to_string();
         screen.display_name.value = "Ada Lovelace".to_string();
+        screen.given_name.value = "Ada".to_string();
         screen.surname.value = "Lovelace".to_string();
         screen.biography.value = "Matematica".to_string();
 
         let person = screen.to_person().unwrap();
 
         assert_eq!(person.display_name.as_deref(), Some("Ada Lovelace"));
+        assert_eq!(person.given_name.as_deref(), Some("Ada"));
         assert_eq!(person.surname.as_deref(), Some("Lovelace"));
         assert_eq!(person.biography.as_deref(), Some("Matematica"));
     }
@@ -704,7 +831,7 @@ mod tests {
         screen.name.value = "Ada".to_string();
 
         // Set birth year directly via the widget
-        for _ in 0..6 {
+        for _ in 0..7 {
             screen.handle_key(KeyEvent::from(KeyCode::Tab));
         }
         screen.handle_key(KeyEvent::from(KeyCode::Char('1')));
@@ -739,6 +866,7 @@ mod tests {
             .join("\n");
 
         assert!(rendered.contains("Crea Persona"));
+        assert!(rendered.contains("Nome proprio"));
         assert!(rendered.contains("Cognome"));
         assert!(rendered.contains("Data di nascita"));
         assert!(rendered.contains("Data di morte"));
@@ -746,5 +874,42 @@ mod tests {
         assert!(rendered.contains("Alias"));
         assert!(rendered.contains("Luoghi"));
         assert!(rendered.contains("Lingue"));
+    }
+
+    #[test]
+    fn esc_in_birth_date_subfield_returns_to_year_without_cancelling() {
+        let mut screen = PersonCreateScreen::new();
+        screen.active_field = PersonField::BirthDate;
+        screen.birth_date.active_field = super::PartialDateField::Day;
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(action, PersonCreateAction::None);
+        assert_eq!(screen.active_field, PersonField::BirthDate);
+        assert_eq!(
+            screen.birth_date.active_field,
+            super::PartialDateField::Year
+        );
+    }
+
+    #[test]
+    fn esc_closes_language_dropdown_without_cancelling() {
+        let mut screen = PersonCreateScreen::new();
+        screen.active_field = PersonField::Languages;
+        screen
+            .languages
+            .push(crate::widgets::language::LanguageWidget::new());
+        let language = &mut screen.languages[0];
+        language.input.value = "it".into();
+        language.input.cursor = 2;
+        language.set_suggestions(vec![(1, "Italiano".into()), (2, "English".into())]);
+        language.input.selected_suggestion = Some(0);
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(action, PersonCreateAction::None);
+        assert!(screen.languages[0].input.suggestions.is_empty());
+        assert_eq!(screen.languages[0].input.selected_suggestion, None);
+        assert_eq!(screen.languages[0].input.value, "it");
     }
 }

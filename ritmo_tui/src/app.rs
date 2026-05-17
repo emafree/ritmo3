@@ -14,7 +14,7 @@ use sqlx::SqlitePool;
 use crate::screens::books::list::BookListScreen;
 use crate::screens::contents::create::{ContentCreateAction, ContentCreateScreen, ContentDraft};
 use crate::screens::contents::list::ContentListScreen;
-use crate::screens::people::create::{PersonCreateAction, PersonCreateScreen};
+use crate::screens::people::create::{PersonCreateAction, PersonCreateScreen, PersonDraft};
 use crate::widgets::statusbar::StatusBar;
 use crate::widgets::table::TableAction;
 
@@ -88,6 +88,7 @@ pub enum AppAction {
     ConfirmPopup,
     CancelPopup,
     SubmitContentCreate(ContentDraft),
+    SubmitPersonCreate(PersonDraft),
 }
 
 pub struct AppState {
@@ -231,6 +232,29 @@ impl AppState {
         }
     }
 
+    pub async fn submit_person_create(&mut self, draft: PersonDraft) {
+        if draft.name.trim().is_empty() {
+            self.statusbar
+                .set_message("Errore salvataggio: il nome è obbligatorio".to_string());
+            return;
+        }
+
+        let ctx = CoreContext::from_pool(self.pool.clone());
+        let person: ritmo_domain::Person = draft.into();
+
+        match ritmo_core::person::create(&ctx, &person).await {
+            Ok(_) => {
+                self.person_create = None;
+                self.level = ScreenLevel::List;
+                self.statusbar.clear_message();
+            }
+            Err(e) => {
+                self.statusbar
+                    .set_message(format!("Errore salvataggio: {e}"));
+            }
+        }
+    }
+
     pub fn should_quit(&self) -> bool {
         self.should_quit
     }
@@ -242,7 +266,8 @@ impl AppState {
                 self.level = ScreenLevel::Editing;
             }
             MainWindow::Books => {
-                // TODO: BookCreateScreen — da implementare in seguito
+                self.person_create = Some(PersonCreateScreen::new());
+                self.level = ScreenLevel::Editing;
             }
             MainWindow::Filters => {
                 // TODO: FilterSetCreateScreen — da implementare in seguito
@@ -335,10 +360,8 @@ impl AppState {
                         self.person_create = None;
                         self.level = ScreenLevel::List;
                     }
-                    PersonCreateAction::Submit => {
-                        // TODO: save person via ritmo_core
-                        self.person_create = None;
-                        self.level = ScreenLevel::List;
+                    PersonCreateAction::Submit(draft) => {
+                        return AppAction::SubmitPersonCreate(draft);
                     }
                     PersonCreateAction::None => {}
                 }
@@ -601,6 +624,19 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn open_create_screen_from_books_sets_editing_and_screen() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.person_create.is_none());
+
+        app.open_create_screen();
+
+        assert_eq!(app.level, ScreenLevel::Editing);
+        assert!(app.person_create.is_some());
+    }
+
+    #[tokio::test]
     async fn render_shows_content_create_screen_when_editing_contents() {
         let mut app = make_test_state().await;
         app.main_window = MainWindow::Contents;
@@ -621,6 +657,29 @@ mod tests {
             .join("\n");
 
         assert!(rendered.contains("Crea Contenuto"));
+    }
+
+    #[tokio::test]
+    async fn render_shows_person_create_screen_when_editing_books() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        app.open_create_screen();
+
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        terminal.draw(|frame| app.render(frame)).expect("draw");
+
+        let buffer = terminal.backend().buffer().clone();
+        let rendered = (0..buffer.area.height)
+            .map(|y| {
+                (0..buffer.area.width)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(rendered.contains("Crea Persona"));
     }
 
     #[tokio::test]
@@ -723,7 +782,10 @@ mod tests {
 
         assert_eq!(app.level, ScreenLevel::Editing);
         assert!(app.content_create.is_some());
-        assert_eq!(app.statusbar.message, "Errore salvataggio: il titolo è obbligatorio");
+        assert_eq!(
+            app.statusbar.message,
+            "Errore salvataggio: il titolo è obbligatorio"
+        );
     }
 
     #[tokio::test]
@@ -739,11 +801,79 @@ mod tests {
             panic!("expected submit content create action");
         };
         app.submit_content_create(draft).await;
-        assert_eq!(app.statusbar.message, "Errore salvataggio: il titolo è obbligatorio");
+        assert_eq!(
+            app.statusbar.message,
+            "Errore salvataggio: il titolo è obbligatorio"
+        );
 
         app.handle_key(key(KeyCode::Char('A')));
         assert_eq!(app.statusbar.message, "");
         let screen = app.content_create.as_ref().unwrap();
         assert_eq!(screen.title.value, "A");
+    }
+
+    #[tokio::test]
+    async fn person_create_screen_receives_keys_when_editing() {
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        app.open_create_screen();
+        assert_eq!(app.level, ScreenLevel::Editing);
+
+        app.handle_key(key(KeyCode::Char('A')));
+        let screen = app.person_create.as_ref().unwrap();
+        assert_eq!(screen.name.value, "A");
+
+        app.handle_key(key(KeyCode::Esc));
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.person_create.is_none());
+    }
+
+    #[tokio::test]
+    async fn person_create_submit_creates_person_and_closes_screen() {
+        use crossterm::event::KeyModifiers;
+
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        app.open_create_screen();
+
+        app.handle_key(key(KeyCode::Char('A')));
+        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+
+        let AppAction::SubmitPersonCreate(draft) = action else {
+            panic!("expected submit person create action");
+        };
+        app.submit_person_create(draft).await;
+
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.person_create.is_none());
+        let created_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM d_people WHERE name = 'A'")
+                .fetch_one(&app.pool)
+                .await
+                .expect("count people");
+        assert_eq!(created_count, 1);
+    }
+
+    #[tokio::test]
+    async fn person_create_submit_error_keeps_screen_open_and_sets_error_message() {
+        use crossterm::event::KeyModifiers;
+
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Books;
+        app.open_create_screen();
+
+        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+
+        let AppAction::SubmitPersonCreate(draft) = action else {
+            panic!("expected submit person create action");
+        };
+        app.submit_person_create(draft).await;
+
+        assert_eq!(app.level, ScreenLevel::Editing);
+        assert!(app.person_create.is_some());
+        assert_eq!(
+            app.statusbar.message,
+            "Errore salvataggio: il nome è obbligatorio"
+        );
     }
 }
