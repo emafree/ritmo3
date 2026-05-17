@@ -62,8 +62,8 @@ pub async fn run(pool: SqlitePool) -> RitmoResult<()> {
                     AppAction::SubmitContentCreate(draft) => {
                         app_state.submit_content_create(draft).await;
                     }
-                    AppAction::SubmitPersonCreate(draft) => {
-                        app_state.submit_person_create(draft).await;
+                    AppAction::CreatePersonForContent(name) => {
+                        app_state.create_person_for_content(name).await;
                     }
                     _ => {}
                 }

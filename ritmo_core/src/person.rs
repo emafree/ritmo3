@@ -14,6 +14,16 @@ pub async fn create(ctx: &CoreContext, item: &Person) -> RitmoResult<i64> {
     repo.save(item).await
 }
 
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Person>> {
+    let repo = PersonRepository::new(&ctx.ctx);
+    repo.list_all().await
+}
+
+pub async fn search(ctx: &CoreContext, query: &str) -> RitmoResult<Vec<Person>> {
+    let repo = PersonRepository::new(&ctx.ctx);
+    repo.search(query).await
+}
+
 pub async fn update(ctx: &CoreContext, item: &Person) -> RitmoResult<()> {
     if item.name.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("name cannot be empty".to_string()));

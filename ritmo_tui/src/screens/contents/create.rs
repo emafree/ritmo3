@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     prelude::Frame,
     style::{Modifier, Style},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
 };
 use ritmo_domain::{Content, PartialDate};
 
@@ -52,7 +52,41 @@ impl Eq for ContentDraft {}
 pub enum ContentCreateAction {
     None,
     Submit(ContentDraft),
+    CreatePersonForContent(String),
     Cancel,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContentPersonRole {
+    pub person_id: i64,
+    pub person_name: String,
+    pub role_id: i64,
+    pub role_name: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PeopleAddStep {
+    SelectPerson,
+    SelectRole,
+}
+
+#[derive(Debug, Clone)]
+struct PeopleAddFlow {
+    step: PeopleAddStep,
+    person_widget: PersonWidget,
+    selected_person: Option<(i64, String)>,
+    role_index: usize,
+}
+
+impl PeopleAddFlow {
+    fn new() -> Self {
+        Self {
+            step: PeopleAddStep::SelectPerson,
+            person_widget: PersonWidget::new(),
+            selected_person: None,
+            role_index: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -62,13 +96,23 @@ pub struct ContentCreateScreen {
     pub publication_date: PartialDateWidget,
     pub genre: InputWidget,
     pub notes: InputWidget,
-    pub people: Vec<(PersonWidget, InputWidget)>,
+    pub people: Vec<ContentPersonRole>,
+    pub people_options: Vec<(i64, String)>,
+    pub role_options: Vec<(i64, String)>,
+    people_add_flow: Option<PeopleAddFlow>,
     pub languages: Vec<(LanguageWidget, InputWidget)>,
     pub tags: Vec<InputWidget>,
 }
 
 impl ContentCreateScreen {
     pub fn new() -> Self {
+        Self::new_with_options(vec![], vec![])
+    }
+
+    pub fn new_with_options(
+        people_options: Vec<(i64, String)>,
+        role_options: Vec<(i64, String)>,
+    ) -> Self {
         Self {
             active_field: ContentField::Title,
             title: InputWidget::new(),
@@ -76,6 +120,9 @@ impl ContentCreateScreen {
             genre: InputWidget::new(),
             notes: InputWidget::new(),
             people: Vec::new(),
+            people_options,
+            role_options,
+            people_add_flow: None,
             languages: Vec::new(),
             tags: Vec::new(),
         }
@@ -121,6 +168,9 @@ impl ContentCreateScreen {
         }
 
         if key.code == KeyCode::Enter {
+            if self.active_field == ContentField::People && self.people_add_flow.is_some() {
+                return self.confirm_people_flow();
+            }
             self.next_field();
             return ContentCreateAction::None;
         }
@@ -135,13 +185,26 @@ impl ContentCreateScreen {
             ContentField::Genre => self.genre.handle_key(key),
             ContentField::Notes => self.notes.handle_key(key),
             ContentField::People => match key.code {
-                KeyCode::Char('n') => self.people.push((PersonWidget::new(), InputWidget::new())),
+                KeyCode::Char('n') => {
+                    if self.people_add_flow.is_none() {
+                        self.people_add_flow = Some(PeopleAddFlow::new());
+                        self.refresh_people_suggestions();
+                    }
+                }
                 KeyCode::Char('d') | KeyCode::Delete => {
-                    self.people.pop();
+                    if self.people_add_flow.is_none() {
+                        self.people.pop();
+                    }
+                }
+                KeyCode::Up | KeyCode::Down => {
+                    self.handle_people_flow_directional_key(key);
                 }
                 _ => {
-                    if let Some((person, _)) = self.people.last_mut() {
-                        person.handle_key(key);
+                    if let Some(flow) = self.people_add_flow.as_mut() {
+                        if flow.step == PeopleAddStep::SelectPerson {
+                            flow.person_widget.handle_key(key);
+                            self.refresh_people_suggestions();
+                        }
                     }
                 }
             },
@@ -175,6 +238,120 @@ impl ContentCreateScreen {
         ContentCreateAction::None
     }
 
+    pub fn complete_person_creation(&mut self, person_id: i64, person_name: String) {
+        if let Some(flow) = self.people_add_flow.as_mut() {
+            if flow.step == PeopleAddStep::SelectPerson {
+                self.people_options.push((person_id, person_name.clone()));
+                self.people_options.sort_by(|a, b| a.1.cmp(&b.1));
+                flow.selected_person = Some((person_id, person_name));
+                flow.step = PeopleAddStep::SelectRole;
+                flow.role_index = 0;
+            }
+        }
+    }
+
+    fn confirm_people_flow(&mut self) -> ContentCreateAction {
+        let Some(flow) = self.people_add_flow.as_mut() else {
+            return ContentCreateAction::None;
+        };
+
+        match flow.step {
+            PeopleAddStep::SelectPerson => {
+                if let Some(selected_id) = flow.person_widget.selected_id() {
+                    if let Some((_, selected_name)) = self
+                        .people_options
+                        .iter()
+                        .find(|(id, _)| *id == selected_id)
+                    {
+                        flow.selected_person = Some((selected_id, selected_name.clone()));
+                        flow.step = PeopleAddStep::SelectRole;
+                        flow.role_index = 0;
+                    }
+                    return ContentCreateAction::None;
+                }
+
+                let typed_name = flow.person_widget.input.value.trim().to_string();
+                if typed_name.is_empty() {
+                    return ContentCreateAction::None;
+                }
+                if let Some((person_id, person_name)) = self
+                    .people_options
+                    .iter()
+                    .find(|(_, name)| name.eq_ignore_ascii_case(&typed_name))
+                {
+                    flow.selected_person = Some((*person_id, person_name.clone()));
+                    flow.step = PeopleAddStep::SelectRole;
+                    flow.role_index = 0;
+                    return ContentCreateAction::None;
+                }
+                ContentCreateAction::CreatePersonForContent(typed_name)
+            }
+            PeopleAddStep::SelectRole => {
+                let Some((role_id, role_name)) = self.role_options.get(flow.role_index).cloned()
+                else {
+                    self.people_add_flow = None;
+                    return ContentCreateAction::None;
+                };
+                let Some((person_id, person_name)) = flow.selected_person.clone() else {
+                    self.people_add_flow = None;
+                    return ContentCreateAction::None;
+                };
+                self.people.push(ContentPersonRole {
+                    person_id,
+                    person_name,
+                    role_id,
+                    role_name,
+                });
+                self.people_add_flow = None;
+                ContentCreateAction::None
+            }
+        }
+    }
+
+    fn handle_people_flow_directional_key(&mut self, key: KeyEvent) {
+        let Some(flow) = self.people_add_flow.as_mut() else {
+            return;
+        };
+
+        match flow.step {
+            PeopleAddStep::SelectPerson => {
+                flow.person_widget.handle_key(key);
+                self.refresh_people_suggestions();
+            }
+            PeopleAddStep::SelectRole => {
+                if self.role_options.is_empty() {
+                    return;
+                }
+                match key.code {
+                    KeyCode::Up => {
+                        flow.role_index = flow.role_index.saturating_sub(1);
+                    }
+                    KeyCode::Down => {
+                        flow.role_index = (flow.role_index + 1).min(self.role_options.len() - 1);
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    fn refresh_people_suggestions(&mut self) {
+        let Some(flow) = self.people_add_flow.as_mut() else {
+            return;
+        };
+        if flow.step != PeopleAddStep::SelectPerson {
+            return;
+        }
+        let query = flow.person_widget.input.value.trim().to_lowercase();
+        let suggestions = self
+            .people_options
+            .iter()
+            .filter(|(_, name)| query.is_empty() || name.to_lowercase().contains(&query))
+            .cloned()
+            .collect::<Vec<_>>();
+        flow.person_widget.set_suggestions(suggestions);
+    }
+
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         let layout = Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(area);
         let form_area = layout[0];
@@ -185,7 +362,7 @@ impl ContentCreateScreen {
                 "Tab/BackTab: sotto-campi data | Enter: prossimo campo | Ctrl+S: salva | Esc: annulla"
             }
             ContentField::People | ContentField::Languages | ContentField::Tags => {
-                "Tab: avanti | BackTab: indietro | n: aggiungi | d: rimuovi | Ctrl+S: salva | Esc: annulla"
+                "Tab: avanti | BackTab: indietro | n: aggiungi | d: rimuovi | Enter: conferma | Ctrl+S: salva | Esc: annulla"
             }
             _ => {
                 "Tab: avanti | BackTab: indietro | Enter: prossimo campo | Ctrl+S: salva | Esc: annulla"
@@ -214,8 +391,14 @@ impl ContentCreateScreen {
         let title_val = self.title.value.clone();
         let genre_val = self.genre.value.clone();
         let notes_val = self.notes.value.clone();
-        let people_display =
-            collection_text_summary(self.people.iter().map(|(p, _)| p.input.value.as_str()));
+        let people_display = collection_text_summary(
+            self.people
+                .iter()
+                .map(|entry| format!("{} ({})", entry.person_name, entry.role_name))
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|entry| entry.as_str()),
+        );
         let languages_display =
             collection_text_summary(self.languages.iter().map(|(l, _)| l.input.value.as_str()));
         let tags_display = collection_text_summary(self.tags.iter().map(|t| t.value.as_str()));
@@ -252,11 +435,20 @@ impl ContentCreateScreen {
             let coll_inner = block.inner(rows[4]);
             frame.render_widget(block, rows[4]);
             if is_active {
-                if let Some((person, role)) = self.people.last_mut() {
-                    let split = Layout::vertical([Constraint::Length(3), Constraint::Length(3)])
-                        .split(coll_inner);
-                    person.render(frame, split[0]);
-                    role.render(frame, split[1]);
+                if let Some(flow) = self.people_add_flow.as_mut() {
+                    match flow.step {
+                        PeopleAddStep::SelectPerson => {
+                            flow.person_widget.render(frame, coll_inner);
+                        }
+                        PeopleAddStep::SelectRole => {
+                            render_role_popup(
+                                frame,
+                                coll_inner,
+                                &self.role_options,
+                                flow.role_index,
+                            );
+                        }
+                    }
                 } else {
                     frame.render_widget(Paragraph::new("—"), coll_inner);
                 }
@@ -350,8 +542,10 @@ impl ContentCreateScreen {
                 }
             }
             ContentField::People => {
-                if let Some((person, _)) = self.people.last_mut() {
-                    return person.input.dismiss_suggestions();
+                if let Some(flow) = self.people_add_flow.as_mut() {
+                    let _ = flow.person_widget.input.dismiss_suggestions();
+                    self.people_add_flow = None;
+                    return true;
                 }
             }
             ContentField::Languages => {
@@ -413,6 +607,32 @@ fn collection_text_summary<'a>(values: impl Iterator<Item = &'a str>) -> String 
     }
 }
 
+fn render_role_popup(
+    frame: &mut Frame,
+    area: Rect,
+    roles: &[(i64, String)],
+    selected_index: usize,
+) {
+    let items = roles
+        .iter()
+        .enumerate()
+        .map(|(index, (_, role_name))| {
+            let style = if index == selected_index {
+                Style::default().add_modifier(Modifier::REVERSED)
+            } else {
+                Style::default()
+            };
+            ListItem::new(role_name.as_str()).style(style)
+        })
+        .collect::<Vec<_>>();
+    let popup = List::new(items).block(
+        Block::default()
+            .title("Seleziona ruolo (↑/↓, Enter)")
+            .borders(Borders::ALL),
+    );
+    frame.render_widget(popup, area);
+}
+
 fn to_opt(value: &str) -> Option<String> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
@@ -459,10 +679,10 @@ mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{backend::TestBackend, Terminal};
 
-    use crate::widgets::{input::InputWidget, language::LanguageWidget, person::PersonWidget};
+    use crate::widgets::{input::InputWidget, language::LanguageWidget};
 
-    use super::{ContentCreateAction, ContentCreateScreen, ContentDraft, ContentField};
     use super::PartialDateField;
+    use super::{ContentCreateAction, ContentCreateScreen, ContentDraft, ContentField};
 
     #[test]
     fn new_starts_at_title_with_empty_state() {
@@ -537,21 +757,20 @@ mod tests {
 
     #[test]
     fn esc_closes_people_dropdown_without_cancelling_screen() {
-        let mut screen = ContentCreateScreen::new();
+        let mut screen = ContentCreateScreen::new_with_options(
+            vec![(1, "Ada Lovelace".into()), (2, "Alan Turing".into())],
+            vec![(1, "author".into())],
+        );
         screen.active_field = ContentField::People;
-        screen.people.push((PersonWidget::new(), InputWidget::new()));
-        let person = &mut screen.people[0].0;
-        person.input.value = "ad".into();
-        person.input.cursor = 2;
-        person.set_suggestions(vec![(1, "Ada Lovelace".into()), (2, "Alan Turing".into())]);
-        person.input.selected_suggestion = Some(0);
+        screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
+        screen.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        screen.handle_key(KeyEvent::from(KeyCode::Char('d')));
 
         let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
 
         assert_eq!(action, ContentCreateAction::None);
-        assert!(screen.people[0].0.input.suggestions.is_empty());
-        assert_eq!(screen.people[0].0.input.selected_suggestion, None);
-        assert_eq!(screen.people[0].0.input.value, "ad");
+        assert!(screen.people_add_flow.is_none());
+        assert!(screen.people.is_empty());
     }
 
     #[test]
@@ -577,16 +796,24 @@ mod tests {
 
     #[test]
     fn collections_support_add_and_remove() {
-        let mut screen = ContentCreateScreen::new();
+        let mut screen = ContentCreateScreen::new_with_options(
+            vec![(1, "Ada Lovelace".into())],
+            vec![(1, "author".into())],
+        );
 
         for _ in 0..4 {
             screen.handle_key(KeyEvent::from(KeyCode::Enter));
         }
         assert_eq!(screen.active_field, ContentField::People);
         screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
+        assert!(screen.people_add_flow.is_some());
+        screen.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        screen.handle_key(KeyEvent::from(KeyCode::Down));
+        screen.handle_key(KeyEvent::from(KeyCode::Enter));
+        screen.handle_key(KeyEvent::from(KeyCode::Enter));
         assert_eq!(screen.people.len(), 1);
         screen.handle_key(KeyEvent::from(KeyCode::Char('d')));
-        assert!(screen.people.is_empty());
+        assert_eq!(screen.people.len(), 0);
 
         screen.handle_key(KeyEvent::from(KeyCode::Enter));
         assert_eq!(screen.active_field, ContentField::Languages);
@@ -597,6 +824,78 @@ mod tests {
         assert_eq!(screen.active_field, ContentField::Tags);
         screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
         assert_eq!(screen.tags.len(), 1);
+    }
+
+    #[test]
+    fn people_flow_existing_person_then_role_adds_pair() {
+        let mut screen = ContentCreateScreen::new_with_options(
+            vec![(1, "Ada Lovelace".into()), (2, "Alan Turing".into())],
+            vec![(7, "author".into()), (8, "editor".into())],
+        );
+        screen.active_field = ContentField::People;
+
+        screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
+        screen.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        screen.handle_key(KeyEvent::from(KeyCode::Down));
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Enter));
+        assert_eq!(action, ContentCreateAction::None);
+        assert!(screen.people_add_flow.is_some());
+
+        screen.handle_key(KeyEvent::from(KeyCode::Down));
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Enter));
+        assert_eq!(action, ContentCreateAction::None);
+        assert!(screen.people_add_flow.is_none());
+        assert_eq!(screen.people.len(), 1);
+        assert_eq!(screen.people[0].person_id, 1);
+        assert_eq!(screen.people[0].role_id, 8);
+    }
+
+    #[test]
+    fn people_flow_new_name_emits_create_action() {
+        let mut screen = ContentCreateScreen::new_with_options(vec![], vec![(7, "author".into())]);
+        screen.active_field = ContentField::People;
+        screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
+        screen.handle_key(KeyEvent::from(KeyCode::Char('M')));
+        screen.handle_key(KeyEvent::from(KeyCode::Char('a')));
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Enter));
+        assert_eq!(
+            action,
+            ContentCreateAction::CreatePersonForContent("Ma".to_string())
+        );
+    }
+
+    #[test]
+    fn complete_person_creation_moves_to_role_step_and_can_confirm() {
+        let mut screen = ContentCreateScreen::new_with_options(vec![], vec![(7, "author".into())]);
+        screen.active_field = ContentField::People;
+        screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
+
+        screen.complete_person_creation(10, "Nuovo Nome".into());
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Enter));
+        assert_eq!(action, ContentCreateAction::None);
+        assert_eq!(screen.people.len(), 1);
+        assert_eq!(screen.people[0].person_id, 10);
+        assert_eq!(screen.people[0].role_id, 7);
+    }
+
+    #[test]
+    fn esc_in_role_step_cancels_people_add_flow() {
+        let mut screen = ContentCreateScreen::new_with_options(
+            vec![(1, "Ada Lovelace".into())],
+            vec![(7, "author".into())],
+        );
+        screen.active_field = ContentField::People;
+        screen.handle_key(KeyEvent::from(KeyCode::Char('n')));
+        screen.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        screen.handle_key(KeyEvent::from(KeyCode::Down));
+        screen.handle_key(KeyEvent::from(KeyCode::Enter));
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(action, ContentCreateAction::None);
+        assert!(screen.people_add_flow.is_none());
+        assert!(screen.people.is_empty());
     }
 
     #[test]

@@ -15,6 +15,11 @@ pub async fn create(ctx: &CoreContext, item: &Role) -> RitmoResult<i64> {
     repo.save(item).await
 }
 
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Role>> {
+    let repo = RoleRepository::new(&ctx.ctx);
+    repo.list_all().await
+}
+
 pub async fn update(ctx: &CoreContext, item: &Role) -> RitmoResult<()> {
     if item.i18n_key.trim().is_empty() {
         return Err(RitmoErr::InvalidInput(

@@ -14,7 +14,7 @@ use sqlx::SqlitePool;
 use crate::screens::books::list::BookListScreen;
 use crate::screens::contents::create::{ContentCreateAction, ContentCreateScreen, ContentDraft};
 use crate::screens::contents::list::ContentListScreen;
-use crate::screens::people::create::{PersonCreateAction, PersonCreateScreen, PersonDraft};
+use crate::screens::people::create::{PersonCreateAction, PersonCreateScreen};
 use crate::widgets::statusbar::StatusBar;
 use crate::widgets::table::TableAction;
 
@@ -88,7 +88,7 @@ pub enum AppAction {
     ConfirmPopup,
     CancelPopup,
     SubmitContentCreate(ContentDraft),
-    SubmitPersonCreate(PersonDraft),
+    CreatePersonForContent(String),
 }
 
 pub struct AppState {
@@ -99,6 +99,8 @@ pub struct AppState {
     pub level: ScreenLevel,
     pub content_create: Option<ContentCreateScreen>,
     pub person_create: Option<PersonCreateScreen>,
+    people_options: Vec<(i64, String)>,
+    role_options: Vec<(i64, String)>,
     book_list: BookListScreen,
     content_list: ContentListScreen,
     statusbar: StatusBar,
@@ -140,12 +142,30 @@ async fn load_contents(ctx: &CoreContext) -> RitmoResult<Vec<ContentDetail>> {
     Ok(result)
 }
 
+async fn load_people_options(ctx: &CoreContext) -> RitmoResult<Vec<(i64, String)>> {
+    Ok(ritmo_core::person::list_all(ctx)
+        .await?
+        .into_iter()
+        .map(|person| (person.id, person.name))
+        .collect())
+}
+
+async fn load_role_options(ctx: &CoreContext) -> RitmoResult<Vec<(i64, String)>> {
+    Ok(ritmo_core::role::list_all(ctx)
+        .await?
+        .into_iter()
+        .map(|role| (role.id, role.i18n_key))
+        .collect())
+}
+
 impl AppState {
     pub async fn new(pool: SqlitePool) -> RitmoResult<Self> {
         let ctx = CoreContext::from_pool(pool.clone());
 
         let books = load_books(&ctx).await?;
         let contents = load_contents(&ctx).await?;
+        let people_options = load_people_options(&ctx).await?;
+        let role_options = load_role_options(&ctx).await?;
 
         let book_list = BookListScreen::new(&books);
         let content_list = ContentListScreen::new(&contents);
@@ -158,6 +178,8 @@ impl AppState {
             level: ScreenLevel::List,
             content_create: None,
             person_create: None,
+            people_options,
+            role_options,
             book_list,
             content_list,
             statusbar: StatusBar::new(),
@@ -232,26 +254,59 @@ impl AppState {
         }
     }
 
-    pub async fn submit_person_create(&mut self, draft: PersonDraft) {
-        if draft.name.trim().is_empty() {
+    pub async fn create_person_for_content(&mut self, name: String) {
+        let trimmed = name.trim();
+        if trimmed.is_empty() {
             self.statusbar
                 .set_message("Errore salvataggio: il nome è obbligatorio".to_string());
             return;
         }
 
         let ctx = CoreContext::from_pool(self.pool.clone());
-        let person: ritmo_domain::Person = draft.into();
-
-        match ritmo_core::person::create(&ctx, &person).await {
-            Ok(_) => {
-                self.person_create = None;
-                self.level = ScreenLevel::List;
-                self.statusbar.clear_message();
-            }
+        let existing = match ritmo_core::person::search(&ctx, trimmed).await {
+            Ok(people) => people
+                .into_iter()
+                .find(|person| person.name.eq_ignore_ascii_case(trimmed)),
             Err(e) => {
                 self.statusbar
-                    .set_message(format!("Errore salvataggio: {e}"));
+                    .set_message(format!("Errore ricerca persona: {e}"));
+                return;
             }
+        };
+
+        let (person_id, person_name) = if let Some(person) = existing {
+            (person.id, person.name)
+        } else {
+            let person = ritmo_domain::Person {
+                id: 0,
+                name: trimmed.to_string(),
+                display_name: None,
+                given_name: None,
+                surname: None,
+                middle_names: None,
+                title: None,
+                suffix: None,
+                birth_date: None,
+                death_date: None,
+                biography: None,
+            };
+            match ritmo_core::person::create(&ctx, &person).await {
+                Ok(id) => (id, person.name),
+                Err(e) => {
+                    self.statusbar
+                        .set_message(format!("Errore salvataggio persona: {e}"));
+                    return;
+                }
+            }
+        };
+
+        if !self.people_options.iter().any(|(id, _)| *id == person_id) {
+            self.people_options.push((person_id, person_name.clone()));
+            self.people_options.sort_by(|a, b| a.1.cmp(&b.1));
+        }
+        if let Some(screen) = self.content_create.as_mut() {
+            screen.complete_person_creation(person_id, person_name);
+            self.statusbar.clear_message();
         }
     }
 
@@ -262,12 +317,14 @@ impl AppState {
     pub fn open_create_screen(&mut self) {
         match self.main_window {
             MainWindow::Contents => {
-                self.content_create = Some(ContentCreateScreen::new());
+                self.content_create = Some(ContentCreateScreen::new_with_options(
+                    self.people_options.clone(),
+                    self.role_options.clone(),
+                ));
                 self.level = ScreenLevel::Editing;
             }
             MainWindow::Books => {
-                self.person_create = Some(PersonCreateScreen::new());
-                self.level = ScreenLevel::Editing;
+                // TODO: BookCreateScreen — da implementare in seguito
             }
             MainWindow::Filters => {
                 // TODO: FilterSetCreateScreen — da implementare in seguito
@@ -350,6 +407,9 @@ impl AppState {
                     ContentCreateAction::Submit(draft) => {
                         return AppAction::SubmitContentCreate(draft);
                     }
+                    ContentCreateAction::CreatePersonForContent(name) => {
+                        return AppAction::CreatePersonForContent(name);
+                    }
                     ContentCreateAction::None => {}
                 }
                 return AppAction::None;
@@ -360,8 +420,10 @@ impl AppState {
                         self.person_create = None;
                         self.level = ScreenLevel::List;
                     }
-                    PersonCreateAction::Submit(draft) => {
-                        return AppAction::SubmitPersonCreate(draft);
+                    PersonCreateAction::Submit => {
+                        // TODO: save person via ritmo_core
+                        self.person_create = None;
+                        self.level = ScreenLevel::List;
                     }
                     PersonCreateAction::None => {}
                 }
@@ -624,16 +686,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn open_create_screen_from_books_sets_editing_and_screen() {
+    async fn open_create_screen_from_books_does_not_open_person_create() {
         let mut app = make_test_state().await;
         app.main_window = MainWindow::Books;
-        assert_eq!(app.level, ScreenLevel::List);
-        assert!(app.person_create.is_none());
 
         app.open_create_screen();
 
-        assert_eq!(app.level, ScreenLevel::Editing);
-        assert!(app.person_create.is_some());
+        assert_eq!(app.level, ScreenLevel::List);
+        assert!(app.person_create.is_none());
     }
 
     #[tokio::test]
@@ -657,29 +717,6 @@ mod tests {
             .join("\n");
 
         assert!(rendered.contains("Crea Contenuto"));
-    }
-
-    #[tokio::test]
-    async fn render_shows_person_create_screen_when_editing_books() {
-        let mut app = make_test_state().await;
-        app.main_window = MainWindow::Books;
-        app.open_create_screen();
-
-        let backend = TestBackend::new(120, 40);
-        let mut terminal = Terminal::new(backend).expect("terminal");
-        terminal.draw(|frame| app.render(frame)).expect("draw");
-
-        let buffer = terminal.backend().buffer().clone();
-        let rendered = (0..buffer.area.height)
-            .map(|y| {
-                (0..buffer.area.width)
-                    .map(|x| buffer[(x, y)].symbol())
-                    .collect::<String>()
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        assert!(rendered.contains("Crea Persona"));
     }
 
     #[tokio::test]
@@ -813,67 +850,42 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn person_create_screen_receives_keys_when_editing() {
+    async fn content_people_new_name_emits_create_person_action() {
         let mut app = make_test_state().await;
-        app.main_window = MainWindow::Books;
+        app.main_window = MainWindow::Contents;
         app.open_create_screen();
-        assert_eq!(app.level, ScreenLevel::Editing);
 
-        app.handle_key(key(KeyCode::Char('A')));
-        let screen = app.person_create.as_ref().unwrap();
-        assert_eq!(screen.name.value, "A");
+        for _ in 0..4 {
+            app.handle_key(key(KeyCode::Enter));
+        }
+        app.handle_key(key(KeyCode::Char('n')));
+        app.handle_key(key(KeyCode::Char('N')));
+        app.handle_key(key(KeyCode::Char('u')));
+        let action = app.handle_key(key(KeyCode::Enter));
 
-        app.handle_key(key(KeyCode::Esc));
-        assert_eq!(app.level, ScreenLevel::List);
-        assert!(app.person_create.is_none());
+        assert_eq!(action, AppAction::CreatePersonForContent("Nu".to_string()));
     }
 
     #[tokio::test]
-    async fn person_create_submit_creates_person_and_closes_screen() {
-        use crossterm::event::KeyModifiers;
-
+    async fn create_person_for_content_adds_person_to_flow() {
         let mut app = make_test_state().await;
-        app.main_window = MainWindow::Books;
+        app.main_window = MainWindow::Contents;
         app.open_create_screen();
 
-        app.handle_key(key(KeyCode::Char('A')));
-        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
-
-        let AppAction::SubmitPersonCreate(draft) = action else {
-            panic!("expected submit person create action");
+        for _ in 0..4 {
+            app.handle_key(key(KeyCode::Enter));
+        }
+        app.handle_key(key(KeyCode::Char('n')));
+        app.handle_key(key(KeyCode::Char('X')));
+        let action = app.handle_key(key(KeyCode::Enter));
+        let AppAction::CreatePersonForContent(name) = action else {
+            panic!("expected CreatePersonForContent action");
         };
-        app.submit_person_create(draft).await;
+        app.create_person_for_content(name).await;
 
-        assert_eq!(app.level, ScreenLevel::List);
-        assert!(app.person_create.is_none());
-        let created_count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM d_people WHERE name = 'A'")
-                .fetch_one(&app.pool)
-                .await
-                .expect("count people");
-        assert_eq!(created_count, 1);
-    }
-
-    #[tokio::test]
-    async fn person_create_submit_error_keeps_screen_open_and_sets_error_message() {
-        use crossterm::event::KeyModifiers;
-
-        let mut app = make_test_state().await;
-        app.main_window = MainWindow::Books;
-        app.open_create_screen();
-
-        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
-
-        let AppAction::SubmitPersonCreate(draft) = action else {
-            panic!("expected submit person create action");
-        };
-        app.submit_person_create(draft).await;
-
-        assert_eq!(app.level, ScreenLevel::Editing);
-        assert!(app.person_create.is_some());
-        assert_eq!(
-            app.statusbar.message,
-            "Errore salvataggio: il nome è obbligatorio"
-        );
+        let screen = app.content_create.as_mut().expect("content screen");
+        screen.handle_key(key(KeyCode::Enter));
+        assert_eq!(screen.people.len(), 1);
+        assert_eq!(screen.people[0].person_name, "X");
     }
 }
