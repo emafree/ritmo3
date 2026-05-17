@@ -20,7 +20,7 @@ pub async fn save_filter_set(pool: &SqlitePool, filter_set: &FilterSet) -> Ritmo
 
     for filter in &filter_set.filters {
         sqlx::query(
-            "INSERT OR IGNORE INTO s_filter_conditions(filter_set_id, field, operator, values) VALUES (?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO s_filter_conditions(filter_set_id, field, operator, filter_values) VALUES (?, ?, ?, ?)",
         )
         .bind(filter_set_id)
         .bind(serialize_json(&filter.field)?)
@@ -74,7 +74,7 @@ pub async fn update_filter_set(pool: &SqlitePool, filter_set: &FilterSet) -> Rit
 
     for filter in &filter_set.filters {
         sqlx::query(
-            "INSERT OR IGNORE INTO s_filter_conditions(filter_set_id, field, operator, values) VALUES (?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO s_filter_conditions(filter_set_id, field, operator, filter_values) VALUES (?, ?, ?, ?)",
         )
         .bind(filter_set.id)
         .bind(serialize_json(&filter.field)?)
@@ -131,7 +131,7 @@ pub async fn list_filter_sets(pool: &SqlitePool) -> RitmoResult<Vec<FilterSet>> 
 
 async fn load_filters(pool: &SqlitePool, filter_set_id: i64) -> RitmoResult<Vec<Filter>> {
     let rows = sqlx::query(
-        "SELECT field, operator, values FROM s_filter_conditions WHERE filter_set_id = ? ORDER BY id",
+        "SELECT field, operator, filter_values FROM s_filter_conditions WHERE filter_set_id = ? ORDER BY id",
     )
     .bind(filter_set_id)
     .fetch_all(pool)
@@ -142,7 +142,7 @@ async fn load_filters(pool: &SqlitePool, filter_set_id: i64) -> RitmoResult<Vec<
         .map(|row| {
             let field_json: String = row.get("field");
             let operator_json: String = row.get("operator");
-            let values_json: String = row.get("values");
+            let values_json: String = row.get("filter_values");
 
             Ok(Filter {
                 field: deserialize_json(&field_json)?,
