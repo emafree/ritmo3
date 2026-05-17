@@ -59,6 +59,14 @@ Validati insieme allo schema su database in memoria — zero errori, tutti i con
 - `seed_lookups.sql` — seed lookup corretto
 - `seed_page_fields.sql` — seed page fields corretto
 
+### Collegamento `ContentCreateScreen::Submit` a `ritmo_core`
+
+`Ctrl+S` in `ContentCreateScreen` ora salva il contenuto nel database.
+`ContentCreateAction::Submit` porta un payload `ContentDraft` con i campi compilati.
+`app.rs` chiama `ritmo_core::content::create`, ricarica la lista, chiude la schermata.
+In caso di errore lo mostra nella status bar senza chiudere la schermata.
+`ritmo_core::content::list_all` aggiunto come wrapper se non esisteva.
+
 ---
 
 ## Passi successivi
@@ -69,7 +77,7 @@ Tutti i nomi di tabella nelle query SQL hardcodate in `ritmo_repository` devono 
 ### 1. Rifinire `ContentCreateScreen`
 Ci sono problemi minori di comportamento emersi durante i test manuali, da analizzare e correggere.
 
-### 2. Collegare `Submit` a `ritmo_core`
+### 2. Collegare `Submit` a `ritmo_core` : ✅ fatto
 `Ctrl+S` in `ContentCreateScreen` restituisce `ContentCreateAction::Submit`, che in `app.rs` chiude la schermata senza salvare. Va collegato a `ritmo_core::content::create`, con reload della lista dopo il salvataggio.
 
 ### 3. Sviluppare `BookCreateScreen`
