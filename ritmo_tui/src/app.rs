@@ -201,6 +201,12 @@ impl AppState {
     }
 
     pub async fn submit_content_create(&mut self, draft: ContentDraft) {
+        if draft.name.trim().is_empty() {
+            self.statusbar
+                .set_message("Errore salvataggio: il titolo è obbligatorio".to_string());
+            return;
+        }
+
         let ctx = CoreContext::from_pool(self.pool.clone());
         let content: ritmo_domain::Content = draft.into();
 
@@ -304,6 +310,10 @@ impl AppState {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> AppAction {
+        if self.statusbar.message.starts_with("Errore") {
+            self.statusbar.clear_message();
+        }
+
         // When a create screen is open, delegate all keys to it first.
         if self.level == ScreenLevel::Editing {
             if let Some(screen) = self.content_create.as_mut() {
@@ -713,6 +723,27 @@ mod tests {
 
         assert_eq!(app.level, ScreenLevel::Editing);
         assert!(app.content_create.is_some());
-        assert!(app.statusbar.message.contains("Errore salvataggio:"));
+        assert_eq!(app.statusbar.message, "Errore salvataggio: il titolo è obbligatorio");
+    }
+
+    #[tokio::test]
+    async fn content_create_error_message_clears_on_next_input() {
+        use crossterm::event::KeyModifiers;
+
+        let mut app = make_test_state().await;
+        app.main_window = MainWindow::Contents;
+        app.open_create_screen();
+
+        let action = app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL));
+        let AppAction::SubmitContentCreate(draft) = action else {
+            panic!("expected submit content create action");
+        };
+        app.submit_content_create(draft).await;
+        assert_eq!(app.statusbar.message, "Errore salvataggio: il titolo è obbligatorio");
+
+        app.handle_key(key(KeyCode::Char('A')));
+        assert_eq!(app.statusbar.message, "");
+        let screen = app.content_create.as_ref().unwrap();
+        assert_eq!(screen.title.value, "A");
     }
 }

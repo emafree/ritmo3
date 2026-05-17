@@ -83,6 +83,9 @@ impl ContentCreateScreen {
 
     pub fn handle_key(&mut self, key: KeyEvent) -> ContentCreateAction {
         if key.code == KeyCode::Esc {
+            if self.handle_escape() {
+                return ContentCreateAction::None;
+            }
             return ContentCreateAction::Cancel;
         }
         if key.code == KeyCode::Char('s') && key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -337,6 +340,29 @@ impl ContentCreateScreen {
             ContentField::Tags => ContentField::Languages,
         };
     }
+
+    fn handle_escape(&mut self) -> bool {
+        match self.active_field {
+            ContentField::PublicationDate => {
+                if self.publication_date.active_field != PartialDateField::Year {
+                    self.publication_date.active_field = PartialDateField::Year;
+                    return true;
+                }
+            }
+            ContentField::People => {
+                if let Some((person, _)) = self.people.last_mut() {
+                    return person.input.dismiss_suggestions();
+                }
+            }
+            ContentField::Languages => {
+                if let Some((language, _)) = self.languages.last_mut() {
+                    return language.input.dismiss_suggestions();
+                }
+            }
+            _ => {}
+        }
+        false
+    }
 }
 
 impl Default for ContentCreateScreen {
@@ -433,7 +459,10 @@ mod tests {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{backend::TestBackend, Terminal};
 
+    use crate::widgets::{input::InputWidget, language::LanguageWidget, person::PersonWidget};
+
     use super::{ContentCreateAction, ContentCreateScreen, ContentDraft, ContentField};
+    use super::PartialDateField;
 
     #[test]
     fn new_starts_at_title_with_empty_state() {
@@ -491,6 +520,59 @@ mod tests {
                 notes: None,
             })
         );
+    }
+
+    #[test]
+    fn esc_inside_publication_date_returns_to_year_without_cancelling_screen() {
+        let mut screen = ContentCreateScreen::new();
+        screen.active_field = ContentField::PublicationDate;
+        screen.publication_date.active_field = PartialDateField::Day;
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(action, ContentCreateAction::None);
+        assert_eq!(screen.active_field, ContentField::PublicationDate);
+        assert_eq!(screen.publication_date.active_field, PartialDateField::Year);
+    }
+
+    #[test]
+    fn esc_closes_people_dropdown_without_cancelling_screen() {
+        let mut screen = ContentCreateScreen::new();
+        screen.active_field = ContentField::People;
+        screen.people.push((PersonWidget::new(), InputWidget::new()));
+        let person = &mut screen.people[0].0;
+        person.input.value = "ad".into();
+        person.input.cursor = 2;
+        person.set_suggestions(vec![(1, "Ada Lovelace".into()), (2, "Alan Turing".into())]);
+        person.input.selected_suggestion = Some(0);
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(action, ContentCreateAction::None);
+        assert!(screen.people[0].0.input.suggestions.is_empty());
+        assert_eq!(screen.people[0].0.input.selected_suggestion, None);
+        assert_eq!(screen.people[0].0.input.value, "ad");
+    }
+
+    #[test]
+    fn esc_closes_languages_dropdown_without_cancelling_screen() {
+        let mut screen = ContentCreateScreen::new();
+        screen.active_field = ContentField::Languages;
+        screen
+            .languages
+            .push((LanguageWidget::new(), InputWidget::new()));
+        let language = &mut screen.languages[0].0;
+        language.input.value = "it".into();
+        language.input.cursor = 2;
+        language.set_suggestions(vec![(1, "Italiano".into()), (2, "English".into())]);
+        language.input.selected_suggestion = Some(0);
+
+        let action = screen.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(action, ContentCreateAction::None);
+        assert!(screen.languages[0].0.input.suggestions.is_empty());
+        assert_eq!(screen.languages[0].0.input.selected_suggestion, None);
+        assert_eq!(screen.languages[0].0.input.value, "it");
     }
 
     #[test]
