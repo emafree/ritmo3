@@ -187,9 +187,8 @@ impl ContentCreateScreen {
             ContentField::People => match key.code {
                 KeyCode::Char('n') => {
                     if self.people_add_flow.is_none() {
-                        let mut flow = PeopleAddFlow::new();
-                        flow.person_widget.set_options(self.people_options.clone());
-                        self.people_add_flow = Some(flow);
+                        self.people_add_flow = Some(PeopleAddFlow::new());
+                        self.refresh_people_suggestions();
                     }
                 }
                 KeyCode::Char('d') | KeyCode::Delete => {
@@ -204,6 +203,7 @@ impl ContentCreateScreen {
                     if let Some(flow) = self.people_add_flow.as_mut() {
                         if flow.step == PeopleAddStep::SelectPerson {
                             flow.person_widget.handle_key(key);
+                            self.refresh_people_suggestions();
                         }
                     }
                 }
@@ -257,16 +257,34 @@ impl ContentCreateScreen {
 
         match flow.step {
             PeopleAddStep::SelectPerson => {
-                let Some(person) = flow.person_widget.accept_or_draft_person() else {
+                if let Some(selected_id) = flow.person_widget.selected_id() {
+                    if let Some((_, selected_name)) = self
+                        .people_options
+                        .iter()
+                        .find(|(id, _)| *id == selected_id)
+                    {
+                        flow.selected_person = Some((selected_id, selected_name.clone()));
+                        flow.step = PeopleAddStep::SelectRole;
+                        flow.role_index = 0;
+                    }
                     return ContentCreateAction::None;
-                };
-                if person.id > 0 {
-                    flow.selected_person = Some((person.id, person.name));
+                }
+
+                let typed_name = flow.person_widget.input.value.trim().to_string();
+                if typed_name.is_empty() {
+                    return ContentCreateAction::None;
+                }
+                if let Some((person_id, person_name)) = self
+                    .people_options
+                    .iter()
+                    .find(|(_, name)| name.eq_ignore_ascii_case(&typed_name))
+                {
+                    flow.selected_person = Some((*person_id, person_name.clone()));
                     flow.step = PeopleAddStep::SelectRole;
                     flow.role_index = 0;
                     return ContentCreateAction::None;
                 }
-                ContentCreateAction::CreatePersonForContent(person.name)
+                ContentCreateAction::CreatePersonForContent(typed_name)
             }
             PeopleAddStep::SelectRole => {
                 let Some((role_id, role_name)) = self.role_options.get(flow.role_index).cloned()
@@ -298,6 +316,7 @@ impl ContentCreateScreen {
         match flow.step {
             PeopleAddStep::SelectPerson => {
                 flow.person_widget.handle_key(key);
+                self.refresh_people_suggestions();
             }
             PeopleAddStep::SelectRole => {
                 if self.role_options.is_empty() {
@@ -314,6 +333,23 @@ impl ContentCreateScreen {
                 }
             }
         }
+    }
+
+    fn refresh_people_suggestions(&mut self) {
+        let Some(flow) = self.people_add_flow.as_mut() else {
+            return;
+        };
+        if flow.step != PeopleAddStep::SelectPerson {
+            return;
+        }
+        let query = flow.person_widget.input.value.trim().to_lowercase();
+        let suggestions = self
+            .people_options
+            .iter()
+            .filter(|(_, name)| query.is_empty() || name.to_lowercase().contains(&query))
+            .cloned()
+            .collect::<Vec<_>>();
+        flow.person_widget.set_suggestions(suggestions);
     }
 
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
