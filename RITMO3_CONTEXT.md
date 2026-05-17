@@ -71,13 +71,13 @@ In caso di errore lo mostra nella status bar senza chiudere la schermata.
 
 ## Passi successivi
 
-### 0. Aggiornare `ritmo_repository` ← PRIORITÀ IMMEDIATA
+### 0. Aggiornare `ritmo_repository` ← fatto
 Tutti i nomi di tabella nelle query SQL hardcodate in `ritmo_repository` devono essere allineati ai nuovi nomi. Questo riguarda ogni file del crate che contiene stringhe SQL (`books.rs`, `contents.rs`, `people.rs`, `filter_books.rs`, `filter_contents.rs`, `filter_sets.rs`, ecc.).
 
 ### 1. Rifinire `ContentCreateScreen`
 Ci sono problemi minori di comportamento emersi durante i test manuali, da analizzare e correggere.
 
-### 2. Collegare `Submit` a `ritmo_core` : ✅ fatto
+### 2. Collegare `Submit` a `ritmo_core`  ← fatto
 `Ctrl+S` in `ContentCreateScreen` restituisce `ContentCreateAction::Submit`, che in `app.rs` chiude la schermata senza salvare. Va collegato a `ritmo_core::content::create`, con reload della lista dopo il salvataggio.
 
 ### 3. Sviluppare `BookCreateScreen`
@@ -148,8 +148,8 @@ Cambio finestra: frecce orizzontali, oppure tasti `b` (Books), `c` (Contents), `
 ## Cose minori pendenti
 
 - `.env.example` da aggiungere al repository
-- Verificare che `.env` sia nel `.gitignore`
-- `entities.rs` fantasma in `ritmo_repository/src/` — file non dichiarato, da eliminare
+- Verificare che `.env` sia nel `.gitignore`  ← fatto
+- `entities.rs` fantasma in `ritmo_repository/src/` — file non dichiarato, da eliminare   ← fatto
 
 ---
 
