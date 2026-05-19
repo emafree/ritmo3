@@ -69,6 +69,17 @@ In caso di errore lo mostra nella status bar senza chiudere la schermata.
 
 ---
 
+## Sessione del 19 maggio 2026
+
+### Verifica allineamento `ritmo_repository` ← schema.sql
+
+Verificato con grep su tutti i file `.rs` di `ritmo_repository/src/`.
+Nessuna query SQL usa nomi di tabella senza prefisso. Tutte le tabelle
+`d_`, `s_`, `x_` sono allineate allo schema corrente, incluse le query
+dinamiche in `filter_books.rs` e `filter_contents.rs`. Nessuna discrepanza.
+
+---
+
 ## Passi successivi
 
 ### 0. Aggiornare `ritmo_repository` ← fatto
