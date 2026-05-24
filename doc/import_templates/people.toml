@@ -1,0 +1,119 @@
+# ==============================================================
+# people.toml — Template per l'importazione di persone
+# ==============================================================
+# Importa questo file PRIMA di books.toml.
+# Le persone definite qui vengono create nel database e poi
+# riutilizzate per nome quando compaiono nei libri.
+#
+# Campi obbligatori: name
+# Tutti gli altri campi sono opzionali — ometti quelli sconosciuti.
+# ==============================================================
+
+
+# --------------------------------------------------------------
+# Persona minima — solo il nome
+# --------------------------------------------------------------
+[[person]]
+name = "Philip K. Dick"
+
+
+# --------------------------------------------------------------
+# Persona con dati biografici completi
+# --------------------------------------------------------------
+[[person]]
+name = "Ursula K. Le Guin"
+
+# display_name: nome da mostrare in UI se diverso da name
+display_name = "Ursula K. Le Guin"
+
+# Componenti del nome (tutti opzionali)
+given_name   = "Ursula"
+surname      = "Le Guin"
+middle_names = "Kroeber"
+title        = ""      # es. "Dr.", "Prof.", "Sir"
+suffix       = ""      # es. "Jr.", "III"
+
+# Date: year è sufficiente. month e day opzionali. circa = true per date approssimate.
+birth_date = { year = 1929, month = 10, day = 21 }
+death_date = { year = 2018, month = 1,  day = 22 }
+# Esempio data approssimata:
+# birth_date = { year = 1200, circa = true }
+
+# Biografia libera
+biography = """
+Scrittrice statunitense, considerata una delle maggiori autrici di fantascienza
+e fantasy del XX secolo. Nota per il Ciclo dell'Ecumene e le Cronache di Terramare.
+"""
+
+# Nomi alternativi della persona (pseudonimi, nomi da sposata, traslitterazioni, ecc.)
+aliases = [
+    "U.K. Le Guin",
+    "Ursula Kroeber Le Guin",
+]
+
+# Lingue associate alla persona
+# role: "native" | "writing" | "fluent" | "reading" | "other"
+# language: codice ISO 639-1 (2 caratteri) o ISO 639-3 (3 caratteri)
+[[person.language]]
+language = "en"
+role     = "native"
+
+[[person.language]]
+language = "fr"
+role     = "reading"
+
+# Luoghi associati alla persona
+# type: "birth" | "death" | "residence" | "activity" | "other"
+# continent, country, city: tutti opzionali — inserisci solo quello che conosci
+# circa = true per luoghi incerti
+# disputed = true per luoghi la cui appartenenza è contestata storicamente
+[[person.place]]
+type      = "birth"
+city      = "Berkeley"
+country   = "USA"
+continent = "North America"
+
+[[person.place]]
+type    = "death"
+city    = "Portland"
+country = "USA"
+
+[[person.place]]
+type    = "residence"
+city    = "Portland"
+country = "USA"
+
+
+# --------------------------------------------------------------
+# Persona con dati parziali e data approssimata
+# --------------------------------------------------------------
+[[person]]
+name       = "Omero"
+birth_date = { year = -800, circa = true }
+# Gli anni negativi rappresentano date a.C.
+biography  = "Poeta epico greco, tradizionalmente considerato autore dell'Iliade e dell'Odissea."
+
+[[person.place]]
+type      = "activity"
+country   = "Grecia"
+continent = "Europe"
+circa     = true
+
+
+# --------------------------------------------------------------
+# Traduttore con alias e lingue
+# --------------------------------------------------------------
+[[person]]
+name        = "Roberta Rambelli"
+given_name  = "Roberta"
+surname     = "Rambelli"
+birth_date  = { year = 1930 }
+death_date  = { year = 2008 }
+
+[[person.language]]
+language = "it"
+role     = "native"
+
+[[person.language]]
+language = "en"
+role     = "writing"

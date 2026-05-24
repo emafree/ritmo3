@@ -1,0 +1,226 @@
+# ==============================================================
+# books.toml — Template per l'importazione di libri
+# ==============================================================
+# Importa questo file DOPO people.toml.
+# Le persone vengono cercate per nome nel database. Se non
+# esistono vengono create al volo con il solo campo name.
+# Publisher, series, tag vengono creati se non esistono.
+#
+# Campi obbligatori: name
+# Tutti gli altri campi sono opzionali — ometti quelli sconosciuti.
+# ==============================================================
+
+
+# --------------------------------------------------------------
+# Libro minimo — solo il titolo
+# --------------------------------------------------------------
+[[book]]
+name = "Dune"
+
+
+# --------------------------------------------------------------
+# Libro con tutti i campi principali
+# --------------------------------------------------------------
+[[book]]
+name           = "La mano sinistra delle tenebre"
+original_title = "The Left Hand of Darkness"
+
+# format: "epub" | "pdf" | "mobi" | "azw3" | "djvu" | "cbz" | "cbr" | "txt" | "other"
+format = "epub"
+
+# publisher: nome testuale — viene cercato/creato nel database
+publisher = "Nord"
+
+# series: nome testuale — viene cercata/creata nel database
+series       = "Cosmo Oro"
+series_index = 47
+
+# Data di pubblicazione dell'edizione fisica (questo libro, non l'opera originale)
+# year è sufficiente. month e day opzionali. circa = true per date approssimate.
+publication_date = { year = 1976 }
+
+# ISBN dell'edizione
+isbn = "978-88-429-0000-0"
+
+# Note libere
+notes = "Prima edizione italiana."
+
+# Flag fisici/digitali
+has_cover = true   # il file ha una copertina incorporata
+has_paper = false  # esiste anche la copia fisica
+
+# Percorso al file digitale (relativo o assoluto)
+file_link = "/biblioteca/Nord/La mano sinistra delle tenebre.epub"
+
+# Tag liberi — vengono cercati/creati nel database
+tags = ["fantascienza", "femminismo", "utopia", "award:nebula", "award:hugo"]
+
+# Lingue del libro (la lingua del testo fisico di questa edizione)
+# role: "actual" | "other"
+# language: codice ISO 639-1 (2 caratteri) o ISO 639-3 (3 caratteri)
+[[book.language]]
+language = "it"
+role     = "actual"
+
+# Persone associate al libro
+# name: deve corrispondere esattamente al campo name in people.toml (o nel db)
+# role: "author" | "translator" | "editor" | "cover_artist" | "illustrator" |
+#       "editorial_consultant" | "photographer" | "preface_writer" |
+#       "afterword_writer" | "commentator" | "other"
+[[book.person]]
+name = "Ursula K. Le Guin"
+role = "author"
+
+[[book.person]]
+name = "Roberta Rambelli"
+role = "translator"
+
+# Contenuti (opere letterarie) contenuti in questo libro
+# Un libro di solito contiene un solo contenuto (il romanzo stesso).
+# Le antologie contengono molti contenuti.
+[[book.content]]
+name           = "La mano sinistra delle tenebre"
+original_title = "The Left Hand of Darkness"
+
+# type: "novel" | "essay" | "short_story" | "short_story_collection" |
+#       "biography" | "autobiography" | "manual" | "comic" | "poetry" |
+#       "theatre" | "other"
+type = "novel"
+
+# genre: "adventure" | "biography" | "crime" | "dystopia" | "fantasy" |
+#        "historical" | "horror" | "humor" | "mystery" | "philosophy" |
+#        "romance" | "science_fiction" | "thriller" | "travel" | "other"
+genre = "science_fiction"
+
+publication_date = { year = 1969 }
+
+notes = "Romanzo vincitore di Hugo e Nebula 1970."
+
+# Lingue del contenuto (dell'opera in sé, non dell'edizione)
+# role: "original" | "source" | "actual" | "other"
+[[book.content.language]]
+language = "en"
+role     = "original"
+
+[[book.content.language]]
+language = "it"
+role     = "actual"
+
+# Persone associate al contenuto (se diversi da quelli del libro)
+# In genere non serve per romanzi singoli — serve per antologie dove
+# ogni racconto ha un autore diverso.
+[[book.content.person]]
+name = "Ursula K. Le Guin"
+role = "author"
+
+
+# --------------------------------------------------------------
+# Antologia — libro con molti contenuti distinti
+# --------------------------------------------------------------
+[[book]]
+name      = "Storie di Terramare"
+format    = "epub"
+publisher = "Mondadori"
+tags      = ["fantasy", "antologia"]
+
+[[book.person]]
+name = "Ursula K. Le Guin"
+role = "author"
+
+[[book.person]]
+name = "Giuseppe Lippi"
+role = "editor"
+
+# Primo racconto
+[[book.content]]
+name  = "Il mago"
+type  = "short_story"
+genre = "fantasy"
+
+[[book.content.person]]
+name = "Ursula K. Le Guin"
+role = "author"
+
+[[book.content.language]]
+language = "en"
+role     = "original"
+
+# Secondo racconto
+[[book.content]]
+name  = "Le tombe di Atuan"
+type  = "short_story"
+genre = "fantasy"
+
+[[book.content.person]]
+name = "Ursula K. Le Guin"
+role = "author"
+
+[[book.content.language]]
+language = "en"
+role     = "original"
+
+
+# --------------------------------------------------------------
+# Libro con data approssimata e senza file digitale
+# --------------------------------------------------------------
+[[book]]
+name           = "Iliade"
+original_title = "Ἰλιάς"
+type           = "poetry"   # nota: questo campo non esiste su Book — vedi content
+format         = "epub"
+publication_date = { year = 2003 }  # edizione moderna
+has_paper      = true
+tags           = ["classici", "grecia antica", "epica"]
+
+[[book.person]]
+name = "Omero"
+role = "author"
+
+[[book.person]]
+name = "Rosa Calzecchi Onesti"
+role = "translator"
+
+[[book.content]]
+name             = "Iliade"
+original_title   = "Ἰλιάς"
+type             = "poetry"
+genre            = "other"
+publication_date = { year = -750, circa = true }
+
+[[book.content.language]]
+language = "grc"   # Ancient Greek — codice ISO 639-3
+role     = "original"
+
+[[book.content.language]]
+language = "it"
+role     = "actual"
+
+[[book.content.person]]
+name = "Omero"
+role = "author"
+
+
+# --------------------------------------------------------------
+# Saggio breve — contenuto senza molti metadati
+# --------------------------------------------------------------
+[[book]]
+name      = "Perché leggere i classici"
+format    = "epub"
+publisher = "Mondadori"
+
+[[book.person]]
+name = "Italo Calvino"
+role = "author"
+
+[[book.content]]
+name  = "Perché leggere i classici"
+type  = "essay"
+genre = "other"
+
+[[book.content.person]]
+name = "Italo Calvino"
+role = "author"
+
+[[book.content.language]]
+language = "it"
+role     = "original"
