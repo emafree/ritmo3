@@ -1,0 +1,23 @@
+[package]
+name = "ritmo_import"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ritmo_import"
+path = "src/main.rs"
+
+[dependencies]
+ritmo_core = { path = "../ritmo_core" }
+ritmo_repository = { path = "../ritmo_repository" }
+ritmo_domain = { path = "../ritmo_domain" }
+ritmo_db = { path = "../ritmo_db" }
+ritmo_errors = { path = "../ritmo_errors" }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+toml = "1.1.2"
+clap = { version = "4", features = ["derive"] }
+dotenv = { package = "dotenvy", version = "0.15" }

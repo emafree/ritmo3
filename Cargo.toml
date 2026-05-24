@@ -8,6 +8,7 @@ members = [
 	"ritmo_presenter",
 	"ritmo_tui",
 	"ritmo_app",
+	"ritmo_import",
 	]
 resolver = "2"
 
