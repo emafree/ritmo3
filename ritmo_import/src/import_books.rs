@@ -1,5 +1,5 @@
 use ritmo_domain::PartialDate;
-use ritmo_errors::RitmoResult;
+use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
     BookRepository, ContentRepository, FormatRepository, GenreRepository, LanguageRepository,
     PersonRepository, PublisherRepository, RepositoryContext, RoleRepository, SeriesRepository,
@@ -17,6 +17,24 @@ fn to_partial_date(input: &PartialDateInput) -> PartialDate {
         month: input.month,
         day: input.day,
         circa: input.circa,
+    }
+}
+
+fn resolve_language_field<'a>(
+    iso2: &'a Option<String>,
+    iso3: &'a Option<String>,
+    name: &'a Option<String>,
+) -> RitmoResult<(&'static str, &'a str)> {
+    if let Some(v) = iso2 {
+        Ok(("iso_code_2char", v.as_str()))
+    } else if let Some(v) = iso3 {
+        Ok(("iso_code_3char", v.as_str()))
+    } else if let Some(v) = name {
+        Ok(("official_name", v.as_str()))
+    } else {
+        Err(RitmoErr::InvalidInput(
+            "language: nessun campo specificato".into(),
+        ))
     }
 }
 
@@ -100,7 +118,9 @@ async fn import_book(
     let role_repo = RoleRepository::new(repo_ctx);
     let book_langs_repo = XBookLanguagesRepository::new(repo_ctx);
     for lang_input in &input.language {
-        let language = lang_repo.get_or_create(&lang_input.language).await?;
+        let (field, value) =
+            resolve_language_field(&lang_input.iso2, &lang_input.iso3, &lang_input.name)?;
+        let language = lang_repo.get_or_create_by_field(field, value).await?;
         let role = role_repo.get_or_create(&lang_input.role).await?;
         let _ = book_langs_repo
             .create(book.id, language.id, role.id)
@@ -192,7 +212,9 @@ async fn import_content(
     // Add content languages, resolving role by name
     let content_langs_repo = XContentLanguagesRepository::new(repo_ctx);
     for lang_input in &input.language {
-        let language = lang_repo.get_or_create(&lang_input.language).await?;
+        let (field, value) =
+            resolve_language_field(&lang_input.iso2, &lang_input.iso3, &lang_input.name)?;
+        let language = lang_repo.get_or_create_by_field(field, value).await?;
         let role = role_repo.get_or_create(&lang_input.role).await?;
         let _ = content_langs_repo
             .create(content.id, language.id, role.id)
@@ -212,4 +234,119 @@ async fn import_content(
 
     reporter.progress(&format!("  ✓ contenuto: {}", input.name));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::import_books_file;
+    use crate::model::{
+        BookFile, BookInput, BookLanguageInput, ContentInput, ContentLanguageInput,
+    };
+    use crate::reporter::CliReporter;
+    use ritmo_errors::RitmoErr;
+    use ritmo_repository::RepositoryContext;
+
+    #[tokio::test]
+    async fn import_books_file_fails_when_language_field_is_missing() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .expect("in-memory db");
+        let repo_ctx = RepositoryContext::new(pool);
+        let mut reporter = CliReporter;
+        let input = BookFile {
+            book: vec![BookInput {
+                name: "Libro".into(),
+                original_title: None,
+                format: None,
+                publisher: None,
+                series: None,
+                series_index: None,
+                publication_date: None,
+                isbn: None,
+                notes: None,
+                has_cover: false,
+                has_paper: false,
+                file_link: None,
+                tags: vec![],
+                language: vec![BookLanguageInput {
+                    iso2: None,
+                    iso3: None,
+                    name: None,
+                    role: "actual".into(),
+                }],
+                person: vec![],
+                content: vec![],
+            }],
+        };
+
+        let err = import_books_file(&repo_ctx, &input, &mut reporter)
+            .await
+            .expect_err("missing language selector should fail");
+        match err {
+            RitmoErr::InvalidInput(msg) => {
+                assert_eq!(msg, "language: nessun campo specificato");
+            }
+            other => panic!("expected InvalidInput, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn import_books_file_accepts_iso2_iso3_and_name_language_fields() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .expect("in-memory db");
+        let repo_ctx = RepositoryContext::new(pool);
+        let mut reporter = CliReporter;
+        let input = BookFile {
+            book: vec![BookInput {
+                name: "Libro".into(),
+                original_title: None,
+                format: None,
+                publisher: None,
+                series: None,
+                series_index: None,
+                publication_date: None,
+                isbn: None,
+                notes: None,
+                has_cover: false,
+                has_paper: false,
+                file_link: None,
+                tags: vec![],
+                language: vec![BookLanguageInput {
+                    iso2: Some("it".into()),
+                    iso3: None,
+                    name: None,
+                    role: "actual".into(),
+                }],
+                person: vec![],
+                content: vec![ContentInput {
+                    name: "Contenuto".into(),
+                    original_title: None,
+                    content_type: None,
+                    genre: None,
+                    publication_date: None,
+                    notes: None,
+                    language: vec![
+                        ContentLanguageInput {
+                            iso2: None,
+                            iso3: Some("grc".into()),
+                            name: None,
+                            role: "original".into(),
+                        },
+                        ContentLanguageInput {
+                            iso2: None,
+                            iso3: None,
+                            name: Some("English".into()),
+                            role: "source".into(),
+                        },
+                    ],
+                    person: vec![],
+                }],
+            }],
+        };
+
+        import_books_file(&repo_ctx, &input, &mut reporter)
+            .await
+            .expect("valid language selectors should import");
+    }
 }
