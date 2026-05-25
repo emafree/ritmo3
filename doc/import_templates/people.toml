@@ -53,14 +53,17 @@ aliases = [
 
 # Lingue associate alla persona
 # role: "native" | "writing" | "fluent" | "reading" | "other"
-# language: codice ISO 639-1 (2 caratteri) o ISO 639-3 (3 caratteri)
+# Usa uno solo tra iso2, iso3, name — mai più di uno per riga.
+# iso2: codice ISO 639-1 (2 caratteri), es. "en", "fr", "it"
+# iso3: codice ISO 639-3 (3 caratteri), es. "eng", "fra", "ita"
+# name: nome ufficiale della lingua, es. "English", "French"
 [[person.language]]
-language = "en"
-role     = "native"
+iso2 = "en"
+role = "native"
 
 [[person.language]]
-language = "fr"
-role     = "reading"
+iso2 = "fr"
+role = "reading"
 
 # Luoghi associati alla persona
 # type: "birth" | "death" | "residence" | "activity" | "other"
@@ -111,9 +114,9 @@ birth_date  = { year = 1930 }
 death_date  = { year = 2008 }
 
 [[person.language]]
-language = "it"
-role     = "native"
+iso2 = "it"
+role = "native"
 
 [[person.language]]
-language = "en"
-role     = "writing"
+iso2 = "en"
+role = "writing"
