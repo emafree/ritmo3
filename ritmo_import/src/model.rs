@@ -36,7 +36,9 @@ pub struct PersonInput {
 
 #[derive(Debug, Deserialize)]
 pub struct PersonLanguageInput {
-    pub language: String,
+    pub iso2: Option<String>,
+    pub iso3: Option<String>,
+    pub name: Option<String>,
     pub role: String,
 }
 

@@ -1,5 +1,5 @@
 use ritmo_domain::{Alias, PartialDate, Place, PlaceType};
-use ritmo_errors::RitmoResult;
+use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
     AliasRepository, LanguageRepository, PersonRepository, PlaceRepository, PlaceTypeRepository,
     RepositoryContext, RoleRepository, XPersonLanguagesRepository, XPersonPlacesRepository,
@@ -119,7 +119,18 @@ async fn import_person(
     let role_repo = RoleRepository::new(repo_ctx);
     let lang_link_repo = XPersonLanguagesRepository::new(repo_ctx);
     for lang_input in &input.language {
-        let language = lang_repo.get_or_create(&lang_input.language).await?;
+        let (field, value) = if let Some(v) = &lang_input.iso2 {
+            ("iso_code_2char", v.as_str())
+        } else if let Some(v) = &lang_input.iso3 {
+            ("iso_code_3char", v.as_str())
+        } else if let Some(v) = &lang_input.name {
+            ("official_name", v.as_str())
+        } else {
+            return Err(RitmoErr::InvalidInput(
+                "language: nessun campo specificato".into(),
+            ));
+        };
+        let language = lang_repo.get_or_create_by_field(field, value).await?;
         let role = role_repo.get_or_create(&lang_input.role).await?;
         // Ignore duplicate relation errors silently
         let _ = lang_link_repo

@@ -134,4 +134,66 @@ impl LanguageRepository {
         let id = self.save(&created).await?;
         self.get(id).await
     }
+
+    /// Look up a language by a specific column (`iso_code_2char`, `iso_code_3char`,
+    /// or `official_name`) using an exact, case-sensitive match (COLLATE BINARY).
+    /// If no record is found a new one is inserted and returned.
+    pub async fn get_or_create_by_field(
+        &self,
+        field: &str,
+        value: &str,
+    ) -> RitmoResult<Language> {
+        use ritmo_errors::RitmoErr;
+
+        let column = match field {
+            "iso_code_2char" | "iso_code_3char" | "official_name" => field,
+            _ => {
+                return Err(RitmoErr::InvalidInput(format!(
+                    "language: campo non valido '{field}'"
+                )))
+            }
+        };
+
+        let sql = format!(
+            "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE {column} = ? COLLATE BINARY"
+        );
+
+        if let Some(row) = sqlx::query(&sql)
+            .bind(value)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_query)?
+        {
+            return Ok(Language {
+                id: row.get("id"),
+                iso_639_2: row.get("iso_code_2char"),
+                iso_639_3: row.get("iso_code_3char"),
+                name: row.get("official_name"),
+            });
+        }
+
+        let created = match column {
+            "iso_code_2char" => Language {
+                id: 0,
+                iso_639_2: Some(value.to_string()),
+                iso_639_3: None,
+                name: value.to_string(),
+            },
+            "iso_code_3char" => Language {
+                id: 0,
+                iso_639_2: None,
+                iso_639_3: Some(value.to_string()),
+                name: value.to_string(),
+            },
+            _ => Language {
+                id: 0,
+                iso_639_2: None,
+                iso_639_3: None,
+                name: value.to_string(),
+            },
+        };
+
+        let id = self.save(&created).await?;
+        self.get(id).await
+    }
 }
