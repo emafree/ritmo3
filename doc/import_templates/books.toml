@@ -57,10 +57,13 @@ tags = ["fantascienza", "femminismo", "utopia", "award:nebula", "award:hugo"]
 
 # Lingue del libro (la lingua del testo fisico di questa edizione)
 # role: "actual" | "other"
-# language: codice ISO 639-1 (2 caratteri) o ISO 639-3 (3 caratteri)
+# Usa uno solo tra iso2, iso3, name — mai più di uno per riga.
+# iso2: codice ISO 639-1 (2 caratteri), es. "it"
+# iso3: codice ISO 639-3 (3 caratteri), es. "grc"
+# name: nome ufficiale della lingua, es. "Italian"
 [[book.language]]
-language = "it"
-role     = "actual"
+iso2 = "it"
+role = "actual"
 
 # Persone associate al libro
 # name: deve corrispondere esattamente al campo name in people.toml (o nel db)
@@ -99,12 +102,12 @@ notes = "Romanzo vincitore di Hugo e Nebula 1970."
 # Lingue del contenuto (dell'opera in sé, non dell'edizione)
 # role: "original" | "source" | "actual" | "other"
 [[book.content.language]]
-language = "en"
-role     = "original"
+iso2 = "en"
+role = "original"
 
 [[book.content.language]]
-language = "it"
-role     = "actual"
+iso2 = "it"
+role = "actual"
 
 # Persone associate al contenuto (se diversi da quelli del libro)
 # In genere non serve per romanzi singoli — serve per antologie dove
@@ -142,8 +145,8 @@ name = "Ursula K. Le Guin"
 role = "author"
 
 [[book.content.language]]
-language = "en"
-role     = "original"
+iso2 = "en"
+role = "original"
 
 # Secondo racconto
 [[book.content]]
@@ -156,8 +159,8 @@ name = "Ursula K. Le Guin"
 role = "author"
 
 [[book.content.language]]
-language = "en"
-role     = "original"
+iso2 = "en"
+role = "original"
 
 
 # --------------------------------------------------------------
@@ -188,12 +191,12 @@ genre            = "other"
 publication_date = { year = -750, circa = true }
 
 [[book.content.language]]
-language = "grc"   # Ancient Greek — codice ISO 639-3
-role     = "original"
+iso3 = "grc"   # Ancient Greek — codice ISO 639-3
+role = "original"
 
 [[book.content.language]]
-language = "it"
-role     = "actual"
+iso2 = "it"
+role = "actual"
 
 [[book.content.person]]
 name = "Omero"
@@ -222,5 +225,5 @@ name = "Italo Calvino"
 role = "author"
 
 [[book.content.language]]
-language = "it"
-role     = "original"
+iso2 = "it"
+role = "original"

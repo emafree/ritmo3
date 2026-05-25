@@ -127,8 +127,12 @@ tags = [...]
 
 | Campo | Tipo | Obbligatorio | Valori validi |
 |---|---|---|---|
-| `language` | stringa | **sì** | codice ISO 639-1 o ISO 639-3 |
+| `iso2` | stringa | condizionale | codice ISO 639-1 (2 caratteri) |
+| `iso3` | stringa | condizionale | codice ISO 639-3 (3 caratteri) |
+| `name` | stringa | condizionale | nome ufficiale lingua |
 | `role` | stringa | **sì** | `actual` `other` |
+
+È obbligatorio valorizzare almeno uno tra `iso2`, `iso3`, `name`.
 
 ### Campi `[[book.person]]`
 
@@ -166,8 +170,12 @@ tags = [...]
 
 | Campo | Tipo | Obbligatorio | Valori validi |
 |---|---|---|---|
-| `language` | stringa | **sì** | codice ISO 639-1 o ISO 639-3 |
+| `iso2` | stringa | condizionale | codice ISO 639-1 (2 caratteri) |
+| `iso3` | stringa | condizionale | codice ISO 639-3 (3 caratteri) |
+| `name` | stringa | condizionale | nome ufficiale lingua |
 | `role` | stringa | **sì** | `original` `source` `actual` `other` |
+
+È obbligatorio valorizzare almeno uno tra `iso2`, `iso3`, `name`.
 
 ### Campi `[[book.content.person]]`
 

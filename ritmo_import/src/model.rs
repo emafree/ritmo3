@@ -89,7 +89,9 @@ pub struct BookInput {
 
 #[derive(Debug, Deserialize)]
 pub struct BookLanguageInput {
-    pub language: String,
+    pub iso2: Option<String>,
+    pub iso3: Option<String>,
+    pub name: Option<String>,
     pub role: String,
 }
 
@@ -117,6 +119,8 @@ pub struct ContentInput {
 
 #[derive(Debug, Deserialize)]
 pub struct ContentLanguageInput {
-    pub language: String,
+    pub iso2: Option<String>,
+    pub iso3: Option<String>,
+    pub name: Option<String>,
     pub role: String,
 }
