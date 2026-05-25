@@ -10,6 +10,8 @@
 # Ambiente
 .env
 .env.local
+books.toml
+people.toml
 
 # Editor
 .vscode/
