@@ -48,12 +48,6 @@ pub struct Format {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Genre {
-    pub id: i64,
-    pub i18n_key: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Role {
     pub id: i64,
     pub i18n_key: String,
@@ -63,6 +57,7 @@ pub struct Role {
 pub struct Tag {
     pub id: i64,
     pub name: String,
+    pub tag_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

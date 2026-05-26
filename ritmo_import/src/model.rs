@@ -78,7 +78,7 @@ pub struct BookInput {
     pub has_paper: bool,
     pub file_link: Option<String>,
     #[serde(default)]
-    pub tags: Vec<String>,
+    pub tags: Vec<TagInput>,
     #[serde(default)]
     pub language: Vec<BookLanguageInput>,
     #[serde(default)]
@@ -123,4 +123,10 @@ pub struct ContentLanguageInput {
     pub iso3: Option<String>,
     pub name: Option<String>,
     pub role: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TagInput {
+    pub name: String,
+    pub tag_type: String,
 }

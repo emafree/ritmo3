@@ -89,64 +89,74 @@ INSERT OR IGNORE INTO s_role_translations (role_id, language_code, name) VALUES
 -- d_types
 -- ============================================================
 INSERT OR IGNORE INTO d_types (key, created_at, updated_at) VALUES
-    ('novel', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('essay', strftime('%s', 'now'), strftime('%s', 'now')),
+    ('novel',       strftime('%s', 'now'), strftime('%s', 'now')),
+    ('novella',     strftime('%s', 'now'), strftime('%s', 'now')),
     ('short_story', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('short_story_collection', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('biography', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('autobiography', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('manual', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('comic', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('poetry', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('theatre', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('other', strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
+    ('essay',       strftime('%s', 'now'), strftime('%s', 'now')),
+    ('biography',   strftime('%s', 'now'), strftime('%s', 'now')),
+    ('manual',      strftime('%s', 'now'), strftime('%s', 'now')),
+    ('comic',       strftime('%s', 'now'), strftime('%s', 'now')),
+    ('graphic_novel', strftime('%s', 'now'), strftime('%s', 'now')),
+    ('poetry',      strftime('%s', 'now'), strftime('%s', 'now')),
+    ('theatre',     strftime('%s', 'now'), strftime('%s', 'now')),
+    ('other',       strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
 
 INSERT OR IGNORE INTO s_type_translations (type_id, language_code, name) VALUES
+    -- novel
     ((SELECT id FROM d_types WHERE key = 'novel'), 'it', 'Romanzo'),
     ((SELECT id FROM d_types WHERE key = 'novel'), 'en', 'Novel'),
     ((SELECT id FROM d_types WHERE key = 'novel'), 'fr', 'Roman'),
     ((SELECT id FROM d_types WHERE key = 'novel'), 'de', 'Roman'),
     ((SELECT id FROM d_types WHERE key = 'novel'), 'es', 'Novela'),
-    ((SELECT id FROM d_types WHERE key = 'essay'), 'it', 'Saggio'),
-    ((SELECT id FROM d_types WHERE key = 'essay'), 'en', 'Essay'),
-    ((SELECT id FROM d_types WHERE key = 'essay'), 'fr', 'Essai'),
-    ((SELECT id FROM d_types WHERE key = 'essay'), 'de', 'Essay'),
-    ((SELECT id FROM d_types WHERE key = 'essay'), 'es', 'Ensayo'),
+    -- novella
+    ((SELECT id FROM d_types WHERE key = 'novella'), 'it', 'Romanzo breve'),
+    ((SELECT id FROM d_types WHERE key = 'novella'), 'en', 'Novella'),
+    ((SELECT id FROM d_types WHERE key = 'novella'), 'fr', 'Roman court'),
+    ((SELECT id FROM d_types WHERE key = 'novella'), 'de', 'Novelle'),
+    ((SELECT id FROM d_types WHERE key = 'novella'), 'es', 'Novela corta'),
+    -- short_story
     ((SELECT id FROM d_types WHERE key = 'short_story'), 'it', 'Racconto'),
     ((SELECT id FROM d_types WHERE key = 'short_story'), 'en', 'Short story'),
     ((SELECT id FROM d_types WHERE key = 'short_story'), 'fr', 'Nouvelle'),
     ((SELECT id FROM d_types WHERE key = 'short_story'), 'de', 'Kurzgeschichte'),
     ((SELECT id FROM d_types WHERE key = 'short_story'), 'es', 'Cuento'),
-    ((SELECT id FROM d_types WHERE key = 'short_story_collection'), 'it', 'Raccolta di racconti'),
-    ((SELECT id FROM d_types WHERE key = 'short_story_collection'), 'en', 'Short story collection'),
-    ((SELECT id FROM d_types WHERE key = 'short_story_collection'), 'fr', 'Recueil de nouvelles'),
-    ((SELECT id FROM d_types WHERE key = 'short_story_collection'), 'de', 'Kurzgeschichtensammlung'),
-    ((SELECT id FROM d_types WHERE key = 'short_story_collection'), 'es', 'Colección de cuentos'),
+    -- essay
+    ((SELECT id FROM d_types WHERE key = 'essay'), 'it', 'Saggio'),
+    ((SELECT id FROM d_types WHERE key = 'essay'), 'en', 'Essay'),
+    ((SELECT id FROM d_types WHERE key = 'essay'), 'fr', 'Essai'),
+    ((SELECT id FROM d_types WHERE key = 'essay'), 'de', 'Essay'),
+    ((SELECT id FROM d_types WHERE key = 'essay'), 'es', 'Ensayo'),
+    -- biography
     ((SELECT id FROM d_types WHERE key = 'biography'), 'it', 'Biografia'),
     ((SELECT id FROM d_types WHERE key = 'biography'), 'en', 'Biography'),
     ((SELECT id FROM d_types WHERE key = 'biography'), 'fr', 'Biographie'),
     ((SELECT id FROM d_types WHERE key = 'biography'), 'de', 'Biografie'),
     ((SELECT id FROM d_types WHERE key = 'biography'), 'es', 'Biografía'),
-    ((SELECT id FROM d_types WHERE key = 'autobiography'), 'it', 'Autobiografia'),
-    ((SELECT id FROM d_types WHERE key = 'autobiography'), 'en', 'Autobiography'),
-    ((SELECT id FROM d_types WHERE key = 'autobiography'), 'fr', 'Autobiographie'),
-    ((SELECT id FROM d_types WHERE key = 'autobiography'), 'de', 'Autobiografie'),
-    ((SELECT id FROM d_types WHERE key = 'autobiography'), 'es', 'Autobiografía'),
+    -- manual
     ((SELECT id FROM d_types WHERE key = 'manual'), 'it', 'Manuale'),
     ((SELECT id FROM d_types WHERE key = 'manual'), 'en', 'Manual'),
     ((SELECT id FROM d_types WHERE key = 'manual'), 'fr', 'Manuel'),
     ((SELECT id FROM d_types WHERE key = 'manual'), 'de', 'Handbuch'),
     ((SELECT id FROM d_types WHERE key = 'manual'), 'es', 'Manual'),
+    -- comic
     ((SELECT id FROM d_types WHERE key = 'comic'), 'it', 'Fumetto'),
     ((SELECT id FROM d_types WHERE key = 'comic'), 'en', 'Comic'),
     ((SELECT id FROM d_types WHERE key = 'comic'), 'fr', 'Bande dessinée'),
     ((SELECT id FROM d_types WHERE key = 'comic'), 'de', 'Comic'),
     ((SELECT id FROM d_types WHERE key = 'comic'), 'es', 'Cómic'),
+    -- graphic_novel
+    ((SELECT id FROM d_types WHERE key = 'graphic_novel'), 'it', 'Graphic novel'),
+    ((SELECT id FROM d_types WHERE key = 'graphic_novel'), 'en', 'Graphic novel'),
+    ((SELECT id FROM d_types WHERE key = 'graphic_novel'), 'fr', 'Roman graphique'),
+    ((SELECT id FROM d_types WHERE key = 'graphic_novel'), 'de', 'Graphic Novel'),
+    ((SELECT id FROM d_types WHERE key = 'graphic_novel'), 'es', 'Novela gráfica'),
+    -- poetry
     ((SELECT id FROM d_types WHERE key = 'poetry'), 'it', 'Poesia'),
     ((SELECT id FROM d_types WHERE key = 'poetry'), 'en', 'Poetry'),
     ((SELECT id FROM d_types WHERE key = 'poetry'), 'fr', 'Poésie'),
     ((SELECT id FROM d_types WHERE key = 'poetry'), 'de', 'Lyrik'),
     ((SELECT id FROM d_types WHERE key = 'poetry'), 'es', 'Poesía'),
+    -- theatre
     ((SELECT id FROM d_types WHERE key = 'theatre'), 'it', 'Teatro'),
     ((SELECT id FROM d_types WHERE key = 'theatre'), 'en', 'Theatre'),
     ((SELECT id FROM d_types WHERE key = 'theatre'), 'fr', 'Théâtre'),
@@ -222,104 +232,6 @@ INSERT OR IGNORE INTO s_format_translations (format_id, language_code, name) VAL
     ((SELECT id FROM d_formats WHERE key = 'other'), 'es', 'Otro');
 
 -- ============================================================
--- d_genres
--- ============================================================
-INSERT OR IGNORE INTO d_genres (key, created_at, updated_at) VALUES
-    ('adventure', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('biography', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('crime', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('dystopia', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('fantasy', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('historical', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('horror', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('humor', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('mystery', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('philosophy', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('romance', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('science_fiction', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('thriller', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('travel', strftime('%s', 'now'), strftime('%s', 'now')),
-    ('other', strftime('%s', 'now'), strftime('%s', 'now'));  -- sempre per ultimo
-
-INSERT OR IGNORE INTO s_genre_translations (genre_id, language_code, name) VALUES
-    ((SELECT id FROM d_genres WHERE key = 'adventure'), 'it', 'Avventura'),
-    ((SELECT id FROM d_genres WHERE key = 'adventure'), 'en', 'Adventure'),
-    ((SELECT id FROM d_genres WHERE key = 'adventure'), 'fr', 'Aventure'),
-    ((SELECT id FROM d_genres WHERE key = 'adventure'), 'de', 'Abenteuer'),
-    ((SELECT id FROM d_genres WHERE key = 'adventure'), 'es', 'Aventura'),
-    ((SELECT id FROM d_genres WHERE key = 'biography'), 'it', 'Biografia'),
-    ((SELECT id FROM d_genres WHERE key = 'biography'), 'en', 'Biography'),
-    ((SELECT id FROM d_genres WHERE key = 'biography'), 'fr', 'Biographie'),
-    ((SELECT id FROM d_genres WHERE key = 'biography'), 'de', 'Biografie'),
-    ((SELECT id FROM d_genres WHERE key = 'biography'), 'es', 'Biografía'),
-    ((SELECT id FROM d_genres WHERE key = 'crime'), 'it', 'Giallo'),
-    ((SELECT id FROM d_genres WHERE key = 'crime'), 'en', 'Crime'),
-    ((SELECT id FROM d_genres WHERE key = 'crime'), 'fr', 'Policier'),
-    ((SELECT id FROM d_genres WHERE key = 'crime'), 'de', 'Krimi'),
-    ((SELECT id FROM d_genres WHERE key = 'crime'), 'es', 'Crimen'),
-    ((SELECT id FROM d_genres WHERE key = 'dystopia'), 'it', 'Distopia'),
-    ((SELECT id FROM d_genres WHERE key = 'dystopia'), 'en', 'Dystopia'),
-    ((SELECT id FROM d_genres WHERE key = 'dystopia'), 'fr', 'Dystopie'),
-    ((SELECT id FROM d_genres WHERE key = 'dystopia'), 'de', 'Dystopie'),
-    ((SELECT id FROM d_genres WHERE key = 'dystopia'), 'es', 'Distopía'),
-    ((SELECT id FROM d_genres WHERE key = 'fantasy'), 'it', 'Fantasy'),
-    ((SELECT id FROM d_genres WHERE key = 'fantasy'), 'en', 'Fantasy'),
-    ((SELECT id FROM d_genres WHERE key = 'fantasy'), 'fr', 'Fantasy'),
-    ((SELECT id FROM d_genres WHERE key = 'fantasy'), 'de', 'Fantasy'),
-    ((SELECT id FROM d_genres WHERE key = 'fantasy'), 'es', 'Fantasía'),
-    ((SELECT id FROM d_genres WHERE key = 'historical'), 'it', 'Storico'),
-    ((SELECT id FROM d_genres WHERE key = 'historical'), 'en', 'Historical'),
-    ((SELECT id FROM d_genres WHERE key = 'historical'), 'fr', 'Historique'),
-    ((SELECT id FROM d_genres WHERE key = 'historical'), 'de', 'Historisch'),
-    ((SELECT id FROM d_genres WHERE key = 'historical'), 'es', 'Histórico'),
-    ((SELECT id FROM d_genres WHERE key = 'horror'), 'it', 'Horror'),
-    ((SELECT id FROM d_genres WHERE key = 'horror'), 'en', 'Horror'),
-    ((SELECT id FROM d_genres WHERE key = 'horror'), 'fr', 'Horreur'),
-    ((SELECT id FROM d_genres WHERE key = 'horror'), 'de', 'Horror'),
-    ((SELECT id FROM d_genres WHERE key = 'horror'), 'es', 'Terror'),
-    ((SELECT id FROM d_genres WHERE key = 'humor'), 'it', 'Umorismo'),
-    ((SELECT id FROM d_genres WHERE key = 'humor'), 'en', 'Humor'),
-    ((SELECT id FROM d_genres WHERE key = 'humor'), 'fr', 'Humour'),
-    ((SELECT id FROM d_genres WHERE key = 'humor'), 'de', 'Humor'),
-    ((SELECT id FROM d_genres WHERE key = 'humor'), 'es', 'Humor'),
-    ((SELECT id FROM d_genres WHERE key = 'mystery'), 'it', 'Mistero'),
-    ((SELECT id FROM d_genres WHERE key = 'mystery'), 'en', 'Mystery'),
-    ((SELECT id FROM d_genres WHERE key = 'mystery'), 'fr', 'Mystère'),
-    ((SELECT id FROM d_genres WHERE key = 'mystery'), 'de', 'Mystery'),
-    ((SELECT id FROM d_genres WHERE key = 'mystery'), 'es', 'Misterio'),
-    ((SELECT id FROM d_genres WHERE key = 'philosophy'), 'it', 'Filosofia'),
-    ((SELECT id FROM d_genres WHERE key = 'philosophy'), 'en', 'Philosophy'),
-    ((SELECT id FROM d_genres WHERE key = 'philosophy'), 'fr', 'Philosophie'),
-    ((SELECT id FROM d_genres WHERE key = 'philosophy'), 'de', 'Philosophie'),
-    ((SELECT id FROM d_genres WHERE key = 'philosophy'), 'es', 'Filosofía'),
-    ((SELECT id FROM d_genres WHERE key = 'romance'), 'it', 'Romantico'),
-    ((SELECT id FROM d_genres WHERE key = 'romance'), 'en', 'Romance'),
-    ((SELECT id FROM d_genres WHERE key = 'romance'), 'fr', 'Romance'),
-    ((SELECT id FROM d_genres WHERE key = 'romance'), 'de', 'Liebesroman'),
-    ((SELECT id FROM d_genres WHERE key = 'romance'), 'es', 'Romance'),
-    ((SELECT id FROM d_genres WHERE key = 'science_fiction'), 'it', 'Fantascienza'),
-    ((SELECT id FROM d_genres WHERE key = 'science_fiction'), 'en', 'Science fiction'),
-    ((SELECT id FROM d_genres WHERE key = 'science_fiction'), 'fr', 'Science-fiction'),
-    ((SELECT id FROM d_genres WHERE key = 'science_fiction'), 'de', 'Science-Fiction'),
-    ((SELECT id FROM d_genres WHERE key = 'science_fiction'), 'es', 'Ciencia ficción'),
-    ((SELECT id FROM d_genres WHERE key = 'thriller'), 'it', 'Thriller'),
-    ((SELECT id FROM d_genres WHERE key = 'thriller'), 'en', 'Thriller'),
-    ((SELECT id FROM d_genres WHERE key = 'thriller'), 'fr', 'Thriller'),
-    ((SELECT id FROM d_genres WHERE key = 'thriller'), 'de', 'Thriller'),
-    ((SELECT id FROM d_genres WHERE key = 'thriller'), 'es', 'Thriller'),
-    ((SELECT id FROM d_genres WHERE key = 'travel'), 'it', 'Viaggi'),
-    ((SELECT id FROM d_genres WHERE key = 'travel'), 'en', 'Travel'),
-    ((SELECT id FROM d_genres WHERE key = 'travel'), 'fr', 'Voyage'),
-    ((SELECT id FROM d_genres WHERE key = 'travel'), 'de', 'Reisen'),
-    ((SELECT id FROM d_genres WHERE key = 'travel'), 'es', 'Viajes'),
-    -- other — sempre per ultimo
-    ((SELECT id FROM d_genres WHERE key = 'other'), 'it', 'Altro'),
-    ((SELECT id FROM d_genres WHERE key = 'other'), 'en', 'Other'),
-    ((SELECT id FROM d_genres WHERE key = 'other'), 'fr', 'Autre'),
-    ((SELECT id FROM d_genres WHERE key = 'other'), 'de', 'Andere'),
-    ((SELECT id FROM d_genres WHERE key = 'other'), 'es', 'Otro');
-
--- ============================================================
 -- s_person_language_roles
 -- ============================================================
 INSERT OR IGNORE INTO s_person_language_roles (code, created_at, updated_at) VALUES
@@ -352,7 +264,7 @@ INSERT OR IGNORE INTO s_person_language_role_translations (role_id, language_cod
     ((SELECT id FROM s_person_language_roles WHERE code = 'other'), 'de', 'Andere');
 
 -- ============================================================
--- s_place_types  (già prefissato correttamente nello schema)
+-- s_place_types
 -- ============================================================
 INSERT OR IGNORE INTO s_place_types (key, created_at, updated_at) VALUES
     ('birth',     strftime('%s', 'now'), strftime('%s', 'now')),

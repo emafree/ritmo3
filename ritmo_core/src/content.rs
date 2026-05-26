@@ -57,12 +57,6 @@ pub async fn list_languages(ctx: &CoreContext, content_id: i64) -> RitmoResult<V
     Ok(languages)
 }
 
-pub async fn get_genre_name(ctx: &CoreContext, content_id: i64) -> RitmoResult<Option<String>> {
-    ContentRepository::new(&ctx.ctx)
-        .get_genre_name(content_id)
-        .await
-}
-
 pub async fn create(ctx: &CoreContext, item: &Content) -> RitmoResult<i64> {
     if item.title.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("title cannot be empty".to_string()));

@@ -1,7 +1,6 @@
 pub mod book;
 pub mod content;
 pub mod format;
-pub mod genre;
 pub mod language;
 pub mod person;
 pub mod publisher;

@@ -1,9 +1,9 @@
 use ritmo_domain::PartialDate;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
-    BookRepository, ContentRepository, FormatRepository, GenreRepository, LanguageRepository,
-    PersonRepository, PublisherRepository, RepositoryContext, RoleRepository, SeriesRepository,
-    TagRepository, XBookLanguagesRepository, XBooksContentsRepository, XBooksPeopleRolesRepository,
+    BookRepository, ContentRepository, FormatRepository, LanguageRepository, PersonRepository,
+    PublisherRepository, RepositoryContext, RoleRepository, SeriesRepository, TagRepository,
+    XBookLanguagesRepository, XBooksContentsRepository, XBooksPeopleRolesRepository,
     XBooksTagsRepository, XContentLanguagesRepository, XContentsPeopleRolesRepository,
 };
 
@@ -104,12 +104,12 @@ async fn import_book(
         book_repo.update(&book).await?;
     }
 
-    // 3. Add tags via get_or_create + link to book
     let tag_repo = TagRepository::new(repo_ctx);
     let book_tags_repo = XBooksTagsRepository::new(repo_ctx);
     for tag_name in &input.tags {
-        let tag = tag_repo.get_or_create(tag_name).await?;
-        // Ignore duplicate relation errors silently
+        let tag = tag_repo
+            .get_or_create(&tag_name.name, &tag_name.tag_type)
+            .await?;
         let _ = book_tags_repo.create(book.id, tag.id).await;
     }
 
@@ -122,9 +122,7 @@ async fn import_book(
             resolve_language_field(&lang_input.iso2, &lang_input.iso3, &lang_input.name)?;
         let language = lang_repo.get_or_create_by_field(field, value).await?;
         let role = role_repo.get_or_create(&lang_input.role).await?;
-        let _ = book_langs_repo
-            .create(book.id, language.id, role.id)
-            .await;
+        let _ = book_langs_repo.create(book.id, language.id, role.id).await;
     }
 
     // 5. Add book persons, resolving role by name
@@ -133,10 +131,11 @@ async fn import_book(
     for person_input in &input.person {
         let person = person_repo.get_or_create(&person_input.name).await?;
         let role = role_repo.get_or_create(&person_input.role).await?;
-        let _ = book_people_repo
-            .create(book.id, person.id, role.id)
-            .await;
-        reporter.progress(&format!("  ✓ persona: {} ({})", person_input.name, person_input.role));
+        let _ = book_people_repo.create(book.id, person.id, role.id).await;
+        reporter.progress(&format!(
+            "  ✓ persona: {} ({})",
+            person_input.name, person_input.role
+        ));
     }
 
     // 6. Process each content
@@ -173,16 +172,6 @@ async fn import_content(
     // ContentRepository API.
     // TODO: link type/genre to the content once ritmo_core/ritmo_repository exposes
     //       the corresponding update operations on d_contents.
-    if let Some(type_name) = &input.content_type {
-        let _genre = GenreRepository::new(repo_ctx)
-            .get_or_create(type_name)
-            .await?;
-    }
-    if let Some(genre_name) = &input.genre {
-        let _genre = GenreRepository::new(repo_ctx)
-            .get_or_create(genre_name)
-            .await?;
-    }
 
     // get_or_create the content
     let content_repo = ContentRepository::new(repo_ctx);

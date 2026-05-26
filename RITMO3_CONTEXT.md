@@ -3,7 +3,7 @@
 ## Cos'è
 
 Applicazione Rust per la gestione di una biblioteca personale di ~12.000 EPUB.
-Strutturata come workspace Cargo multi-crate. Interfaccia testuale (TUI) con Ratatui.
+Strutturata come workspace Cargo multi-crate. Interfaccia utente non ancora definita (vedi sotto).
 Il database viene caricato integralmente in memoria all'avvio — nessuna query lazy durante la navigazione.
 
 ---
@@ -13,13 +13,26 @@ Il database viene caricato integralmente in memoria all'avvio — nessuna query 
 | Crate | Stato | Responsabilità |
 |---|---|---|
 | `ritmo_errors` | ✅ completo | Tipi di errore centralizzati, `RitmoResult<T>`, trait `RitmoReporter` |
-| `ritmo_domain` | ✅ completo | Struct di dominio: `Book`, `Content`, `Person`, `Publisher`, `Series`, `Format`, `Genre`, `Role`, `Tag`, `Language`, `Alias`, `Place`, `PlaceType`, `PartialDate`. Strutture di filtro: `Filter`, `FilterSet`, `FilterField`, `FilterOperator`, `FilterValue`, `LogicalOperator` |
-| `ritmo_db` | ✅ completo — schema SQL aggiornato | Schema SQLite, seeding, connessione e pool. File SQL in `ritmo_db/schema/`. Tutti i `CREATE TABLE` e `CREATE TRIGGER` hanno `IF NOT EXISTS`. Il seeding usa `INSERT OR IGNORE` |
-| `ritmo_repository` | ⚠️ da aggiornare | Operazioni CRUD per tutte le entità (un file per entità). Filtro dinamico in `filter_books.rs`, `filter_contents.rs`, `filter_sets.rs`. **I nomi delle tabelle nelle query SQL hardcodate devono essere allineati ai nuovi nomi (vedi sezione schema SQL).** |
-| `ritmo_core` | ✅ completo | Logica applicativa, policy di delete, gestione relazioni. Non ancora pienamente collegato alla TUI |
-| `ritmo_presenter` | ✅ completo | View model per tutte le entità, trait `I18nDisplayable`. I18n per `Format`, `Genre`, `Role` tramite `rust-i18n` |
-| `ritmo_tui` | 🔄 in sviluppo | Interfaccia TUI con Ratatui (vedi dettaglio sotto) |
-| `ritmo_app` | ✅ funzionante | Punto di ingresso. Carica `.env`, inizializza il database, lancia la TUI |
+| `ritmo_domain` | ⚠️ da allineare | Struct di dominio: `Book`, `Content`, `Person`, `Publisher`, `Series`, `Format`, `Role`, `Tag`, `Language`, `Alias`, `Place`, `PlaceType`, `PartialDate`. Strutture di filtro: `Filter`, `FilterSet`, `FilterField`, `FilterOperator`, `FilterValue`, `LogicalOperator`. La struct `Genre` è stata rimossa — i generi sono ora tag. |
+| `ritmo_db` | ✅ schema aggiornato | Schema SQLite, seeding, connessione e pool. |
+| `ritmo_repository` | ⚠️ da allineare | Operazioni CRUD per tutte le entità. Il repository per `Genre` va rimosso. Le query su `d_contents` vanno aggiornate (rimosso `genre_id`). Le query sui tag vanno aggiornate per `tag_type`. |
+| `ritmo_core` | ⚠️ da allineare | Logica applicativa, policy di delete, gestione relazioni. I casi d'uso relativi a `Genre` vanno rimossi. |
+| `ritmo_presenter` | ⚠️ da allineare | View model per tutte le entità, trait `I18nDisplayable`. Il presenter per `Genre` e l'i18n correlato vanno rimossi. |
+| `ritmo_tui` | ❌ abbandonato | Interfaccia TUI con Ratatui — abbandonata. Il crate può essere rimosso dal workspace. |
+| `ritmo_import` | ✅ funzionante | Importazione dati da EPUB e sorgenti esterne. Strumento di lavoro per popolare il database. |
+| `ritmo_app` | ⚠️ da aggiornare | Punto di ingresso. Va aggiornato dopo la rimozione di `ritmo_tui`. |
+
+---
+
+## Interfaccia utente
+
+`ritmo_tui` (Ratatui) è stata abbandonata. Il costo di sviluppo di una TUI è sproporzionato rispetto al valore per un tool personale. Le alternative valutate:
+
+- **Web app locale** — server HTTP leggero (Axum) + interfaccia HTML nel browser. Tutto il backend Rust invariato, si butta solo il layer TUI.
+- **Tauri** — Rust + HTML/CSS/JS nel webview. Riusa esattamente il lavoro della web app locale.
+- **egui / Slint** — GUI nativa Rust.
+
+La scelta non è ancora stata fatta. Il backend (`ritmo_core`, `ritmo_repository`, schema) è indipendente dalla scelta frontend.
 
 ---
 
@@ -45,27 +58,7 @@ Tutti i trigger e gli indici aggiornati di conseguenza. Schema validato con SQLi
 
 ### Correzione dei file di seeding
 
-`seed_lookups.sql` e `seed_page_fields.sql` allineati ai nuovi nomi di tabella:
-
-- Tutti i nomi di tabella negli `INSERT INTO` aggiornati
-- Tutte le subquery `SELECT id FROM <tabella>` nei valori FK aggiornate
-- `seed_page_fields.sql`: `DELETE FROM page_fields` → `DELETE FROM s_page_fields`; `target_table = 'publishers'` → `'d_publishers'`
-
-Validati insieme allo schema su database in memoria — zero errori, tutti i conteggi corretti.
-
-### File prodotti (pronti per il repository)
-
-- `schema.sql` — schema completo corretto
-- `seed_lookups.sql` — seed lookup corretto
-- `seed_page_fields.sql` — seed page fields corretto
-
-### Collegamento `ContentCreateScreen::Submit` a `ritmo_core`
-
-`Ctrl+S` in `ContentCreateScreen` ora salva il contenuto nel database.
-`ContentCreateAction::Submit` porta un payload `ContentDraft` con i campi compilati.
-`app.rs` chiama `ritmo_core::content::create`, ricarica la lista, chiude la schermata.
-In caso di errore lo mostra nella status bar senza chiudere la schermata.
-`ritmo_core::content::list_all` aggiunto come wrapper se non esisteva.
+`seed_lookups.sql` e `seed_page_fields.sql` allineati ai nuovi nomi di tabella.
 
 ---
 
@@ -80,87 +73,107 @@ dinamiche in `filter_books.rs` e `filter_contents.rs`. Nessuna discrepanza.
 
 ---
 
+## Sessione del 23 maggio 2026
+
+### `Collection<T>` — centralizzazione del dispatch add/remove/delegate
+
+Introdotta la struct generica `Collection<T>` in `ritmo_tui/src/widgets/collection.rs`.
+
+**Nota:** il lavoro su `ritmo_tui` è successivamente diventato irrilevante per l'abbandono della TUI. Il crate va rimosso.
+
+---
+
+## Sessione del 26 maggio 2026
+
+### Revisione del modello dati — decisioni strutturali
+
+#### `d_contents` come entità principale
+
+`d_contents` è l'entità centrale del database, non `d_books`. Un'opera letteraria esiste indipendentemente dalle sue edizioni fisiche. La stessa opera in lingue diverse è un `content` distinto — il traduttore appartiene al contenuto, non al libro.
+
+`d_books` è il contenitore fisico o digitale (un'edizione). Le persone collegate a un libro sono quelle che hanno lavorato sull'oggetto fisico: cover artist, consulente editoriale, fotografo.
+
+Questa distinzione è una convenzione d'uso documentata, non un vincolo di schema. `d_roles` è editabile dall'utente.
+
+#### Eliminazione di `d_genres` — tag tipizzati
+
+La tabella `d_genres` (lookup controllata con i18n) è stata eliminata. Motivazioni:
+
+1. Una lista chiusa non copre la complessità reale — la maggior parte dei libri finiva in `other`.
+2. I generi letterari non sono mutuamente esclusivi — un romanzo può essere thriller, satira sociale e dark humor contemporaneamente.
+3. Una lookup controllata con traduzioni i18n non è gestibile dall'utente senza attrito eccessivo.
+
+I generi diventano tag di tipo `genre` in `d_tags`. La colonna `tag_type` su `d_tags` distingue:
+- `genre` — genere o sottogenere letterario
+- `mood` — atmosfera o tono
+- `setting` — ambientazione
+- `personal` — annotazioni personali
+
+`d_tags` parte vuota — nessun seeding. L'utente inserisce i tag durante l'uso. Il ML normalizza e suggerisce nel tempo, usando `tag_type` per distinguere segnali semantici diversi.
+
+`genre_id` è stato rimosso da `d_contents`. Il genere si recupera tramite `x_contents_tags` filtrando per `tag_type = 'genre'`.
+
+#### Ricerca per ricordo vago — strategia
+
+Il campo `notes` su `d_contents` (già presente su `d_books`) è il punto di ingresso per metadati non strutturati inseriti al momento dell'immissione. La ricerca full-text tramite FTS5 su titoli, note e nomi delle persone è la soluzione prevista — da implementare.
+
+#### Revisione del seeding di d_types
+I valori di d_types non riflettevano bene lo schema che ho in mente. Devono appartenere esclusivamente a contents, per cui alcuni valori non erano piu necessari. Altri valori invece erano mancanti, altri duplicati. 
+Lo schema finale di seeding ha 11 valori, sempre con le relative traduzioni. ✅ fatto
+
+
+### File aggiornati in questa sessione
+
+- `schema.sql` — rimossa `d_genres` e `s_genre_translations`; aggiunto `tag_type` a `d_tags`; rimosso `genre_id` da `d_contents`; aggiornati indici
+- `seed_lookups.sql` — rimossa sezione `d_genres`; `d_tags` non viene pre-popolata
+- `RITMO_DB.md` — aggiornato a riflettere tutte le decisioni sopra
+
+### Crate da allineare allo schema
+
+I seguenti crate fanno ancora riferimento a `Genre` e `genre_id` e vanno aggiornati:
+- `ritmo_domain` — rimuovere struct `Genre` ✅ fatto
+- `ritmo_repository` — rimuovere `genre.rs`, aggiornare query su `d_contents` e `d_tags` ✅ fatto
+- `ritmo_core` — rimuovere casi d'uso Genre ✅ fatto
+- `ritmo_presenter` — rimuovere view model Genre e i18n correlato ✅ fatto
+
+---
+
 ## Passi successivi
 
-### 0. Aggiornare `ritmo_repository` ← fatto
-Tutti i nomi di tabella nelle query SQL hardcodate in `ritmo_repository` devono essere allineati ai nuovi nomi. Questo riguarda ogni file del crate che contiene stringhe SQL (`books.rs`, `contents.rs`, `people.rs`, `filter_books.rs`, `filter_contents.rs`, `filter_sets.rs`, ecc.).
+### 1. Allineare i crate al nuovo schema
+Rimuovere `Genre` da `ritmo_domain`, `ritmo_repository`, `ritmo_core`, `ritmo_presenter`. ✅ fatto
+Aggiornare le query su `d_contents` (senza `genre_id`) e su `d_tags` (con `tag_type`). ✅ fatto
 
-### 1. Rifinire `ContentCreateScreen`
-Ci sono problemi minori di comportamento emersi durante i test manuali, da analizzare e correggere.
+### 2. Rimuovere `ritmo_tui` dal workspace 
+Il crate è abbandonato. Va rimosso da `Cargo.toml` workspace e cancellato. ✅ fatto
 
-### 2. Collegare `Submit` a `ritmo_core`  ← fatto
-`Ctrl+S` in `ContentCreateScreen` restituisce `ContentCreateAction::Submit`, che in `app.rs` chiude la schermata senza salvare. Va collegato a `ritmo_core::content::create`, con reload della lista dopo il salvataggio.
+### 3. Scegliere e avviare il frontend
+Web app locale (Axum + HTML) o Tauri. Decisione da prendere prima di sviluppare nuove schermate. 
+La decisione è di iniziare lo sviluppo del frontend con Axum+HTML. ✅ fatto
 
-### 3. Sviluppare `BookCreateScreen`
-Non ancora implementata. Va creata seguendo il modello di `ContentCreateScreen`, poi collegata alla navigazione.
+### 4. Implementare FTS5
+Virtual table FTS5 su titoli (`d_books.name`, `d_contents.name`), note, nomi persone. Collegare alla ricerca principale.
 
-### 4. Collegare `PersonCreateScreen`
-Il file esiste (`people/create.rs`) ma non è ancora collegato alla navigazione in `app.rs`.
+### 5. Sistema ML
+Esiste in ritmo2 ed è funzionante. Va importato quando si inizia a inserire dati reali — serve per normalizzazione nomi, luoghi, tag.
 
-### 5. Implementare Filters
-Mostrare lista `FilterSet` salvati, spunta attivo/non attivo, filtro zero fisso in cima.
+### 6. Rimuovere ritmo_app
+Anche ritmo_app è stato provvisoriamente eliminato. ✅ fatto
 
-### 6. Schermate mancanti
-- `contents/detail.rs` — non ancora implementata
-- `people/list.rs` e `people/detail.rs` — accessibili solo dal dettaglio libro/contenuto
-- Gestione entità indipendenti (tag, publisher, series, format, genre, role, language) — accessibili dal dettaglio
-
-### 7. Sezioni relazionate nel dettaglio
-`BookDetailScreen` ha sezioni relazionate (persone, tag, lingue, contenuti) navigabili ma non ancora collegate a popup per aggiungere/rimuovere. Va definita la gestione dei layer sovrapposti in `app.rs`.
-
-### 8. Sistema ML
-Esiste in ritmo2 ed è funzionante. Va importato quando si inizia a inserire dati reali — serve per la normalizzazione dei nomi, dei luoghi, delle tags, etc.
-
-### 9. Internazionalizzazione della TUI
-Tutte le label in `ritmo_tui` sono attualmente hardwired in italiano. In futuro gestite tramite `rust-i18n`, come già fatto per `Format`, `Genre`, `Role` in `ritmo_presenter`. Da fare quando la TUI è stabile.
+### 6. Creazione del crate ritmo_web
+Vista la decisione presa al punto 3 è il prossimo passo logico.
 
 ---
 
-## Stato attuale della TUI
+## Architettura — principi chiave
 
-Il programma compila e funziona. Le tre finestre principali si aprono e la navigazione tra esse funziona correttamente.
-
-### Widget implementati
-
-- `TableWidget`
-- `InputWidget`
-- `PopupWidget`
-- `StatusBar`
-- `PartialDateWidget`
-- `PlaceWidget`
-- `LanguageWidget` — ricerca con autocomplete
-- `PersonWidget` — ricerca con autocomplete
-
-### Schermate implementate
-
-- `BookListScreen`
-- `ContentListScreen`
-- `BookDetailScreen`
-- `ContentCreateScreen` — funzionante, con problemi minori da rifinire
-
-### Navigazione TUI
-
-**Livello 0 — Finestre principali**
-
-Tre finestre principali: **Books**, **Contents**, **Filters**.
-Ognuna mostra la lista dei relativi item, navigabile con frecce verticali o `j`/`k`.
-Cambio finestra: frecce orizzontali, oppure tasti `b` (Books), `c` (Contents), `f` (Filters).
-
-### Stato per finestra
-
-| Finestra | Stato |
-|---|---|
-| **Contents** | Navigazione funzionante. Premendo `n` si apre `ContentCreateScreen`. Input, navigazione tra campi e chiusura con `Esc` funzionano. Il salvataggio (`Ctrl+S`) è strutturato ma non ancora collegato a `ritmo_core`. Ci sono problemi minori di comportamento da rifinire. |
-| **Books** | Allo stato della creazione iniziale delle tre finestre. Development partito da Contents, Books è più indietro. |
-| **Filters** | Da implementare. Deve mostrare la lista dei `FilterSet` salvati con spunta attivo/non attivo. Il filtro zero (titolo + autore) sempre presente in cima. |
-
----
-
-## Cose minori pendenti
-
-- `.env.example` da aggiungere al repository
-- Verificare che `.env` sia nel `.gitignore`  ← fatto
-- `entities.rs` fantasma in `ritmo_repository/src/` — file non dichiarato, da eliminare   ← fatto
+- `ritmo_presenter` è il layer stabile tra core e tutti i frontend — nessun frontend dipende direttamente da `sqlx` o `ritmo_db`.
+- Le date bibliografiche usano quattro colonne nullable (`date_year`, `date_month`, `date_day`, `date_circa`), distinte dai campi tecnici Unix timestamp.
+- Distribuzione portabile: cartella self-contained con launcher + eseguibile + `data/`.
+- I18n al layer presenter con fallback chain — solo per lookup di sistema, non per dati utente.
+- Tabella `s_page_fields` sostituisce le definizioni di campo hardcoded.
+- Lookup di sistema (con i18n): `d_roles`, `d_types`, `d_formats`, `d_languages`, `s_person_language_roles`, `s_place_types`, `s_content_language_roles`, `s_book_language_roles`.
+- Dati utente (`d_tags`, `d_publishers`, `d_series`, ecc.): nessun seeding, nessuna i18n.
 
 ---
 
@@ -171,17 +184,6 @@ Cambio finestra: frecce orizzontali, oppure tasti `b` (Books), `c` (Contents), `
 - **Ciclo standard**: checkout → review file → build → unisci → pulizia locale.
 - **Modifiche locali**: salvare con `git stash` prima di cambiare branch.
 - **Documentazione**: i file in `/doc` sono vincolanti — qualsiasi modifica al dominio o all'architettura va riflessa lì.
-
----
-
-## Architettura — principi chiave
-
-- `ritmo_presenter` è il layer stabile tra core e tutti i frontend — nessun frontend dipende direttamente da `sqlx` o `ritmo_db`.
-- Le date bibliografiche usano quattro colonne nullable (`date_year`, `date_month`, `date_day`, `date_circa`), distinte dai campi tecnici Unix timestamp.
-- Distribuzione portabile: cartella self-contained con launcher + eseguibile + `data/`.
-- I18n al layer presenter con fallback chain.
-- Tabella `s_page_fields` sostituisce le definizioni di campo hardcoded.
-- Lookup table divise in system-defined (con i18n) e user-managed (senza).
 
 ---
 

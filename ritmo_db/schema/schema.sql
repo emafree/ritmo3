@@ -123,14 +123,6 @@ CREATE TABLE IF NOT EXISTS "s_format_translations" (
 	UNIQUE("format_id", "language_code")
 );
 
-CREATE TABLE IF NOT EXISTS "s_genre_translations" (
-	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
-	"genre_id" INTEGER NOT NULL REFERENCES "d_genres"("id") ON DELETE CASCADE,
-	"language_code" TEXT NOT NULL,
-	"name" TEXT NOT NULL,
-	UNIQUE("genre_id", "language_code")
-);
-
 CREATE TABLE IF NOT EXISTS "s_type_translations" (
 	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
 	"type_id" INTEGER NOT NULL REFERENCES "d_types"("id") ON DELETE CASCADE,
@@ -220,19 +212,21 @@ CREATE TABLE IF NOT EXISTS "d_roles" (
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
+-- d_tags: etichette libere associate a libri e contenuti.
+-- tag_type distingue la funzione semantica del tag:
+--   'genre'    — genere o sottogenere letterario (es. fantascienza, noir, ucronia)
+--   'mood'     — atmosfera o tono (es. cupo, ironico, epico)
+--   'setting'  — ambientazione (es. spazio, medioevo, futuro prossimo)
+--   'personal' — annotazioni personali (es. da rileggere, prestato)
+-- I tag di tipo 'genre' sostituiscono la precedente tabella d_genres.
+-- Il ML usa tag_type per distinguere segnali semantici diversi.
 CREATE TABLE IF NOT EXISTS "d_tags" (
-	"id"	INTEGER,
-	"name"	TEXT NOT NULL UNIQUE,
-	"created_at"	INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-	"updated_at"	INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-	PRIMARY KEY("id" AUTOINCREMENT)
-);
-
-CREATE TABLE IF NOT EXISTS "d_genres" (
-	"id"	INTEGER,
-	"key"	TEXT NOT NULL UNIQUE,
-	"created_at"	INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-	"updated_at"	INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+	"id"        INTEGER,
+	"name"      TEXT NOT NULL UNIQUE,
+	"tag_type"  TEXT NOT NULL DEFAULT 'personal'
+	            CHECK("tag_type" IN ('genre', 'mood', 'setting', 'personal')),
+	"created_at" INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+	"updated_at" INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
 
@@ -336,12 +330,15 @@ CREATE TABLE IF NOT EXISTS "d_books" (
 	FOREIGN KEY("series_id") REFERENCES "d_series"("id") ON DELETE SET NULL
 );
 
+-- d_contents: opera letteraria nella sua forma testuale specifica.
+-- Un'opera nella stessa lingua è un unico content, indipendentemente
+-- dal numero di edizioni fisiche (d_books) che la contengono.
+-- Il genere non è più un campo diretto: usa x_contents_tags con tag_type='genre'.
 CREATE TABLE IF NOT EXISTS "d_contents" (
 	"id"	INTEGER,
 	"name"	TEXT NOT NULL,
 	"original_title"	TEXT,
 	"type_id"	INTEGER,
-	"genre_id"	INTEGER,
 	"publication_date_year"	INTEGER,
 	"publication_date_month"	INTEGER CHECK("publication_date_month" IS NULL OR ("publication_date_month" >= 1 AND "publication_date_month" <= 12)),
 	"publication_date_day"	INTEGER CHECK("publication_date_day" IS NULL OR ("publication_date_day" >= 1 AND "publication_date_day" <= 31)),
@@ -350,8 +347,7 @@ CREATE TABLE IF NOT EXISTS "d_contents" (
 	"created_at"	INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 	"updated_at"	INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
 	PRIMARY KEY("id" AUTOINCREMENT),
-	FOREIGN KEY("type_id") REFERENCES "d_types"("id") ON DELETE SET NULL,
-	FOREIGN KEY("genre_id") REFERENCES "d_genres"("id") ON DELETE SET NULL
+	FOREIGN KEY("type_id") REFERENCES "d_types"("id") ON DELETE SET NULL
 );
 
 -- ============================================================
@@ -453,8 +449,8 @@ CREATE INDEX IF NOT EXISTS "idx_publishers_name_search" ON "d_publishers" (
 CREATE INDEX IF NOT EXISTS "idx_tags_name_search" ON "d_tags" (
 	"name" COLLATE NOCASE
 );
-CREATE INDEX IF NOT EXISTS "idx_genres_name_search" ON "d_genres" (
-	"key" COLLATE NOCASE
+CREATE INDEX IF NOT EXISTS "idx_tags_type" ON "d_tags" (
+	"tag_type"
 );
 CREATE INDEX IF NOT EXISTS "idx_people_dates" ON "d_people" (
 	"birth_date_year",
@@ -503,9 +499,6 @@ CREATE INDEX IF NOT EXISTS "idx_contents_search_optimized" ON "d_contents" (
 	"name",
 	"type_id",
 	"publication_date_year"
-);
-CREATE INDEX IF NOT EXISTS "idx_contents_genre_lookup" ON "d_contents" (
-	"genre_id"
 );
 CREATE INDEX IF NOT EXISTS "idx_books_series_lookup" ON "d_books" (
 	"series_id",
