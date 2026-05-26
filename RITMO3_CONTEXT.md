@@ -21,6 +21,7 @@ Il database viene caricato integralmente in memoria all'avvio — nessuna query 
 | `ritmo_tui` | ❌ abbandonato | Interfaccia TUI con Ratatui — abbandonata. Il crate può essere rimosso dal workspace. |
 | `ritmo_import` | ✅ funzionante | Importazione dati da EPUB e sorgenti esterne. Strumento di lavoro per popolare il database. |
 | `ritmo_app` | ⚠️ da aggiornare | Punto di ingresso. Va aggiornato dopo la rimozione di `ritmo_tui`. |
+| `ritmo_web` | ⚠️ in sviluppo | Server web Axum + HTML. Scaffolding completo, handler da implementare. |
 
 ---
 
@@ -135,6 +136,84 @@ I seguenti crate fanno ancora riferimento a `Genre` e `genre_id` e vanno aggiorn
 - `ritmo_repository` — rimuovere `genre.rs`, aggiornare query su `d_contents` e `d_tags` ✅ fatto
 - `ritmo_core` — rimuovere casi d'uso Genre ✅ fatto
 - `ritmo_presenter` — rimuovere view model Genre e i18n correlato ✅ fatto
+
+---
+
+## Sessione del 26 maggio 2026 — parte 2
+### Creazione del crate ritmo_web
+Creato il crate ritmo_web basato su Axum + HTML server-rendered. Aggiunto al workspace.
+Pattern di inizializzazione adottato — identico a ritmo_import:
+
+ritmo_db::create_sqlite_pool chiamato in main.rs (unico punto)
+Il pool viene wrappato in RepositoryContext di ritmo_repository
+AppState contiene RepositoryContext + AppConfig — nessun SqlitePool o sqlx esposto
+
+### Struttura del crate:
+
+src/main.rs — entrypoint, init DB, bind address da env, avvio server
+src/state.rs — AppState con RepositoryContext e AppConfig
+src/router.rs — route per books, contents, people, lookups
+src/error.rs — mapping RitmoErr → HTTP response via IntoResponse
+src/handlers/{books,contents,people,lookups}.rs — handler placeholder
+src/templates/ — template HTML placeholder per tutte le entità
+
+Dipendenze di ritmo_web: axum, tokio, dotenvy, serde_json, ritmo_db, ritmo_errors, ritmo_repository. Nessun sqlx diretto.
+Passi successivi
+
+Implementare gli handler reali collegando ritmo_core e ritmo_presenter
+Definire i view model in ritmo_presenter per le liste (books, contents, people)
+Costruire i template HTML reali a partire dai placeholder
+
+---
+
+## Sessione del 26 maggio 2026 — parte 3
+
+### ritmo_web — primo handler reale + sistema di templating
+
+#### Tera integrato come motore di template
+Aggiunta dipendenza `tera = "1"` a `ritmo_web/Cargo.toml`.
+I template vivono in `ritmo_web/templates/` (non in `src/templates/`).
+`AppState` ora include un campo `tera: Tera` inizializzato in `main.rs` con glob `ritmo_web/templates/**/*.html`.
+La working directory attesa è la root del workspace (`cargo run` da `~/Projects/ritmo3`).
+
+#### ritmo_presenter — BookListItem serializzabile
+Aggiunta dipendenza `serde` con feature `derive` a `ritmo_presenter/Cargo.toml`.
+`BookListItem` deriva ora `Serialize` — necessario per inserirlo nel contesto Tera.
+Aggiunta funzione `build_book_list_items` che costruisce `Vec<BookListItem>` dalle tuple restituite dal repository.
+
+#### ritmo_repository — query JOIN per la lista libri
+Aggiunto metodo `list_all_with_authors` a `BookRepository`.
+Esegue un'unica query con LEFT JOIN su `x_books_people_roles`, `d_roles`, `d_people`, `d_formats`, `d_series`.
+Usa `GROUP_CONCAT` con separatore `||` per aggregare gli autori per libro.
+Restituisce `Vec<(i64, String, Vec<String>, Option<String>, Option<String>)>` — (id, titolo, autori, formato, serie).
+La query filtra per `r.key = 'author'` tramite `CASE WHEN` dentro `GROUP_CONCAT`.
+
+#### Handler books.rs — list implementato
+`books::list` ora chiama `BookRepository::list_all_with_authors`, costruisce i view model con `build_book_list_items`, li passa al template Tera.
+`books::detail` e `books::form` passano al template Tera ma restituiscono ancora pagine placeholder.
+
+#### Template books
+- `templates/base.html` — layout base con nav (Libri / Contenuti / Persone)
+- `templates/books/list.html` — tabella con titolo, autori, formato, serie; messaggio se vuota
+- `templates/books/detail.html` — placeholder
+- `templates/books/form.html` — placeholder
+
+#### Configurazione ambiente
+Docker occupa la porta 3000. Aggiunto `.env` nella root del workspace con:
+`DATABASE_URL=data/ritmo.db`
+`WEB_BIND=127.0.0.1:3001`
+
+### Stato attuale
+- Lista libri: ✅ funzionante
+- Dettaglio libro: ❌ placeholder
+- Lista contenuti: ❌ placeholder
+- Lista persone: ❌ placeholder
+- Tutte le form: ❌ placeholder
+
+### Prossimi passi
+1. Lista contenuti — stesso pattern della lista libri
+2. Lista persone
+3. Pagine di dettaglio
 
 ---
 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Libri — Ritmo{% endblock %}
+
+{% block content %}
+<h1>Libri</h1>
+<a href="/books/new">Nuovo libro</a>
+
+{% if books %}
+<table>
+  <thead>
+    <tr>
+      <th>Titolo</th>
+      <th>Autori</th>
+      <th>Formato</th>
+      <th>Serie</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for book in books %}
+    <tr>
+      <td><a href="/books/{{ book.id }}">{{ book.title }}</a></td>
+      <td>{{ book.authors | join(sep=", ") }}</td>
+      <td>{{ book.format | default(value="—") }}</td>
+      <td>{{ book.series | default(value="—") }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nessun libro nel database.</p>
+{% endif %}
+{% endblock %}

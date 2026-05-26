@@ -184,4 +184,44 @@ impl BookRepository {
         let id = self.save(&created).await?;
         self.get(id).await
     }
+
+    pub async fn list_all_with_authors(
+        &self,
+    ) -> RitmoResult<Vec<(i64, String, Vec<String>, Option<String>, Option<String>)>> {
+        // (book_id, title, authors, format_key, series_name)
+        let rows = sqlx::query(
+            "SELECT b.id, b.name,
+                    GROUP_CONCAT(p.name, '||') AS authors,
+                    f.key AS format_key,
+                    s.name AS series_name
+             FROM d_books b
+             LEFT JOIN x_books_people_roles xbpr ON b.id = xbpr.book_id
+             LEFT JOIN d_roles r ON xbpr.role_id = r.id AND r.key = 'author'
+             LEFT JOIN d_people p ON xbpr.person_id = p.id AND r.key = 'author'
+             LEFT JOIN d_formats f ON b.format_id = f.id
+             LEFT JOIN d_series s ON b.series_id = s.id
+             GROUP BY b.id
+             ORDER BY b.name COLLATE NOCASE",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                let authors_raw: Option<String> = row.get("authors");
+                let authors = authors_raw
+                    .map(|s| s.split("||").map(str::to_owned).collect())
+                    .unwrap_or_default();
+                (
+                    row.get::<i64, _>("id"),
+                    row.get::<String, _>("name"),
+                    authors,
+                    row.get::<Option<String>, _>("format_key"),
+                    row.get::<Option<String>, _>("series_name"),
+                )
+            })
+            .collect())
+    }
 }

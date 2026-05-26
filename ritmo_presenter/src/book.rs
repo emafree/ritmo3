@@ -2,7 +2,9 @@ use ritmo_domain::{Book, Tag};
 
 use crate::{ContentListItem, PersonRoleView};
 
-#[derive(Debug, Clone)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, Serialize)]
 pub struct BookListItem {
     pub id: i64,
     pub title: String,
@@ -37,4 +39,18 @@ pub fn build_book_detail(
         format,
         series,
     }
+}
+
+pub fn build_book_list_items(
+    rows: Vec<(i64, String, Vec<String>, Option<String>, Option<String>)>,
+) -> Vec<BookListItem> {
+    rows.into_iter()
+        .map(|(id, title, authors, format, series)| BookListItem {
+            id,
+            title,
+            authors,
+            format,
+            series,
+        })
+        .collect()
 }

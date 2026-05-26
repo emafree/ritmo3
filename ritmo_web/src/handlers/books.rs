@@ -2,18 +2,48 @@ use crate::error::WebError;
 use crate::state::AppState;
 use axum::extract::{Path, State};
 use axum::response::Html;
+use ritmo_presenter::build_book_list_items;
+use ritmo_repository::BookRepository;
+use tera::Context;
 
 pub async fn list(State(state): State<AppState>) -> Result<Html<String>, WebError> {
-    let body = include_str!("../templates/books/list.html");
-    Ok(Html(body.to_owned()))
+    let repo = BookRepository::new(&state.repo);
+    let rows = repo.list_all_with_authors().await?;
+    let books = build_book_list_items(rows);
+
+    let mut ctx = Context::new();
+    ctx.insert("books", &books);
+
+    let body = state
+        .tera
+        .render("books/list.html", &ctx)
+        .map_err(|e| ritmo_errors::RitmoErr::UnknownError(e.to_string()))?;
+
+    Ok(Html(body))
 }
 
-pub async fn detail(Path(id): Path<i64>) -> Result<Html<String>, WebError> {
-    let tpl = include_str!("../templates/books/detail.html");
-    Ok(Html(tpl.replace("{{id}}", &id.to_string())))
+pub async fn detail(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<Html<String>, WebError> {
+    let mut ctx = Context::new();
+    ctx.insert("id", &id);
+
+    let body = state
+        .tera
+        .render("books/detail.html", &ctx)
+        .map_err(|e| ritmo_errors::RitmoErr::UnknownError(e.to_string()))?;
+
+    Ok(Html(body))
 }
 
-pub async fn form() -> Result<Html<String>, WebError> {
-    let body = include_str!("../templates/books/form.html");
-    Ok(Html(body.to_owned()))
+pub async fn form(State(state): State<AppState>) -> Result<Html<String>, WebError> {
+    let ctx = Context::new();
+
+    let body = state
+        .tera
+        .render("books/form.html", &ctx)
+        .map_err(|e| ritmo_errors::RitmoErr::UnknownError(e.to_string()))?;
+
+    Ok(Html(body))
 }
