@@ -1,71 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}{{ content.name }} — Ritmo{% endblock %}
+{% block title %}{% if is_new %}Nuovo contenuto{% else %}{{ form.name }}{% endif %} — Ritmo{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>{{ content.name }}</h1>
-</div>
-<p><a href="/contents">← Torna alla lista</a></p>
+<h1>{% if is_new %}Nuovo contenuto{% else %}Contenuto #{{ content.id }}{% endif %}</h1>
 
-{% if content.original_title %}
-<p><strong>Titolo originale:</strong> {{ content.original_title }}</p>
+{% if error %}
+<p><strong>Errore:</strong> {{ error }}</p>
 {% endif %}
 
-<h2>Metadati</h2>
-<dl>
-  <dt>Tipo</dt>
-  <dd>{{ content.content_type | default(value="—") }}</dd>
-  <dt>Data pubblicazione</dt>
-  <dd>{{ content.publication_date | default(value="—") }}</dd>
-</dl>
+<form method="post" action="{% if is_new %}/contents{% else %}/contents/{{ content.id }}{% endif %}">
+  <p>
+    <button type="submit" name="_action" value="save">Salva</button>
+    <a href="/contents/new">Nuovo</a>
+    <a href="/contents">Annulla</a>
+  </p>
 
-{% if content.notes %}
-<h2>Note</h2>
-<p>{{ content.notes }}</p>
-{% endif %}
+  <p><label>Nome* <input type="text" name="name" required value="{{ form.name | default(value="") }}"></label></p>
+  <p><label>Titolo originale <input type="text" name="original_title" value="{{ form.original_title | default(value="") }}"></label></p>
+  <p>
+    <label>Anno <input type="number" name="publication_date_year" min="-9999" value="{{ form.publication_date_year | default(value="") }}"></label>
+    <label>Mese <input type="number" name="publication_date_month" min="1" max="12" value="{{ form.publication_date_month | default(value="") }}"></label>
+    <label>Giorno <input type="number" name="publication_date_day" min="1" max="31" value="{{ form.publication_date_day | default(value="") }}"></label>
+    <label><input type="checkbox" name="publication_date_circa" {% if form.publication_date_circa %}checked{% endif %}> circa</label>
+  </p>
+  <p>
+    <label>Tipo
+      <select name="type_id">
+        <option value=""></option>
+        {% for item in types %}
+        <option value="{{ item.id }}" {% if form.type_id == item.id %}selected{% endif %}>{{ item.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </p>
+  <p><label>Note <textarea name="notes">{{ form.notes | default(value="") }}</textarea></label></p>
+</form>
 
-<h2>Persone</h2>
-{% if content.people | length > 0 %}
-<ul>
-  {% for person in content.people %}
-  <li><a href="/people/{{ person.id }}">{{ person.name }}</a> — {{ person.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+<h2>Relazioni</h2>
+<p>Persone + ruoli: modifica non ancora disponibile.</p>
+<p>Tag: modifica non ancora disponibile.</p>
+<p>Lingue: modifica non ancora disponibile.</p>
+<p>Libri collegati: modifica non ancora disponibile.</p>
 
-<h2>Libri collegati</h2>
-{% if content.books | length > 0 %}
-<ul>
-  {% for book in content.books %}
-  <li><a href="/books/{{ book.id }}">{{ book.name }}</a></li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
-
-<h2>Tag</h2>
-{% if content.tags | length > 0 %}
-<ul>
-  {% for tag in content.tags %}
-  <li>{{ tag.tag_type }} — {{ tag.name }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
-
-<h2>Lingue</h2>
-{% if content.languages | length > 0 %}
-<ul>
-  {% for language in content.languages %}
-  <li>{{ language.name }} — {{ language.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+<script>
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter' || event.shiftKey) return;
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.tagName === 'TEXTAREA') return;
+  if (target.tagName !== 'INPUT') return;
+  const type = (target.getAttribute('type') || 'text').toLowerCase();
+  if (['checkbox', 'submit', 'button', 'hidden'].includes(type)) return;
+  event.preventDefault();
+  const fields = Array.from(document.querySelectorAll('input, select, textarea, button, a[href]'))
+    .filter((el) => !el.hasAttribute('disabled') && el.getAttribute('type') !== 'hidden');
+  const index = fields.indexOf(target);
+  if (index >= 0 && index + 1 < fields.length) fields[index + 1].focus();
+});
+</script>
 {% endblock %}

@@ -15,8 +15,11 @@ pub struct BookDetailData {
     pub id: i64,
     pub name: String,
     pub original_title: Option<String>,
+    pub publisher_id: Option<i64>,
     pub publisher: Option<String>,
+    pub format_id: Option<i64>,
     pub format: Option<String>,
+    pub series_id: Option<i64>,
     pub series: Option<String>,
     pub series_index: Option<i64>,
     pub publication_date: Option<PartialDate>,
@@ -40,15 +43,22 @@ impl BookRepository {
     pub async fn save(&self, book: &Book) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO d_books(name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_books(name, original_title, publisher_id, format_id, series_id, series_index, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes, has_cover, has_paper) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&book.title)
+        .bind(&book.original_title)
+        .bind(book.publisher_id)
+        .bind(book.format_id)
+        .bind(book.series_id)
+        .bind(book.series_index)
         .bind(&book.isbn)
         .bind(year)
         .bind(month)
         .bind(day)
         .bind(circa)
         .bind(&book.notes)
+        .bind(i64::from(book.has_cover))
+        .bind(i64::from(book.has_paper))
         .execute(&self.pool)
         .await
         .map_err(map_insert)?;
@@ -56,7 +66,7 @@ impl BookRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Book> {
-        let row = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, original_title, publisher_id, format_id, series_id, series_index, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes, has_cover, has_paper FROM d_books WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -66,6 +76,11 @@ impl BookRepository {
         Ok(Book {
             id: row.get("id"),
             title: row.get("name"),
+            original_title: row.get("original_title"),
+            publisher_id: row.get("publisher_id"),
+            format_id: row.get("format_id"),
+            series_id: row.get("series_id"),
+            series_index: row.get("series_index"),
             isbn: row.get("isbn"),
             publication_year: partial_date_from_parts(
                 row.get("publication_date_year"),
@@ -74,6 +89,8 @@ impl BookRepository {
                 row.get::<i64, _>("publication_date_circa"),
             ),
             notes: row.get("notes"),
+            has_cover: row.get::<i64, _>("has_cover") != 0,
+            has_paper: row.get::<i64, _>("has_paper") != 0,
         })
     }
 
@@ -83,8 +100,11 @@ impl BookRepository {
                 b.id,
                 b.name,
                 b.original_title,
+                b.publisher_id,
                 p.name AS publisher_name,
+                b.format_id,
                 f.key AS format_key,
+                b.series_id,
                 s.name AS series_name,
                 b.series_index,
                 b.publication_date_year,
@@ -190,8 +210,11 @@ impl BookRepository {
             id: row.get("id"),
             name: row.get("name"),
             original_title: row.get("original_title"),
+            publisher_id: row.get("publisher_id"),
             publisher: row.get("publisher_name"),
+            format_id: row.get("format_id"),
             format: row.get("format_key"),
+            series_id: row.get("series_id"),
             series: row.get("series_name"),
             series_index: row.get("series_index"),
             publication_date: partial_date_from_parts(
@@ -214,15 +237,22 @@ impl BookRepository {
     pub async fn update(&self, book: &Book) -> RitmoResult<()> {
         let (year, month, day, circa) = partial_date_to_parts(&book.publication_year);
         sqlx::query(
-            "UPDATE d_books SET name = ?, isbn = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
+            "UPDATE d_books SET name = ?, original_title = ?, publisher_id = ?, format_id = ?, series_id = ?, series_index = ?, isbn = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ?, has_cover = ?, has_paper = ? WHERE id = ?",
         )
         .bind(&book.title)
+        .bind(&book.original_title)
+        .bind(book.publisher_id)
+        .bind(book.format_id)
+        .bind(book.series_id)
+        .bind(book.series_index)
         .bind(&book.isbn)
         .bind(year)
         .bind(month)
         .bind(day)
         .bind(circa)
         .bind(&book.notes)
+        .bind(i64::from(book.has_cover))
+        .bind(i64::from(book.has_paper))
         .bind(book.id)
         .execute(&self.pool)
         .await
@@ -240,7 +270,7 @@ impl BookRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Book>> {
-        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, original_title, publisher_id, format_id, series_id, series_index, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes, has_cover, has_paper FROM d_books ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -249,6 +279,11 @@ impl BookRepository {
             .map(|row| Book {
                 id: row.get("id"),
                 title: row.get("name"),
+                original_title: row.get("original_title"),
+                publisher_id: row.get("publisher_id"),
+                format_id: row.get("format_id"),
+                series_id: row.get("series_id"),
+                series_index: row.get("series_index"),
                 isbn: row.get("isbn"),
                 publication_year: partial_date_from_parts(
                     row.get("publication_date_year"),
@@ -257,13 +292,15 @@ impl BookRepository {
                     row.get::<i64, _>("publication_date_circa"),
                 ),
                 notes: row.get("notes"),
+                has_cover: row.get::<i64, _>("has_cover") != 0,
+                has_paper: row.get::<i64, _>("has_paper") != 0,
             })
             .collect())
     }
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Book>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, original_title, publisher_id, format_id, series_id, series_index, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes, has_cover, has_paper FROM d_books WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -273,6 +310,11 @@ impl BookRepository {
             .map(|row| Book {
                 id: row.get("id"),
                 title: row.get("name"),
+                original_title: row.get("original_title"),
+                publisher_id: row.get("publisher_id"),
+                format_id: row.get("format_id"),
+                series_id: row.get("series_id"),
+                series_index: row.get("series_index"),
                 isbn: row.get("isbn"),
                 publication_year: partial_date_from_parts(
                     row.get("publication_date_year"),
@@ -281,6 +323,8 @@ impl BookRepository {
                     row.get::<i64, _>("publication_date_circa"),
                 ),
                 notes: row.get("notes"),
+                has_cover: row.get::<i64, _>("has_cover") != 0,
+                has_paper: row.get::<i64, _>("has_paper") != 0,
             })
             .collect())
     }
@@ -308,7 +352,7 @@ impl BookRepository {
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Book> {
-        if let Some(row) = sqlx::query("SELECT id, name, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_books WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name, original_title, publisher_id, format_id, series_id, series_index, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes, has_cover, has_paper FROM d_books WHERE name = ?")
             .bind(title)
             .fetch_optional(&self.pool)
             .await
@@ -317,6 +361,11 @@ impl BookRepository {
             return Ok(Book {
                 id: row.get("id"),
                 title: row.get("name"),
+                original_title: row.get("original_title"),
+                publisher_id: row.get("publisher_id"),
+                format_id: row.get("format_id"),
+                series_id: row.get("series_id"),
+                series_index: row.get("series_index"),
                 isbn: row.get("isbn"),
                 publication_year: partial_date_from_parts(
                     row.get("publication_date_year"),
@@ -325,15 +374,24 @@ impl BookRepository {
                     row.get::<i64, _>("publication_date_circa"),
                 ),
                 notes: row.get("notes"),
+                has_cover: row.get::<i64, _>("has_cover") != 0,
+                has_paper: row.get::<i64, _>("has_paper") != 0,
             });
         }
 
         let created = Book {
             id: 0,
             title: title.to_string(),
+            original_title: None,
+            publisher_id: None,
+            format_id: None,
+            series_id: None,
+            series_index: None,
             isbn: None,
             publication_year: None,
             notes: None,
+            has_cover: false,
+            has_paper: false,
         };
         let id = self.save(&created).await?;
         self.get(id).await

@@ -1384,10 +1384,13 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "dotenvy",
+ "ritmo_core",
  "ritmo_db",
+ "ritmo_domain",
  "ritmo_errors",
  "ritmo_presenter",
  "ritmo_repository",
+ "serde",
  "serde_json",
  "tera",
  "tokio",

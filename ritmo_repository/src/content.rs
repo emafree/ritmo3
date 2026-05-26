@@ -15,6 +15,7 @@ pub struct ContentDetailData {
     pub id: i64,
     pub name: String,
     pub original_title: Option<String>,
+    pub type_id: Option<i64>,
     pub content_type: Option<String>,
     pub publication_date: Option<PartialDate>,
     pub notes: Option<String>,
@@ -34,9 +35,11 @@ impl ContentRepository {
     pub async fn save(&self, content: &Content) -> RitmoResult<i64> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO d_contents(name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_contents(name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&content.title)
+        .bind(&content.original_title)
+        .bind(content.type_id)
         .bind(year)
         .bind(month)
         .bind(day)
@@ -49,7 +52,7 @@ impl ContentRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Content> {
-        let row = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -59,6 +62,8 @@ impl ContentRepository {
         Ok(Content {
             id: row.get("id"),
             title: row.get("name"),
+            original_title: row.get("original_title"),
+            type_id: row.get("type_id"),
             publication_year: partial_date_from_parts(
                 row.get("publication_date_year"),
                 row.get("publication_date_month"),
@@ -75,6 +80,7 @@ impl ContentRepository {
                 c.id,
                 c.name,
                 c.original_title,
+                c.type_id,
                 t.key AS type_key,
                 c.publication_date_year,
                 c.publication_date_month,
@@ -174,6 +180,7 @@ impl ContentRepository {
             id: row.get("id"),
             name: row.get("name"),
             original_title: row.get("original_title"),
+            type_id: row.get("type_id"),
             content_type: row.get("type_key"),
             publication_date: partial_date_from_parts(
                 row.get("publication_date_year"),
@@ -192,9 +199,11 @@ impl ContentRepository {
     pub async fn update(&self, content: &Content) -> RitmoResult<()> {
         let (year, month, day, circa) = partial_date_to_parts(&content.publication_year);
         sqlx::query(
-            "UPDATE d_contents SET name = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
+            "UPDATE d_contents SET name = ?, original_title = ?, type_id = ?, publication_date_year = ?, publication_date_month = ?, publication_date_day = ?, publication_date_circa = ?, notes = ? WHERE id = ?",
         )
         .bind(&content.title)
+        .bind(&content.original_title)
+        .bind(content.type_id)
         .bind(year)
         .bind(month)
         .bind(day)
@@ -217,7 +226,7 @@ impl ContentRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Content>> {
-        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -226,6 +235,8 @@ impl ContentRepository {
             .map(|row| Content {
                 id: row.get("id"),
                 title: row.get("name"),
+                original_title: row.get("original_title"),
+                type_id: row.get("type_id"),
                 publication_year: partial_date_from_parts(
                     row.get("publication_date_year"),
                     row.get("publication_date_month"),
@@ -239,7 +250,7 @@ impl ContentRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Content>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -249,6 +260,8 @@ impl ContentRepository {
             .map(|row| Content {
                 id: row.get("id"),
                 title: row.get("name"),
+                original_title: row.get("original_title"),
+                type_id: row.get("type_id"),
                 publication_year: partial_date_from_parts(
                     row.get("publication_date_year"),
                     row.get("publication_date_month"),
@@ -319,7 +332,7 @@ impl ContentRepository {
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Content> {
-        if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name = ?")
+        if let Some(row) = sqlx::query("SELECT id, name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name = ?")
             .bind(title)
             .fetch_optional(&self.pool)
             .await
@@ -328,6 +341,8 @@ impl ContentRepository {
             return Ok(Content {
                 id: row.get("id"),
                 title: row.get("name"),
+                original_title: row.get("original_title"),
+                type_id: row.get("type_id"),
                 publication_year: partial_date_from_parts(
                     row.get("publication_date_year"),
                     row.get("publication_date_month"),
@@ -341,6 +356,8 @@ impl ContentRepository {
         let created = Content {
             id: 0,
             title: title.to_string(),
+            original_title: None,
+            type_id: None,
             publication_year: None,
             notes: None,
         };

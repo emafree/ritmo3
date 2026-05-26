@@ -1,6 +1,7 @@
 mod alias;
 mod book;
 mod content;
+mod content_type;
 mod filter_books;
 mod filter_contents;
 mod filter_sets;
@@ -28,6 +29,7 @@ mod x_publisher_places;
 pub use alias::*;
 pub use book::*;
 pub use content::*;
+pub use content_type::*;
 pub use filter_books::*;
 pub use filter_contents::*;
 pub use filter_sets::*;

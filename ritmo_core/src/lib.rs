@@ -1,5 +1,6 @@
 pub mod book;
 pub mod content;
+pub mod content_type;
 pub mod format;
 pub mod language;
 pub mod person;

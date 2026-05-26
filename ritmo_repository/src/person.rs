@@ -15,9 +15,15 @@ pub struct PersonDetailData {
     pub id: i64,
     pub name: String,
     pub display_name: Option<String>,
+    pub given_name: Option<String>,
+    pub surname: Option<String>,
+    pub middle_names: Option<String>,
+    pub title: Option<String>,
+    pub suffix: Option<String>,
     pub birth_date: Option<PartialDate>,
     pub death_date: Option<PartialDate>,
     pub biography: Option<String>,
+    pub verified: bool,
     pub aliases: Vec<String>,
     pub places: Vec<(String, Option<String>, Option<String>, Option<String>)>,
     pub languages: Vec<(String, Option<String>, String)>,
@@ -39,7 +45,7 @@ impl PersonRepository {
             partial_date_to_parts(&person.death_date);
 
         let result = sqlx::query(
-            "INSERT OR IGNORE INTO d_people(name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO d_people(name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography, verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&person.name)
         .bind(&person.display_name)
@@ -57,6 +63,7 @@ impl PersonRepository {
         .bind(death_day)
         .bind(death_circa)
         .bind(&person.biography)
+        .bind(i64::from(person.verified))
         .execute(&self.pool)
         .await
         .map_err(map_insert)?;
@@ -65,7 +72,7 @@ impl PersonRepository {
     }
 
     pub async fn get(&self, id: i64) -> RitmoResult<Person> {
-        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people WHERE id = ?")
+        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography, verified FROM d_people WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -93,6 +100,7 @@ impl PersonRepository {
                 row.get::<i64, _>("death_date_circa"),
             ),
             biography: row.get("biography"),
+            verified: row.get::<i64, _>("verified") != 0,
         })
     }
 
@@ -102,6 +110,11 @@ impl PersonRepository {
                 id,
                 name,
                 display_name,
+                given_name,
+                surname,
+                middle_names,
+                title,
+                suffix,
                 birth_date_year,
                 birth_date_month,
                 birth_date_day,
@@ -110,7 +123,8 @@ impl PersonRepository {
                 death_date_month,
                 death_date_day,
                 death_date_circa,
-                biography
+                biography,
+                verified
              FROM d_people
              WHERE id = ?",
         )
@@ -227,6 +241,11 @@ impl PersonRepository {
             id: row.get("id"),
             name: row.get("name"),
             display_name: row.get("display_name"),
+            given_name: row.get("given_name"),
+            surname: row.get("surname"),
+            middle_names: row.get("middle_names"),
+            title: row.get("title"),
+            suffix: row.get("suffix"),
             birth_date: partial_date_from_parts(
                 row.get("birth_date_year"),
                 row.get("birth_date_month"),
@@ -240,6 +259,7 @@ impl PersonRepository {
                 row.get::<i64, _>("death_date_circa"),
             ),
             biography: row.get("biography"),
+            verified: row.get::<i64, _>("verified") != 0,
             aliases,
             places,
             languages,
@@ -249,7 +269,7 @@ impl PersonRepository {
     }
 
     pub async fn get_by_name(&self, name: &str) -> RitmoResult<Option<Person>> {
-        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people WHERE name = ?")
+        let row = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography, verified FROM d_people WHERE name = ?")
             .bind(name)
             .fetch_optional(&self.pool)
             .await
@@ -277,6 +297,7 @@ impl PersonRepository {
                 value.get::<i64, _>("death_date_circa"),
             ),
             biography: value.get("biography"),
+            verified: value.get::<i64, _>("verified") != 0,
         }))
     }
 
@@ -286,7 +307,7 @@ impl PersonRepository {
         let (death_year, death_month, death_day, death_circa) =
             partial_date_to_parts(&person.death_date);
 
-        sqlx::query("UPDATE d_people SET name = ?, display_name = ?, given_name = ?, surname = ?, middle_names = ?, title = ?, suffix = ?, birth_date_year = ?, birth_date_month = ?, birth_date_day = ?, birth_date_circa = ?, death_date_year = ?, death_date_month = ?, death_date_day = ?, death_date_circa = ?, biography = ? WHERE id = ?")
+        sqlx::query("UPDATE d_people SET name = ?, display_name = ?, given_name = ?, surname = ?, middle_names = ?, title = ?, suffix = ?, birth_date_year = ?, birth_date_month = ?, birth_date_day = ?, birth_date_circa = ?, death_date_year = ?, death_date_month = ?, death_date_day = ?, death_date_circa = ?, biography = ?, verified = ? WHERE id = ?")
             .bind(&person.name)
             .bind(&person.display_name)
             .bind(&person.given_name)
@@ -303,6 +324,7 @@ impl PersonRepository {
             .bind(death_day)
             .bind(death_circa)
             .bind(&person.biography)
+            .bind(i64::from(person.verified))
             .bind(person.id)
             .execute(&self.pool)
             .await
@@ -321,7 +343,7 @@ impl PersonRepository {
     }
 
     pub async fn list_all(&self) -> RitmoResult<Vec<Person>> {
-        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography, verified FROM d_people ORDER BY name")
             .fetch_all(&self.pool)
             .await
             .map_err(map_query)?;
@@ -349,13 +371,14 @@ impl PersonRepository {
                     row.get::<i64, _>("death_date_circa"),
                 ),
                 biography: row.get("biography"),
+                verified: row.get::<i64, _>("verified") != 0,
             })
             .collect())
     }
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Person>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography FROM d_people WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
+        let rows = sqlx::query("SELECT id, name, display_name, given_name, surname, middle_names, title, suffix, birth_date_year, birth_date_month, birth_date_day, birth_date_circa, death_date_year, death_date_month, death_date_day, death_date_circa, biography, verified FROM d_people WHERE name LIKE ? COLLATE NOCASE ORDER BY name")
             .bind(pattern)
             .fetch_all(&self.pool)
             .await
@@ -384,6 +407,7 @@ impl PersonRepository {
                     row.get::<i64, _>("death_date_circa"),
                 ),
                 biography: row.get("biography"),
+                verified: row.get::<i64, _>("verified") != 0,
             })
             .collect())
     }
@@ -436,6 +460,7 @@ impl PersonRepository {
             birth_date: None,
             death_date: None,
             biography: None,
+            verified: false,
         };
         let id = self.save(&created).await?;
         self.get(id).await

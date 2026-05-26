@@ -35,6 +35,8 @@ pub async fn search_contents(
         .map(|row| Content {
             id: row.get("id"),
             title: row.get("name"),
+            original_title: None,
+            type_id: None,
             publication_year: partial_date_from_parts(
                 row.get("publication_date_year"),
                 row.get("publication_date_month"),
@@ -68,9 +70,14 @@ fn push_filter_set_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter_set:
 fn push_filter_condition(builder: &mut QueryBuilder<'_, Sqlite>, filter: &Filter) {
     match &filter.field {
         FilterField::ContentTitle => push_text_filter(builder, "contents.name", filter),
-        FilterField::ContentGenre => {
-            push_relation_filter(builder, "contents.genre_id", "d_genres", "id", "key", filter)
-        }
+        FilterField::ContentGenre => push_relation_filter(
+            builder,
+            "contents.genre_id",
+            "d_genres",
+            "id",
+            "key",
+            filter,
+        ),
         FilterField::ContentPublicationDate => push_date_filter(
             builder,
             "contents.publication_date_year",

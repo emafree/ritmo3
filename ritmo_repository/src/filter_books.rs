@@ -35,6 +35,11 @@ pub async fn search_books(pool: &SqlitePool, filter_sets: &[FilterSet]) -> Ritmo
         .map(|row| Book {
             id: row.get("id"),
             title: row.get("name"),
+            original_title: None,
+            publisher_id: None,
+            format_id: None,
+            series_id: None,
+            series_index: None,
             isbn: row.get("isbn"),
             publication_year: partial_date_from_parts(
                 row.get("publication_date_year"),
@@ -43,6 +48,8 @@ pub async fn search_books(pool: &SqlitePool, filter_sets: &[FilterSet]) -> Ritmo
                 row.get::<i64, _>("publication_date_circa"),
             ),
             notes: row.get("notes"),
+            has_cover: false,
+            has_paper: false,
         })
         .collect())
 }

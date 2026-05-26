@@ -69,14 +69,47 @@ impl FormatRepository {
             .collect())
     }
 
+    pub async fn list_all_with_label(
+        &self,
+        language_code: &str,
+    ) -> RitmoResult<Vec<(i64, String, String)>> {
+        let rows = sqlx::query(
+            "SELECT
+                f.id,
+                f.key,
+                COALESCE(sft.name, f.key) AS label
+             FROM d_formats f
+             LEFT JOIN s_format_translations sft
+               ON sft.format_id = f.id
+              AND sft.language_code = ?
+             ORDER BY label COLLATE NOCASE",
+        )
+        .bind(language_code)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get::<i64, _>("id"),
+                    row.get::<String, _>("key"),
+                    row.get::<String, _>("label"),
+                )
+            })
+            .collect())
+    }
+
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<Format>> {
         let pattern = format!("%{query}%");
-        let rows =
-            sqlx::query("SELECT id, key FROM d_formats WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
-                .bind(pattern)
-                .fetch_all(&self.pool)
-                .await
-                .map_err(map_query)?;
+        let rows = sqlx::query(
+            "SELECT id, key FROM d_formats WHERE key LIKE ? COLLATE NOCASE ORDER BY key",
+        )
+        .bind(pattern)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
         Ok(rows
             .into_iter()
             .map(|row| Format {

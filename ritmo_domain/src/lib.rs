@@ -73,6 +73,12 @@ pub struct Series {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContentType {
+    pub id: i64,
+    pub i18n_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Person {
     pub id: i64,
     pub name: String,
@@ -85,12 +91,15 @@ pub struct Person {
     pub birth_date: Option<PartialDate>,
     pub death_date: Option<PartialDate>,
     pub biography: Option<String>,
+    pub verified: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Content {
     pub id: i64,
     pub title: String,
+    pub original_title: Option<String>,
+    pub type_id: Option<i64>,
     pub publication_year: Option<PartialDate>,
     pub notes: Option<String>,
 }
@@ -99,7 +108,14 @@ pub struct Content {
 pub struct Book {
     pub id: i64,
     pub title: String,
+    pub original_title: Option<String>,
+    pub publisher_id: Option<i64>,
+    pub format_id: Option<i64>,
+    pub series_id: Option<i64>,
+    pub series_index: Option<i64>,
     pub isbn: Option<String>,
     pub publication_year: Option<PartialDate>,
     pub notes: Option<String>,
+    pub has_cover: bool,
+    pub has_paper: bool,
 }
