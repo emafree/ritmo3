@@ -126,6 +126,64 @@ impl ContentRepository {
             .collect())
     }
 
+    pub async fn list_all_with_people(
+        pool: &SqlitePool,
+    ) -> RitmoResult<Vec<(i64, String, Option<String>, Option<String>, Vec<String>)>> {
+        let rows = sqlx::query(
+            "SELECT
+                c.id,
+                c.name,
+                t.key AS type_key,
+                (
+                    SELECT l.native_name
+                    FROM x_content_languages xcl
+                    JOIN d_languages l ON l.id = xcl.language_id
+                    JOIN s_content_language_roles clr ON clr.id = xcl.role_id
+                    WHERE xcl.content_id = c.id
+                      AND clr.code = 'original'
+                    LIMIT 1
+                ) AS original_language,
+                GROUP_CONCAT(
+                    CASE WHEN r.key = 'author' THEN p.name ELSE NULL END,
+                    '||'
+                ) AS authors_concat
+            FROM d_contents c
+            LEFT JOIN d_types t ON t.id = c.type_id
+            LEFT JOIN x_contents_people_roles cpr ON cpr.content_id = c.id
+            LEFT JOIN d_roles r ON r.id = cpr.role_id
+            LEFT JOIN d_people p ON p.id = cpr.person_id
+            GROUP BY c.id
+            ORDER BY c.name COLLATE NOCASE",
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(map_query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                let authors_concat: Option<String> = row.get("authors_concat");
+                let authors = authors_concat
+                    .map(|value| {
+                        value
+                            .split("||")
+                            .filter(|name| !name.is_empty())
+                            .map(str::to_owned)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                (
+                    row.get::<i64, _>("id"),
+                    row.get::<String, _>("name"),
+                    row.get::<Option<String>, _>("type_key"),
+                    row.get::<Option<String>, _>("original_language"),
+                    authors,
+                )
+            })
+            .collect())
+    }
+
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Content> {
         if let Some(row) = sqlx::query("SELECT id, name, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name = ?")
             .bind(title)

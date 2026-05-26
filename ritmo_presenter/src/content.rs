@@ -1,13 +1,15 @@
 use ritmo_domain::{Content, Language, Tag};
+use serde::Serialize;
 
 use crate::{BookListItem, PersonRoleView};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ContentListItem {
     pub id: i64,
-    pub title: String,
+    pub name: String,
+    pub type_key: Option<String>,
+    pub original_language: Option<String>,
     pub authors: Vec<String>,
-    pub genre: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,4 +38,20 @@ pub fn build_content_detail(
         languages: languages.into_iter().map(|l| l.name).collect(),
         genre,
     }
+}
+
+pub fn build_content_list_items(
+    rows: Vec<(i64, String, Option<String>, Option<String>, Vec<String>)>,
+) -> Vec<ContentListItem> {
+    rows.into_iter()
+        .map(
+            |(id, name, type_key, original_language, authors)| ContentListItem {
+                id,
+                name,
+                type_key,
+                original_language,
+                authors,
+            },
+        )
+        .collect()
 }
