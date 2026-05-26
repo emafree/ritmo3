@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.name }} — Ritmo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ person.name }}</h1>
+</div>
+<p><a href="/people">← Torna alla lista</a></p>
+
+{% if person.display_name and person.display_name != person.name %}
+<p><strong>Nome visualizzato:</strong> {{ person.display_name }}</p>
+{% endif %}
+
+<h2>Dati anagrafici</h2>
+<dl>
+  <dt>Nascita</dt>
+  <dd>{{ person.birth_date | default(value="—") }}</dd>
+  <dt>Morte</dt>
+  <dd>{{ person.death_date | default(value="—") }}</dd>
+</dl>
+
+{% if person.aliases | length > 0 %}
+<h2>Alias</h2>
+<ul>
+  {% for alias in person.aliases %}
+  <li>{{ alias }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Luoghi</h2>
+{% if person.places | length > 0 %}
+<ul>
+  {% for place in person.places %}
+  <li>{{ place.place_type }} — {{ place.display }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Lingue</h2>
+{% if person.languages | length > 0 %}
+<ul>
+  {% for language in person.languages %}
+  <li>{{ language.name }} — {{ language.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+{% if person.biography %}
+<h2>Biografia</h2>
+<p>{{ person.biography }}</p>
+{% endif %}
+
+<h2>Libri collegati</h2>
+{% if person.books | length > 0 %}
+<ul>
+  {% for book in person.books %}
+  <li><a href="/books/{{ book.id }}">{{ book.name }}</a> — {{ book.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Contenuti collegati</h2>
+{% if person.contents | length > 0 %}
+<ul>
+  {% for content in person.contents %}
+  <li><a href="/contents/{{ content.id }}">{{ content.name }}</a> — {{ content.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+{% endblock %}

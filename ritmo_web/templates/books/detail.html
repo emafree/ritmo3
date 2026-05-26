@@ -1,9 +1,114 @@
 {% extends "base.html" %}
 
-{% block title %}Libro {{ id }} — Ritmo{% endblock %}
+{% block title %}{{ book.name }} — Ritmo{% endblock %}
 
 {% block content %}
-<h1>Libro #{{ id }}</h1>
+<div class="page-header">
+  <h1>{{ book.name }}</h1>
+</div>
 <p><a href="/books">← Torna alla lista</a></p>
-<p>Dettaglio non ancora implementato.</p>
+
+{% if book.original_title %}
+<p><strong>Titolo originale:</strong> {{ book.original_title }}</p>
+{% endif %}
+
+<h2>Metadati</h2>
+<dl>
+  <dt>Editore</dt>
+  <dd>{{ book.publisher | default(value="—") }}</dd>
+  <dt>Formato</dt>
+  <dd>{{ book.format | default(value="—") }}</dd>
+  <dt>Serie</dt>
+  <dd>
+    {% if book.series %}
+      {{ book.series }}{% if book.series_index %} #{{ book.series_index }}{% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </dd>
+  <dt>Data pubblicazione</dt>
+  <dd>{{ book.publication_date | default(value="—") }}</dd>
+  <dt>ISBN</dt>
+  <dd>{{ book.isbn | default(value="—") }}</dd>
+  <dt>Copertina</dt>
+  <dd>{% if book.has_cover %}Sì{% else %}No{% endif %}</dd>
+  <dt>Supporto cartaceo</dt>
+  <dd>{% if book.has_paper %}Sì{% else %}No{% endif %}</dd>
+</dl>
+
+{% if book.notes %}
+<h2>Note</h2>
+<p>{{ book.notes }}</p>
+{% endif %}
+
+<h2>Persone</h2>
+{% if book.people | length > 0 %}
+<ul>
+  {% for person in book.people %}
+  <li><a href="/people/{{ person.id }}">{{ person.name }}</a> — {{ person.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Contenuti collegati</h2>
+{% if book.contents | length > 0 %}
+<ul>
+  {% for content in book.contents %}
+  <li><a href="/contents/{{ content.id }}">{{ content.name }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Tag</h2>
+{% if book.tags | length > 0 %}
+  <h3>genre</h3>
+  <ul>
+    {% for tag in book.tags %}
+      {% if tag.tag_type == "genre" %}
+      <li>{{ tag.name }}</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+  <h3>mood</h3>
+  <ul>
+    {% for tag in book.tags %}
+      {% if tag.tag_type == "mood" %}
+      <li>{{ tag.name }}</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+  <h3>setting</h3>
+  <ul>
+    {% for tag in book.tags %}
+      {% if tag.tag_type == "setting" %}
+      <li>{{ tag.name }}</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+  <h3>personal</h3>
+  <ul>
+    {% for tag in book.tags %}
+      {% if tag.tag_type == "personal" %}
+      <li>{{ tag.name }}</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Lingue</h2>
+{% if book.languages | length > 0 %}
+<ul>
+  {% for language in book.languages %}
+  <li>{{ language.name }} — {{ language.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
 {% endblock %}

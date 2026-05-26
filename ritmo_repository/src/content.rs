@@ -2,12 +2,26 @@ use crate::support::{
     map_delete, map_insert, map_query, not_found, partial_date_from_parts, partial_date_to_parts,
     RepositoryContext,
 };
-use ritmo_domain::Content;
+use ritmo_domain::{Content, PartialDate};
 use ritmo_errors::RitmoResult;
 use sqlx::{Row, SqlitePool};
 
 pub struct ContentRepository {
     pool: SqlitePool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ContentDetailData {
+    pub id: i64,
+    pub name: String,
+    pub original_title: Option<String>,
+    pub content_type: Option<String>,
+    pub publication_date: Option<PartialDate>,
+    pub notes: Option<String>,
+    pub books: Vec<(i64, String)>,
+    pub people: Vec<(i64, String, String)>,
+    pub tags: Vec<(String, String)>,
+    pub languages: Vec<(String, Option<String>, String)>,
 }
 
 impl ContentRepository {
@@ -52,6 +66,126 @@ impl ContentRepository {
                 row.get::<i64, _>("publication_date_circa"),
             ),
             notes: row.get("notes"),
+        })
+    }
+
+    pub async fn get_detail(&self, id: i64) -> RitmoResult<ContentDetailData> {
+        let row = sqlx::query(
+            "SELECT
+                c.id,
+                c.name,
+                c.original_title,
+                t.key AS type_key,
+                c.publication_date_year,
+                c.publication_date_month,
+                c.publication_date_day,
+                c.publication_date_circa,
+                c.notes
+             FROM d_contents c
+             LEFT JOIN d_types t ON t.id = c.type_id
+             WHERE c.id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_query)?
+        .ok_or_else(not_found)?;
+
+        let books = sqlx::query(
+            "SELECT b.id, b.name
+             FROM x_books_contents xbc
+             INNER JOIN d_books b ON b.id = xbc.book_id
+             WHERE xbc.content_id = ?
+             ORDER BY b.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| (row.get::<i64, _>("id"), row.get::<String, _>("name")))
+        .collect();
+
+        let people = sqlx::query(
+            "SELECT p.id, p.name, r.key AS role_key
+             FROM x_contents_people_roles xcpr
+             INNER JOIN d_people p ON p.id = xcpr.person_id
+             INNER JOIN d_roles r ON r.id = xcpr.role_id
+             WHERE xcpr.content_id = ?
+             ORDER BY r.key COLLATE NOCASE, p.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<i64, _>("id"),
+                row.get::<String, _>("name"),
+                row.get::<String, _>("role_key"),
+            )
+        })
+        .collect();
+
+        let tags = sqlx::query(
+            "SELECT t.name, t.tag_type
+             FROM x_contents_tags xct
+             INNER JOIN d_tags t ON t.id = xct.tag_id
+             WHERE xct.content_id = ?
+             ORDER BY t.tag_type COLLATE NOCASE, t.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<String, _>("name"),
+                row.get::<String, _>("tag_type"),
+            )
+        })
+        .collect();
+
+        let languages = sqlx::query(
+            "SELECT l.official_name, l.iso_code_2char, lr.code AS role_code
+             FROM x_content_languages xcl
+             INNER JOIN d_languages l ON l.id = xcl.language_id
+             INNER JOIN s_content_language_roles lr ON lr.id = xcl.role_id
+             WHERE xcl.content_id = ?
+             ORDER BY lr.code COLLATE NOCASE, l.official_name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<String, _>("official_name"),
+                row.get::<Option<String>, _>("iso_code_2char"),
+                row.get::<String, _>("role_code"),
+            )
+        })
+        .collect();
+
+        Ok(ContentDetailData {
+            id: row.get("id"),
+            name: row.get("name"),
+            original_title: row.get("original_title"),
+            content_type: row.get("type_key"),
+            publication_date: partial_date_from_parts(
+                row.get("publication_date_year"),
+                row.get("publication_date_month"),
+                row.get("publication_date_day"),
+                row.get::<i64, _>("publication_date_circa"),
+            ),
+            notes: row.get("notes"),
+            books,
+            people,
+            tags,
+            languages,
         })
     }
 

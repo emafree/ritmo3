@@ -2,12 +2,32 @@ use crate::support::{
     map_delete, map_insert, map_query, not_found, partial_date_from_parts, partial_date_to_parts,
     RepositoryContext,
 };
-use ritmo_domain::Book;
+use ritmo_domain::{Book, PartialDate};
 use ritmo_errors::RitmoResult;
 use sqlx::{Row, SqlitePool};
 
 pub struct BookRepository {
     pool: SqlitePool,
+}
+
+#[derive(Debug, Clone)]
+pub struct BookDetailData {
+    pub id: i64,
+    pub name: String,
+    pub original_title: Option<String>,
+    pub publisher: Option<String>,
+    pub format: Option<String>,
+    pub series: Option<String>,
+    pub series_index: Option<i64>,
+    pub publication_date: Option<PartialDate>,
+    pub isbn: Option<String>,
+    pub notes: Option<String>,
+    pub has_cover: bool,
+    pub has_paper: bool,
+    pub contents: Vec<(i64, String)>,
+    pub people: Vec<(i64, String, String)>,
+    pub tags: Vec<(String, String)>,
+    pub languages: Vec<(String, Option<String>, String)>,
 }
 
 impl BookRepository {
@@ -54,6 +74,140 @@ impl BookRepository {
                 row.get::<i64, _>("publication_date_circa"),
             ),
             notes: row.get("notes"),
+        })
+    }
+
+    pub async fn get_detail(&self, id: i64) -> RitmoResult<BookDetailData> {
+        let row = sqlx::query(
+            "SELECT
+                b.id,
+                b.name,
+                b.original_title,
+                p.name AS publisher_name,
+                f.key AS format_key,
+                s.name AS series_name,
+                b.series_index,
+                b.publication_date_year,
+                b.publication_date_month,
+                b.publication_date_day,
+                b.publication_date_circa,
+                b.isbn,
+                b.notes,
+                b.has_cover,
+                b.has_paper
+             FROM d_books b
+             LEFT JOIN d_publishers p ON p.id = b.publisher_id
+             LEFT JOIN d_formats f ON f.id = b.format_id
+             LEFT JOIN d_series s ON s.id = b.series_id
+             WHERE b.id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_query)?
+        .ok_or_else(not_found)?;
+
+        let contents = sqlx::query(
+            "SELECT c.id, c.name
+             FROM x_books_contents xbc
+             INNER JOIN d_contents c ON c.id = xbc.content_id
+             WHERE xbc.book_id = ?
+             ORDER BY c.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| (row.get::<i64, _>("id"), row.get::<String, _>("name")))
+        .collect();
+
+        let people = sqlx::query(
+            "SELECT p.id, p.name, r.key AS role_key
+             FROM x_books_people_roles xbpr
+             INNER JOIN d_people p ON p.id = xbpr.person_id
+             INNER JOIN d_roles r ON r.id = xbpr.role_id
+             WHERE xbpr.book_id = ?
+             ORDER BY r.key COLLATE NOCASE, p.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<i64, _>("id"),
+                row.get::<String, _>("name"),
+                row.get::<String, _>("role_key"),
+            )
+        })
+        .collect();
+
+        let tags = sqlx::query(
+            "SELECT t.name, t.tag_type
+             FROM x_books_tags xbt
+             INNER JOIN d_tags t ON t.id = xbt.tag_id
+             WHERE xbt.book_id = ?
+             ORDER BY t.tag_type COLLATE NOCASE, t.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<String, _>("name"),
+                row.get::<String, _>("tag_type"),
+            )
+        })
+        .collect();
+
+        let languages = sqlx::query(
+            "SELECT l.official_name, l.iso_code_2char, lr.code AS role_code
+             FROM x_book_languages xbl
+             INNER JOIN d_languages l ON l.id = xbl.language_id
+             INNER JOIN s_book_language_roles lr ON lr.id = xbl.role_id
+             WHERE xbl.book_id = ?
+             ORDER BY lr.code COLLATE NOCASE, l.official_name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<String, _>("official_name"),
+                row.get::<Option<String>, _>("iso_code_2char"),
+                row.get::<String, _>("role_code"),
+            )
+        })
+        .collect();
+
+        Ok(BookDetailData {
+            id: row.get("id"),
+            name: row.get("name"),
+            original_title: row.get("original_title"),
+            publisher: row.get("publisher_name"),
+            format: row.get("format_key"),
+            series: row.get("series_name"),
+            series_index: row.get("series_index"),
+            publication_date: partial_date_from_parts(
+                row.get("publication_date_year"),
+                row.get("publication_date_month"),
+                row.get("publication_date_day"),
+                row.get::<i64, _>("publication_date_circa"),
+            ),
+            isbn: row.get("isbn"),
+            notes: row.get("notes"),
+            has_cover: row.get::<i64, _>("has_cover") != 0,
+            has_paper: row.get::<i64, _>("has_paper") != 0,
+            contents,
+            people,
+            tags,
+            languages,
         })
     }
 
