@@ -100,14 +100,13 @@ impl AliasRepository {
         person_id: i64,
         name: &str,
     ) -> RitmoResult<Option<Alias>> {
-        let row = sqlx::query(
-            "SELECT id, name, person_id FROM d_aliases WHERE person_id = ? AND name = ?",
-        )
-        .bind(person_id)
-        .bind(name)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let row =
+            sqlx::query("SELECT id, name, person_id FROM d_aliases WHERE person_id = ? AND name = ?")
+                .bind(person_id)
+                .bind(name)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?;
 
         Ok(row.map(|value| Alias {
             id: value.get("id"),

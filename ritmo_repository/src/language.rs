@@ -138,7 +138,11 @@ impl LanguageRepository {
     /// Look up a language by a specific column (`iso_code_2char`, `iso_code_3char`,
     /// or `official_name`) using an exact, case-sensitive match (COLLATE BINARY).
     /// If no record is found a new one is inserted and returned.
-    pub async fn get_or_create_by_field(&self, field: &str, value: &str) -> RitmoResult<Language> {
+    pub async fn get_or_create_by_field(
+        &self,
+        field: &str,
+        value: &str,
+    ) -> RitmoResult<Language> {
         use ritmo_errors::RitmoErr;
 
         let column = match field {

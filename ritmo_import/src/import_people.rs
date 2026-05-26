@@ -133,7 +133,9 @@ async fn import_person(
         let language = lang_repo.get_or_create_by_field(field, value).await?;
         let role = role_repo.get_or_create(&lang_input.role).await?;
         // Ignore duplicate relation errors silently
-        let _ = lang_link_repo.create(person.id, language.id, role.id).await;
+        let _ = lang_link_repo
+            .create(person.id, language.id, role.id)
+            .await;
     }
 
     // 5. Add places, resolving place type by name.
