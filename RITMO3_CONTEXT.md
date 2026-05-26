@@ -257,6 +257,33 @@ Tutte e tre funzionanti e visibili nel browser.
 
 ---
 
+## Sessione del 26 maggio 2026 — parte 5
+
+### ritmo_web — pagine di dettaglio
+
+Preparata issue per Copilot con specifica completa delle pagine di dettaglio per le tre entità principali.
+
+**Lavoro assegnato a Copilot:**
+
+- `ritmo_repository` — aggiungere `get_detail(id)` per `Book`, `Content`, `Person` con tutti i JOIN necessari (relazioni, persone, tag, lingue, luoghi, alias)
+- `ritmo_presenter` — aggiungere `BookDetail`, `ContentDetail`, `PersonDetail` con struct di supporto condivise (`LinkedItem`, `LinkedItemWithRole`, `PersonWithRole`, `TagItem`, `LanguageItem`, `PlaceItem`); tutti `Serialize`; formattazione `PartialDate` in stringa con prefisso `~` se circa
+- `ritmo_web` — implementare handler `detail` per books, contents, people con gestione 404
+- Template Tera — `books/detail.html`, `contents/detail.html`, `people/detail.html` coerenti con lo stile delle liste
+
+### Stato attuale delle pagine web
+
+| Pagina | Stato |
+|---|---|
+| `GET /books` | ✅ funzionante |
+| `GET /contents` | ✅ funzionante |
+| `GET /people` | ✅ funzionante |
+| `GET /books/:id` | ⏳ assegnato a Copilot |
+| `GET /contents/:id` | ⏳ assegnato a Copilot |
+| `GET /people/:id` | ⏳ assegnato a Copilot |
+| Form di inserimento/modifica | ❌ placeholder |
+
+---
+
 ## Azioni future
 
 ### 1. Implementare FTS5
