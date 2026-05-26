@@ -3,6 +3,19 @@ use ritmo_domain::Format;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::FormatRepository;
 
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Format>> {
+    FormatRepository::new(&ctx.ctx).list_all().await
+}
+
+pub async fn list_all_with_label(
+    ctx: &CoreContext,
+    language_code: &str,
+) -> RitmoResult<Vec<(i64, String, String)>> {
+    FormatRepository::new(&ctx.ctx)
+        .list_all_with_label(language_code)
+        .await
+}
+
 pub async fn create(ctx: &CoreContext, item: &Format) -> RitmoResult<i64> {
     if item.i18n_key.trim().is_empty() {
         return Err(RitmoErr::InvalidInput(

@@ -3,6 +3,10 @@ use ritmo_domain::Series;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::SeriesRepository;
 
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Series>> {
+    SeriesRepository::new(&ctx.ctx).list_all().await
+}
+
 pub async fn create(ctx: &CoreContext, item: &Series) -> RitmoResult<i64> {
     if item.name.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("name cannot be empty".to_string()));

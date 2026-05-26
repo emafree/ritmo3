@@ -1,80 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}{{ person.name }} — Ritmo{% endblock %}
+{% block title %}{% if is_new %}Nuova persona{% else %}{{ form.name }}{% endif %} — Ritmo{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>{{ person.name }}</h1>
-</div>
-<p><a href="/people">← Torna alla lista</a></p>
+<h1>{% if is_new %}Nuova persona{% else %}Persona #{{ person.id }}{% endif %}</h1>
 
-{% if person.display_name and person.display_name != person.name %}
-<p><strong>Nome visualizzato:</strong> {{ person.display_name }}</p>
+{% if error %}
+<p><strong>Errore:</strong> {{ error }}</p>
 {% endif %}
 
-<h2>Dati anagrafici</h2>
-<dl>
-  <dt>Nascita</dt>
-  <dd>{{ person.birth_date | default(value="—") }}</dd>
-  <dt>Morte</dt>
-  <dd>{{ person.death_date | default(value="—") }}</dd>
-</dl>
+<form method="post" action="{% if is_new %}/people{% else %}/people/{{ person.id }}{% endif %}">
+  <p>
+    <button type="submit" name="_action" value="save">Salva</button>
+    <a href="/people/new">Nuovo</a>
+    <a href="/people">Annulla</a>
+  </p>
 
-{% if person.aliases | length > 0 %}
-<h2>Alias</h2>
-<ul>
-  {% for alias in person.aliases %}
-  <li>{{ alias }}</li>
-  {% endfor %}
-</ul>
-{% endif %}
+  <p><label>Nome* <input type="text" name="name" required value="{{ form.name | default(value="") }}"></label></p>
+  <p><label>Display name <input type="text" name="display_name" value="{{ form.display_name | default(value="") }}"></label></p>
+  <p><label>Nome <input type="text" name="given_name" value="{{ form.given_name | default(value="") }}"></label></p>
+  <p><label>Cognome <input type="text" name="surname" value="{{ form.surname | default(value="") }}"></label></p>
+  <p><label>Middle names <input type="text" name="middle_names" value="{{ form.middle_names | default(value="") }}"></label></p>
+  <p><label>Titolo <input type="text" name="title" value="{{ form.title | default(value="") }}"></label></p>
+  <p><label>Suffisso <input type="text" name="suffix" value="{{ form.suffix | default(value="") }}"></label></p>
 
-<h2>Luoghi</h2>
-{% if person.places | length > 0 %}
-<ul>
-  {% for place in person.places %}
-  <li>{{ place.place_type }} — {{ place.display }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+  <p>
+    <label>Anno nascita <input type="number" name="birth_date_year" min="-9999" value="{{ form.birth_date_year | default(value="") }}"></label>
+    <label>Mese <input type="number" name="birth_date_month" min="1" max="12" value="{{ form.birth_date_month | default(value="") }}"></label>
+    <label>Giorno <input type="number" name="birth_date_day" min="1" max="31" value="{{ form.birth_date_day | default(value="") }}"></label>
+    <label><input type="checkbox" name="birth_date_circa" {% if form.birth_date_circa %}checked{% endif %}> circa</label>
+  </p>
+  <p>
+    <label>Anno morte <input type="number" name="death_date_year" min="-9999" value="{{ form.death_date_year | default(value="") }}"></label>
+    <label>Mese <input type="number" name="death_date_month" min="1" max="12" value="{{ form.death_date_month | default(value="") }}"></label>
+    <label>Giorno <input type="number" name="death_date_day" min="1" max="31" value="{{ form.death_date_day | default(value="") }}"></label>
+    <label><input type="checkbox" name="death_date_circa" {% if form.death_date_circa %}checked{% endif %}> circa</label>
+  </p>
 
-<h2>Lingue</h2>
-{% if person.languages | length > 0 %}
-<ul>
-  {% for language in person.languages %}
-  <li>{{ language.name }} — {{ language.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+  <p><label>Biografia <textarea name="biography">{{ form.biography | default(value="") }}</textarea></label></p>
+  <p><label><input type="checkbox" name="verified" {% if form.verified %}checked{% endif %}> Verificata</label></p>
+</form>
 
-{% if person.biography %}
-<h2>Biografia</h2>
-<p>{{ person.biography }}</p>
-{% endif %}
+<h2>Relazioni</h2>
+<p>Alias: modifica non ancora disponibile.</p>
+<p>Luoghi: modifica non ancora disponibile.</p>
+<p>Lingue: modifica non ancora disponibile.</p>
+<p>Libri collegati: modifica non ancora disponibile.</p>
+<p>Contenuti collegati: modifica non ancora disponibile.</p>
 
-<h2>Libri collegati</h2>
-{% if person.books | length > 0 %}
-<ul>
-  {% for book in person.books %}
-  <li><a href="/books/{{ book.id }}">{{ book.name }}</a> — {{ book.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
-
-<h2>Contenuti collegati</h2>
-{% if person.contents | length > 0 %}
-<ul>
-  {% for content in person.contents %}
-  <li><a href="/contents/{{ content.id }}">{{ content.name }}</a> — {{ content.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+<script>
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter' || event.shiftKey) return;
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.tagName === 'TEXTAREA') return;
+  if (target.tagName !== 'INPUT') return;
+  const type = (target.getAttribute('type') || 'text').toLowerCase();
+  if (['checkbox', 'submit', 'button', 'hidden'].includes(type)) return;
+  event.preventDefault();
+  const fields = Array.from(document.querySelectorAll('input, select, textarea, button, a[href]'))
+    .filter((el) => !el.hasAttribute('disabled') && el.getAttribute('type') !== 'hidden');
+  const index = fields.indexOf(target);
+  if (index >= 0 && index + 1 < fields.length) fields[index + 1].focus();
+});
+</script>
 {% endblock %}

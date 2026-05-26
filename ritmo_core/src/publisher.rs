@@ -3,6 +3,10 @@ use ritmo_domain::Publisher;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::PublisherRepository;
 
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Publisher>> {
+    PublisherRepository::new(&ctx.ctx).list_all().await
+}
+
 pub async fn create(ctx: &CoreContext, item: &Publisher) -> RitmoResult<i64> {
     if item.name.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("name cannot be empty".to_string()));

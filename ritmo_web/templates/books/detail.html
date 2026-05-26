@@ -1,114 +1,98 @@
 {% extends "base.html" %}
 
-{% block title %}{{ book.name }} — Ritmo{% endblock %}
+{% block title %}{% if is_new %}Nuovo libro{% else %}{{ form.name }}{% endif %} — Ritmo{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>{{ book.name }}</h1>
-</div>
-<p><a href="/books">← Torna alla lista</a></p>
+<h1>{% if is_new %}Nuovo libro{% else %}Libro #{{ book.id }}{% endif %}</h1>
 
-{% if book.original_title %}
-<p><strong>Titolo originale:</strong> {{ book.original_title }}</p>
+{% if error %}
+<p><strong>Errore:</strong> {{ error }}</p>
 {% endif %}
 
-<h2>Metadati</h2>
-<dl>
-  <dt>Editore</dt>
-  <dd>{{ book.publisher | default(value="—") }}</dd>
-  <dt>Formato</dt>
-  <dd>{{ book.format | default(value="—") }}</dd>
-  <dt>Serie</dt>
-  <dd>
-    {% if book.series %}
-      {{ book.series }}{% if book.series_index %} #{{ book.series_index }}{% endif %}
-    {% else %}
-      —
-    {% endif %}
-  </dd>
-  <dt>Data pubblicazione</dt>
-  <dd>{{ book.publication_date | default(value="—") }}</dd>
-  <dt>ISBN</dt>
-  <dd>{{ book.isbn | default(value="—") }}</dd>
-  <dt>Copertina</dt>
-  <dd>{% if book.has_cover %}Sì{% else %}No{% endif %}</dd>
-  <dt>Supporto cartaceo</dt>
-  <dd>{% if book.has_paper %}Sì{% else %}No{% endif %}</dd>
-</dl>
+<form method="post" action="{% if is_new %}/books{% else %}/books/{{ book.id }}{% endif %}">
+  <p>
+    <button type="submit" name="_action" value="save">Salva</button>
+    <a href="/books/new">Nuovo</a>
+    <a href="/books">Annulla</a>
+  </p>
 
-{% if book.notes %}
-<h2>Note</h2>
-<p>{{ book.notes }}</p>
-{% endif %}
+  <p><label>Nome* <input type="text" name="name" required value="{{ form.name | default(value="") }}"></label></p>
+  <p><label>Titolo originale <input type="text" name="original_title" value="{{ form.original_title | default(value="") }}"></label></p>
+  <p>
+    <label>Anno <input type="number" name="publication_date_year" min="-9999" value="{{ form.publication_date_year | default(value="") }}"></label>
+    <label>Mese <input type="number" name="publication_date_month" min="1" max="12" value="{{ form.publication_date_month | default(value="") }}"></label>
+    <label>Giorno <input type="number" name="publication_date_day" min="1" max="31" value="{{ form.publication_date_day | default(value="") }}"></label>
+    <label><input type="checkbox" name="publication_date_circa" {% if form.publication_date_circa %}checked{% endif %}> circa</label>
+  </p>
+  <p><label>ISBN <input type="text" name="isbn" value="{{ form.isbn | default(value="") }}"></label></p>
+  <p><label>Note <textarea name="notes">{{ form.notes | default(value="") }}</textarea></label></p>
+  <p>
+    <label><input type="checkbox" name="has_cover" {% if form.has_cover %}checked{% endif %}> Ha copertina</label>
+    <label><input type="checkbox" name="has_paper" {% if form.has_paper %}checked{% endif %}> Ha cartaceo</label>
+  </p>
+  <p>
+    <label>Editore
+      <select name="publisher_id">
+        <option value=""></option>
+        {% for item in publishers %}
+        <option value="{{ item.id }}" {% if form.publisher_id == item.id %}selected{% endif %}>{{ item.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </p>
+  <p>
+    <label>Formato
+      <select name="format_id">
+        <option value=""></option>
+        {% for item in formats %}
+        <option value="{{ item.id }}" {% if form.format_id == item.id %}selected{% endif %}>{{ item.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </p>
+  <p>
+    <label>Serie
+      <select name="series_id" id="series_id">
+        <option value=""></option>
+        {% for item in series %}
+        <option value="{{ item.id }}" {% if form.series_id == item.id %}selected{% endif %}>{{ item.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </p>
+  <p id="series_index_wrapper" {% if not form.series_id %}style="display:none"{% endif %}>
+    <label>Indice serie <input type="number" name="series_index" min="1" value="{{ form.series_index | default(value="") }}"></label>
+  </p>
+</form>
 
-<h2>Persone</h2>
-{% if book.people | length > 0 %}
-<ul>
-  {% for person in book.people %}
-  <li><a href="/people/{{ person.id }}">{{ person.name }}</a> — {{ person.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+<h2>Relazioni</h2>
+<p>Persone + ruoli: modifica non ancora disponibile.</p>
+<p>Tag: modifica non ancora disponibile.</p>
+<p>Lingue: modifica non ancora disponibile.</p>
+<p>Contenuti collegati: modifica non ancora disponibile.</p>
 
-<h2>Contenuti collegati</h2>
-{% if book.contents | length > 0 %}
-<ul>
-  {% for content in book.contents %}
-  <li><a href="/contents/{{ content.id }}">{{ content.name }}</a></li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+<script>
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter' || event.shiftKey) return;
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.tagName === 'TEXTAREA') return;
+  if (target.tagName !== 'INPUT') return;
+  const type = (target.getAttribute('type') || 'text').toLowerCase();
+  if (['checkbox', 'submit', 'button', 'hidden'].includes(type)) return;
+  event.preventDefault();
+  const fields = Array.from(document.querySelectorAll('input, select, textarea, button, a[href]'))
+    .filter((el) => !el.hasAttribute('disabled') && el.getAttribute('type') !== 'hidden');
+  const index = fields.indexOf(target);
+  if (index >= 0 && index + 1 < fields.length) fields[index + 1].focus();
+});
 
-<h2>Tag</h2>
-{% if book.tags | length > 0 %}
-  <h3>genre</h3>
-  <ul>
-    {% for tag in book.tags %}
-      {% if tag.tag_type == "genre" %}
-      <li>{{ tag.name }}</li>
-      {% endif %}
-    {% endfor %}
-  </ul>
-  <h3>mood</h3>
-  <ul>
-    {% for tag in book.tags %}
-      {% if tag.tag_type == "mood" %}
-      <li>{{ tag.name }}</li>
-      {% endif %}
-    {% endfor %}
-  </ul>
-  <h3>setting</h3>
-  <ul>
-    {% for tag in book.tags %}
-      {% if tag.tag_type == "setting" %}
-      <li>{{ tag.name }}</li>
-      {% endif %}
-    {% endfor %}
-  </ul>
-  <h3>personal</h3>
-  <ul>
-    {% for tag in book.tags %}
-      {% if tag.tag_type == "personal" %}
-      <li>{{ tag.name }}</li>
-      {% endif %}
-    {% endfor %}
-  </ul>
-{% else %}
-<p>—</p>
-{% endif %}
-
-<h2>Lingue</h2>
-{% if book.languages | length > 0 %}
-<ul>
-  {% for language in book.languages %}
-  <li>{{ language.name }} — {{ language.role }}</li>
-  {% endfor %}
-</ul>
-{% else %}
-<p>—</p>
-{% endif %}
+const seriesSelect = document.getElementById('series_id');
+const seriesWrapper = document.getElementById('series_index_wrapper');
+if (seriesSelect && seriesWrapper) {
+  const refresh = () => { seriesWrapper.style.display = seriesSelect.value ? '' : 'none'; };
+  seriesSelect.addEventListener('change', refresh);
+  refresh();
+}
+</script>
 {% endblock %}
