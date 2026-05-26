@@ -1,6 +1,7 @@
 rust_i18n::i18n!("locales");
 
 pub mod book;
+pub mod common;
 pub mod content;
 pub mod format;
 pub mod i18n;
@@ -12,6 +13,7 @@ pub mod series;
 pub mod tag;
 
 pub use book::*;
+pub use common::*;
 pub use content::*;
 pub use format::*;
 pub use i18n::*;

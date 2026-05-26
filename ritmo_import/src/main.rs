@@ -9,9 +9,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use dotenv::dotenv;
+use ritmo_errors::reporter::RitmoReporter;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::RepositoryContext;
-use ritmo_errors::reporter::RitmoReporter;
 
 use crate::import_books::import_books_file;
 use crate::import_people::import_people_file;
@@ -52,10 +52,10 @@ async fn main() -> RitmoResult<()> {
         let file_name = path.display().to_string();
         reporter.status(&format!("── {file_name} ──"));
 
-        let content = fs::read_to_string(path)
-            .map_err(|e| RitmoErr::FileAccess(e))?;
-        let person_file: PersonFile = toml::from_str(&content)
-            .map_err(|e| RitmoErr::ConfigParseError(format!("TOML parse error in {file_name}: {e}")))?;
+        let content = fs::read_to_string(path).map_err(|e| RitmoErr::FileAccess(e))?;
+        let person_file: PersonFile = toml::from_str(&content).map_err(|e| {
+            RitmoErr::ConfigParseError(format!("TOML parse error in {file_name}: {e}"))
+        })?;
 
         import_people_file(&repo_ctx, &person_file, &mut reporter).await?;
     }
@@ -64,10 +64,10 @@ async fn main() -> RitmoResult<()> {
         let file_name = path.display().to_string();
         reporter.status(&format!("── {file_name} ──"));
 
-        let content = fs::read_to_string(path)
-            .map_err(|e| RitmoErr::FileAccess(e))?;
-        let book_file: BookFile = toml::from_str(&content)
-            .map_err(|e| RitmoErr::ConfigParseError(format!("TOML parse error in {file_name}: {e}")))?;
+        let content = fs::read_to_string(path).map_err(|e| RitmoErr::FileAccess(e))?;
+        let book_file: BookFile = toml::from_str(&content).map_err(|e| {
+            RitmoErr::ConfigParseError(format!("TOML parse error in {file_name}: {e}"))
+        })?;
 
         import_books_file(&repo_ctx, &book_file, &mut reporter).await?;
     }

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ content.name }} — Ritmo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>{{ content.name }}</h1>
+</div>
+<p><a href="/contents">← Torna alla lista</a></p>
+
+{% if content.original_title %}
+<p><strong>Titolo originale:</strong> {{ content.original_title }}</p>
+{% endif %}
+
+<h2>Metadati</h2>
+<dl>
+  <dt>Tipo</dt>
+  <dd>{{ content.content_type | default(value="—") }}</dd>
+  <dt>Data pubblicazione</dt>
+  <dd>{{ content.publication_date | default(value="—") }}</dd>
+</dl>
+
+{% if content.notes %}
+<h2>Note</h2>
+<p>{{ content.notes }}</p>
+{% endif %}
+
+<h2>Persone</h2>
+{% if content.people | length > 0 %}
+<ul>
+  {% for person in content.people %}
+  <li><a href="/people/{{ person.id }}">{{ person.name }}</a> — {{ person.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Libri collegati</h2>
+{% if content.books | length > 0 %}
+<ul>
+  {% for book in content.books %}
+  <li><a href="/books/{{ book.id }}">{{ book.name }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Tag</h2>
+{% if content.tags | length > 0 %}
+<ul>
+  {% for tag in content.tags %}
+  <li>{{ tag.tag_type }} — {{ tag.name }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+
+<h2>Lingue</h2>
+{% if content.languages | length > 0 %}
+<ul>
+  {% for language in content.languages %}
+  <li>{{ language.name }} — {{ language.role }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>—</p>
+{% endif %}
+{% endblock %}

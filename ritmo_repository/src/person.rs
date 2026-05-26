@@ -2,12 +2,27 @@ use crate::support::{
     map_delete, map_insert, map_query, not_found, partial_date_from_parts, partial_date_to_parts,
     RepositoryContext,
 };
-use ritmo_domain::Person;
+use ritmo_domain::{PartialDate, Person};
 use ritmo_errors::RitmoResult;
 use sqlx::{Row, SqlitePool};
 
 pub struct PersonRepository {
     pool: SqlitePool,
+}
+
+#[derive(Debug, Clone)]
+pub struct PersonDetailData {
+    pub id: i64,
+    pub name: String,
+    pub display_name: Option<String>,
+    pub birth_date: Option<PartialDate>,
+    pub death_date: Option<PartialDate>,
+    pub biography: Option<String>,
+    pub aliases: Vec<String>,
+    pub places: Vec<(String, Option<String>, Option<String>, Option<String>)>,
+    pub languages: Vec<(String, Option<String>, String)>,
+    pub books: Vec<(i64, String, String)>,
+    pub contents: Vec<(i64, String, String)>,
 }
 
 impl PersonRepository {
@@ -78,6 +93,158 @@ impl PersonRepository {
                 row.get::<i64, _>("death_date_circa"),
             ),
             biography: row.get("biography"),
+        })
+    }
+
+    pub async fn get_detail(&self, id: i64) -> RitmoResult<PersonDetailData> {
+        let row = sqlx::query(
+            "SELECT
+                id,
+                name,
+                display_name,
+                birth_date_year,
+                birth_date_month,
+                birth_date_day,
+                birth_date_circa,
+                death_date_year,
+                death_date_month,
+                death_date_day,
+                death_date_circa,
+                biography
+             FROM d_people
+             WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_query)?
+        .ok_or_else(not_found)?;
+
+        let aliases = sqlx::query(
+            "SELECT name
+             FROM d_aliases
+             WHERE person_id = ?
+             ORDER BY name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| row.get::<String, _>("name"))
+        .collect();
+
+        let places = sqlx::query(
+            "SELECT pt.key AS place_type_key, p.continent, p.country, p.city
+             FROM x_person_places xpp
+             INNER JOIN d_places p ON p.id = xpp.place_id
+             INNER JOIN s_place_types pt ON pt.id = xpp.place_type_id
+             WHERE xpp.person_id = ?
+             ORDER BY pt.key COLLATE NOCASE, p.city COLLATE NOCASE, p.country COLLATE NOCASE, p.continent COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<String, _>("place_type_key"),
+                row.get::<Option<String>, _>("continent"),
+                row.get::<Option<String>, _>("country"),
+                row.get::<Option<String>, _>("city"),
+            )
+        })
+        .collect();
+
+        let languages = sqlx::query(
+            "SELECT l.official_name, l.iso_code_2char, lr.code AS role_code
+             FROM x_person_languages xpl
+             INNER JOIN d_languages l ON l.id = xpl.language_id
+             INNER JOIN s_person_language_roles lr ON lr.id = xpl.role_id
+             WHERE xpl.person_id = ?
+             ORDER BY lr.code COLLATE NOCASE, l.official_name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<String, _>("official_name"),
+                row.get::<Option<String>, _>("iso_code_2char"),
+                row.get::<String, _>("role_code"),
+            )
+        })
+        .collect();
+
+        let books = sqlx::query(
+            "SELECT b.id, b.name, r.key AS role_key
+             FROM x_books_people_roles xbpr
+             INNER JOIN d_books b ON b.id = xbpr.book_id
+             INNER JOIN d_roles r ON r.id = xbpr.role_id
+             WHERE xbpr.person_id = ?
+             ORDER BY r.key COLLATE NOCASE, b.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<i64, _>("id"),
+                row.get::<String, _>("name"),
+                row.get::<String, _>("role_key"),
+            )
+        })
+        .collect();
+
+        let contents = sqlx::query(
+            "SELECT c.id, c.name, r.key AS role_key
+             FROM x_contents_people_roles xcpr
+             INNER JOIN d_contents c ON c.id = xcpr.content_id
+             INNER JOIN d_roles r ON r.id = xcpr.role_id
+             WHERE xcpr.person_id = ?
+             ORDER BY r.key COLLATE NOCASE, c.name COLLATE NOCASE",
+        )
+        .bind(id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?
+        .into_iter()
+        .map(|row| {
+            (
+                row.get::<i64, _>("id"),
+                row.get::<String, _>("name"),
+                row.get::<String, _>("role_key"),
+            )
+        })
+        .collect();
+
+        Ok(PersonDetailData {
+            id: row.get("id"),
+            name: row.get("name"),
+            display_name: row.get("display_name"),
+            birth_date: partial_date_from_parts(
+                row.get("birth_date_year"),
+                row.get("birth_date_month"),
+                row.get("birth_date_day"),
+                row.get::<i64, _>("birth_date_circa"),
+            ),
+            death_date: partial_date_from_parts(
+                row.get("death_date_year"),
+                row.get("death_date_month"),
+                row.get("death_date_day"),
+                row.get::<i64, _>("death_date_circa"),
+            ),
+            biography: row.get("biography"),
+            aliases,
+            places,
+            languages,
+            books,
+            contents,
         })
     }
 
