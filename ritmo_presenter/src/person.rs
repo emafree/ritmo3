@@ -1,13 +1,15 @@
 use ritmo_domain::{Person, Role};
+use serde::Serialize;
 
 use crate::{BookListItem, ContentListItem};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct PersonListItem {
     pub id: i64,
     pub name: String,
-    pub birth_date: Option<String>,
-    pub death_date: Option<String>,
+    pub display_name: Option<String>,
+    pub birth_year: Option<i64>,
+    pub death_year: Option<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -48,5 +50,21 @@ pub fn build_person_role_views(people_roles: &[(Person, Role)]) -> Vec<PersonRol
     people_roles
         .iter()
         .map(|(person, role)| build_person_role_view(person, role))
+        .collect()
+}
+
+pub fn build_person_list_items(
+    rows: Vec<(i64, String, Option<String>, Option<i64>, Option<i64>)>,
+) -> Vec<PersonListItem> {
+    rows.into_iter()
+        .map(
+            |(id, name, display_name, birth_year, death_year)| PersonListItem {
+                id,
+                name,
+                display_name,
+                birth_year,
+                death_year,
+            },
+        )
         .collect()
 }

@@ -221,6 +221,37 @@ impl PersonRepository {
             .collect())
     }
 
+    pub async fn list_all_for_display(
+        pool: &SqlitePool,
+    ) -> RitmoResult<Vec<(i64, String, Option<String>, Option<i64>, Option<i64>)>> {
+        let rows = sqlx::query(
+            "SELECT
+                id,
+                name,
+                display_name,
+                birth_date_year,
+                death_date_year
+            FROM d_people
+            ORDER BY name COLLATE NOCASE",
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(map_query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get::<i64, _>("id"),
+                    row.get::<String, _>("name"),
+                    row.get::<Option<String>, _>("display_name"),
+                    row.get::<Option<i64>, _>("birth_date_year"),
+                    row.get::<Option<i64>, _>("death_date_year"),
+                )
+            })
+            .collect())
+    }
+
     pub async fn get_or_create(&self, name: &str) -> RitmoResult<Person> {
         if let Some(person) = self.get_by_name(name).await? {
             return Ok(person);

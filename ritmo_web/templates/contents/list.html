@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Contenuti{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Contenuti</h1>
+    <a href="/contents/new" class="btn-primary">+ Nuovo</a>
+</div>
+
+{% if contents | length == 0 %}
+    <p class="empty-state">Nessun contenuto nel database.</p>
+{% else %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Titolo</th>
+            <th>Autori</th>
+            <th>Tipo</th>
+            <th>Lingua originale</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in contents %}
+        <tr>
+            <td><a href="/contents/{{ item.id }}">{{ item.name }}</a></td>
+            <td>{{ item.authors | join(sep=", ") }}</td>
+            <td>{{ item.type_key | default(value="—") }}</td>
+            <td>{{ item.original_language | default(value="—") }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
