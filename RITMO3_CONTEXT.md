@@ -217,30 +217,53 @@ Docker occupa la porta 3000. Aggiunto `.env` nella root del workspace con:
 
 ---
 
-## Passi successivi
+## Sessione del 26 maggio 2026 — parte 4
 
-### 1. Allineare i crate al nuovo schema
-Rimuovere `Genre` da `ritmo_domain`, `ritmo_repository`, `ritmo_core`, `ritmo_presenter`. ✅ fatto
-Aggiornare le query su `d_contents` (senza `genre_id`) e su `d_tags` (con `tag_type`). ✅ fatto
+### ritmo_web — liste contenuti e persone
 
-### 2. Rimuovere `ritmo_tui` dal workspace 
-Il crate è abbandonato. Va rimosso da `Cargo.toml` workspace e cancellato. ✅ fatto
+Implementate e mergiate le pagine lista per le tre entità principali.
+Tutte e tre funzionanti e visibili nel browser.
 
-### 3. Scegliere e avviare il frontend
-Web app locale (Axum + HTML) o Tauri. Decisione da prendere prima di sviluppare nuove schermate. 
-La decisione è di iniziare lo sviluppo del frontend con Axum+HTML. ✅ fatto
+**File aggiunti/modificati:**
+- `ritmo_repository/src/content.rs` — aggiunto `list_all_with_people`
+- `ritmo_repository/src/person.rs` — aggiunto `list_all_for_display`
+- `ritmo_presenter/src/content.rs` — `ContentListItem` + `build_content_list_items`
+- `ritmo_presenter/src/person.rs` — `PersonListItem` + `build_person_list_items`
+- `ritmo_web/src/handlers/contents.rs` — handler `list` implementato
+- `ritmo_web/src/handlers/people.rs` — handler `list` implementato
+- `ritmo_web/templates/contents/list.html` — template lista contenuti
+- `ritmo_web/templates/people/list.html` — template lista persone
 
-### 4. Implementare FTS5
+### Stato attuale delle pagine web
+
+| Pagina | Stato |
+|---|---|
+| `GET /books` | ✅ funzionante |
+| `GET /contents` | ✅ funzionante |
+| `GET /people` | ✅ funzionante |
+| `GET /books/:id` | ❌ placeholder |
+| `GET /contents/:id` | ❌ placeholder |
+| `GET /people/:id` | ❌ placeholder |
+| Form di inserimento/modifica | ❌ placeholder |
+
+### Note aperte
+- La colonna `genre_id` su `d_contents` è ancora presente nello schema fisico
+  (la migrazione di rimozione non è ancora stata applicata). Non ha effetti
+  sul funzionamento attuale — da verificare e risolvere in seguito.
+
+### Prossimi passi
+1. Pagine di dettaglio — books, contents, people
+2. Form di inserimento/modifica
+
+---
+
+## Azioni future
+
+### 1. Implementare FTS5
 Virtual table FTS5 su titoli (`d_books.name`, `d_contents.name`), note, nomi persone. Collegare alla ricerca principale.
 
-### 5. Sistema ML
+### 2. Sistema ML
 Esiste in ritmo2 ed è funzionante. Va importato quando si inizia a inserire dati reali — serve per normalizzazione nomi, luoghi, tag.
-
-### 6. Rimuovere ritmo_app
-Anche ritmo_app è stato provvisoriamente eliminato. ✅ fatto
-
-### 6. Creazione del crate ritmo_web
-Vista la decisione presa al punto 3 è il prossimo passo logico.
 
 ---
 
