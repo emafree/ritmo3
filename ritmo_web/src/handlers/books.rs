@@ -1,11 +1,9 @@
+use crate::error::WebError;
+use crate::state::AppState;
 use axum::extract::{Path, State};
 use axum::response::Html;
 
-use crate::error::WebError;
-use crate::state::AppState;
-
 pub async fn list(State(state): State<AppState>) -> Result<Html<String>, WebError> {
-    let _ = (&state.pool, &state.config.database_url);
     let body = include_str!("../templates/books/list.html");
     Ok(Html(body.to_owned()))
 }

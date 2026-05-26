@@ -13,8 +13,8 @@ path = "src/main.rs"
 [dependencies]
 axum = "0.8"
 dotenv = { package = "dotenvy", version = "0.15" }
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite"] }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
 ritmo_db = { path = "../ritmo_db" }
 ritmo_errors = { path = "../ritmo_errors" }
+ritmo_repository = { path = "../ritmo_repository" }

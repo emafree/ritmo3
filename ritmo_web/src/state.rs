@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use ritmo_repository::RepositoryContext;
 
 #[derive(Clone)]
 pub struct AppConfig {
@@ -8,12 +8,12 @@ pub struct AppConfig {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: SqlitePool,
+    pub repo: RepositoryContext,
     pub config: AppConfig,
 }
 
 impl AppState {
-    pub fn new(pool: SqlitePool, config: AppConfig) -> Self {
-        Self { pool, config }
+    pub fn new(repo: RepositoryContext, config: AppConfig) -> Self {
+        Self { repo, config }
     }
 }

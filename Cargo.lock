@@ -1134,8 +1134,8 @@ dependencies = [
  "dotenvy",
  "ritmo_db",
  "ritmo_errors",
+ "ritmo_repository",
  "serde_json",
- "sqlx",
  "tokio",
 ]
 
