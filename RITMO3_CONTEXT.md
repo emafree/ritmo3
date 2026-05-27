@@ -284,6 +284,68 @@ Preparata issue per Copilot con specifica completa delle pagine di dettaglio per
 
 ---
 
+---
+
+## Sessione del 27 maggio 2026
+
+### ritmo_web — pagine di dettaglio completate
+
+Le pagine di dettaglio per le tre entità principali sono state implementate da Copilot e sono funzionanti.
+
+### ritmo_web — form di inserimento/modifica unificati
+
+Decisione architetturale: la pagina di dettaglio e la pagina di inserimento sono la stessa pagina. Nessuna rotta separata per il form.
+
+**Pattern adottato:**
+- `GET /books/:id` e `GET /books/new` → stesso template, dati pre-popolati o vuoti
+- `POST /books/:id` → salva modifiche a record esistente
+- `POST /books` → crea nuovo record
+- Stesso pattern per `/contents` e `/people`
+
+**Comportamento UI:**
+- Campi sempre editabili, nessun toggle modifica/visualizzazione
+- Bottone **Salva** — POST al server, in caso di successo redirect a `/entity/:id`
+- Bottone **Nuovo** — naviga a `GET /entity/new`, svuota tutti i campi
+- Bottone **Annulla** — torna alla lista senza salvare
+- Navigazione da tastiera: Tab/Shift+Tab tra campi, Enter su campo singola riga avanza al successivo
+- Campi relazionali complessi (persone+ruoli, tag, lingue) — sola lettura in questa iterazione; autocomplete ML da implementare in seguito
+
+Preparata issue per Copilot con specifica completa.
+
+### Bug fix — deserializzazione campi numerici opzionali
+
+I campi numerici opzionali (`_year`, `_month`, `_day`, FK id) arrivano dal browser come stringa vuota `""` quando non compilati. `serde` non sa convertire `""` in `Option<i32>`.
+
+**Fix:** aggiungere deserializzatore custom `deserialize_optional_i32` in `ritmo_presenter` e annotare con `#[serde(deserialize_with = "...")]` tutti i campi numerici opzionali nelle struct `BookFormData`, `ContentFormData`, `PersonFormData`.
+
+I checkbox (`has_cover`, `has_paper`, `verified`, `*_circa`) richiedono `#[serde(default)]` — i checkbox non selezionati non vengono inviati dal browser.
+
+Preparata issue per Copilot con lista completa dei campi da annotare per tutte e tre le struct.
+
+### Stato attuale delle pagine web
+
+| Pagina | Stato |
+|---|---|
+| `GET /books` | ✅ funzionante |
+| `GET /contents` | ✅ funzionante |
+| `GET /people` | ✅ funzionante |
+| `GET /books/:id` | ✅ funzionante |
+| `GET /contents/:id` | ✅ funzionante |
+| `GET /people/:id` | ✅ funzionante |
+| `GET /books/new` + `POST /books` | ⏳ assegnato a Copilot |
+| `GET /contents/new` + `POST /contents` | ⏳ assegnato a Copilot |
+| `GET /people/new` + `POST /people` | ⏳ assegnato a Copilot |
+| `POST /books/:id` (save) | ⏳ assegnato a Copilot |
+| `POST /contents/:id` (save) | ⏳ assegnato a Copilot |
+| `POST /people/:id` (save) | ⏳ assegnato a Copilot |
+
+### Prossimi passi
+1. Merge e verifica fix deserializzazione + form unificati
+2. Decidere UX per i campi relazionali complessi (persone+ruoli, tag, lingue)
+3. Estetica — wireframe già prodotto, applicazione rimandata a superficie stabile
+
+---
+
 ## Azioni future
 
 ### 1. Implementare FTS5
