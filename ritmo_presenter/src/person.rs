@@ -1,6 +1,6 @@
 use crate::{
-    build_place_display, format_language_name, format_partial_date, LanguageItem,
-    LinkedItemWithRole, PlaceItem,
+    build_place_items, format_language_name, format_partial_date, LanguageItem, LinkedItemWithRole,
+    PlaceItem, PlaceRow,
 };
 use ritmo_domain::PartialDate;
 use serde::Serialize;
@@ -37,7 +37,7 @@ pub fn build_person_detail(
     death_date: Option<PartialDate>,
     biography: Option<String>,
     aliases: Vec<String>,
-    places: Vec<(String, Option<String>, Option<String>, Option<String>)>,
+    places: Vec<PlaceRow>,
     languages: Vec<(String, Option<String>, String)>,
     books: Vec<(i64, String, String)>,
     contents: Vec<(i64, String, String)>,
@@ -50,13 +50,7 @@ pub fn build_person_detail(
         death_date: format_partial_date(death_date),
         biography,
         aliases,
-        places: places
-            .into_iter()
-            .map(|(place_type, continent, country, city)| PlaceItem {
-                place_type,
-                display: build_place_display(continent, country, city),
-            })
-            .collect(),
+        places: build_place_items(places, "it"),
         languages: languages
             .into_iter()
             .map(|(name, iso_code_2char, role)| LanguageItem {
@@ -117,10 +111,13 @@ mod tests {
             Some("Biografia".to_owned()),
             vec!["Alias".to_owned()],
             vec![(
-                "birth".to_owned(),
+                7,
                 Some("Nord America".to_owned()),
                 Some("USA".to_owned()),
                 Some("Berkeley".to_owned()),
+                false,
+                false,
+                "birth".to_owned(),
             )],
             vec![(
                 "English".to_owned(),
@@ -141,7 +138,10 @@ mod tests {
 
         assert_eq!(detail.birth_date.as_deref(), Some("21 ottobre 1929"));
         assert_eq!(detail.death_date.as_deref(), Some("2018"));
-        assert_eq!(detail.places[0].display, "Berkeley, USA, Nord America");
+        assert_eq!(detail.places[0].place_id, 7);
+        assert_eq!(detail.places[0].place_type_key, "birth");
+        assert_eq!(detail.places[0].place_type_label, "Luogo di nascita");
+        assert_eq!(detail.places[0].city.as_deref(), Some("Berkeley"));
         assert_eq!(detail.languages[0].name, "English (en)");
         assert_eq!(detail.books[0].role, "author");
         assert_eq!(

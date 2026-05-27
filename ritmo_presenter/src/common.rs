@@ -33,12 +33,6 @@ pub struct LanguageItem {
     pub role: String,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct PlaceItem {
-    pub place_type: String,
-    pub display: String,
-}
-
 pub fn format_partial_date(date: Option<PartialDate>) -> Option<String> {
     let date = date?;
     let mut parts = Vec::new();

@@ -58,7 +58,14 @@ pub async fn add_place(ctx: &CoreContext, place: &Place) -> RitmoResult<i64> {
         ));
     }
     let repo = PlaceRepository::new(&ctx.ctx);
-    repo.save(place).await
+    repo.save(
+        place.continent.clone(),
+        place.country.clone(),
+        place.city.clone(),
+        place.circa,
+        place.disputed,
+    )
+    .await
 }
 
 pub async fn remove_place(ctx: &CoreContext, place_id: i64) -> RitmoResult<()> {

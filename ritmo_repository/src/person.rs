@@ -25,7 +25,15 @@ pub struct PersonDetailData {
     pub biography: Option<String>,
     pub verified: bool,
     pub aliases: Vec<String>,
-    pub places: Vec<(String, Option<String>, Option<String>, Option<String>)>,
+    pub places: Vec<(
+        i64,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        bool,
+        bool,
+        String,
+    )>,
     pub languages: Vec<(String, Option<String>, String)>,
     pub books: Vec<(i64, String, String)>,
     pub contents: Vec<(i64, String, String)>,
@@ -149,7 +157,7 @@ impl PersonRepository {
         .collect();
 
         let places = sqlx::query(
-            "SELECT pt.key AS place_type_key, p.continent, p.country, p.city
+            "SELECT p.id AS place_id, p.continent, p.country, p.city, p.circa, p.disputed, pt.key AS place_type_key
              FROM x_person_places xpp
              INNER JOIN d_places p ON p.id = xpp.place_id
              INNER JOIN s_place_types pt ON pt.id = xpp.place_type_id
@@ -163,10 +171,13 @@ impl PersonRepository {
         .into_iter()
         .map(|row| {
             (
-                row.get::<String, _>("place_type_key"),
+                row.get::<i64, _>("place_id"),
                 row.get::<Option<String>, _>("continent"),
                 row.get::<Option<String>, _>("country"),
                 row.get::<Option<String>, _>("city"),
+                row.get::<i64, _>("circa") != 0,
+                row.get::<i64, _>("disputed") != 0,
+                row.get::<String, _>("place_type_key"),
             )
         })
         .collect();
