@@ -3,8 +3,7 @@ use ritmo_domain::{Content, Language, Person, Role, Tag};
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
     ContentRepository, LanguageRepository, PersonRepository, RoleRepository, TagRepository,
-    XBooksContentsRepository, XContentLanguagesRepository, XContentsPeopleRolesRepository,
-    XContentsTagsRepository,
+    XContentLanguagesRepository, XContentsPeopleRolesRepository, XContentsTagsRepository,
 };
 
 pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Content>> {

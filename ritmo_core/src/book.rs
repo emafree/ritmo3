@@ -116,7 +116,7 @@ mod tests {
             .await
             .unwrap();
         XBooksContentsRepository::new(&repo_ctx)
-            .save(book_id, content_id)
+            .create(book_id, content_id)
             .await
             .unwrap();
 

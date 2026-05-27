@@ -58,16 +58,15 @@ mod tests {
             })
             .await
             .unwrap();
-        let tag_id = TagRepository::new(&repo_ctx)
-            .save(&Tag {
-                id: 0,
-                name: "Fantascienza".to_owned(),
-                tag_type: "genre".to_owned(),
-            })
+        let tag_id = sqlx::query("INSERT INTO d_tags(name, tag_type) VALUES (?, ?)")
+            .bind("Fantascienza")
+            .bind("genre")
+            .execute(repo_ctx.pool())
             .await
-            .unwrap();
+            .unwrap()
+            .last_insert_rowid();
         XBooksTagsRepository::new(&repo_ctx)
-            .save(book_id, tag_id)
+            .create(book_id, tag_id)
             .await
             .unwrap();
 

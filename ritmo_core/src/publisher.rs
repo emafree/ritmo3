@@ -37,7 +37,6 @@ pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ritmo_domain::Book;
     use ritmo_repository::RepositoryContext;
 
     #[tokio::test]

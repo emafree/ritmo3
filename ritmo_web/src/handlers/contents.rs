@@ -82,15 +82,15 @@ pub async fn create(
             Ok(page.into_response())
         }
     }
+}
 
-    pub async fn delete(
-        State(state): State<AppState>,
-        Path(id): Path<i64>,
-    ) -> Result<StatusCode, WebError> {
-        let core = CoreContext::new(state.repo.clone());
-        ritmo_core::content::delete(&core, id).await?;
-        Ok(StatusCode::NO_CONTENT)
-    }
+pub async fn delete(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<StatusCode, WebError> {
+    let core = CoreContext::new(state.repo.clone());
+    ritmo_core::content::delete(&core, id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn render_page(

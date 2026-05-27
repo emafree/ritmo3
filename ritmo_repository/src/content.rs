@@ -384,6 +384,7 @@ impl ContentRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{PersonRepository, RepositoryContext, XContentsPeopleRolesRepository};
     use ritmo_domain::Person;
 
     #[tokio::test]
@@ -430,7 +431,7 @@ mod tests {
                 .await
                 .unwrap();
         XContentsPeopleRolesRepository::new(&ctx)
-            .save(content_id, person_id, author_role_id)
+            .create(content_id, person_id, author_role_id)
             .await
             .unwrap();
 
