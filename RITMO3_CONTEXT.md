@@ -13,15 +13,15 @@ Il database viene caricato integralmente in memoria all'avvio — nessuna query 
 | Crate | Stato | Responsabilità |
 |---|---|---|
 | `ritmo_errors` | ✅ completo | Tipi di errore centralizzati, `RitmoResult<T>`, trait `RitmoReporter` |
-| `ritmo_domain` | ⚠️ da allineare | Struct di dominio: `Book`, `Content`, `Person`, `Publisher`, `Series`, `Format`, `Role`, `Tag`, `Language`, `Alias`, `Place`, `PlaceType`, `PartialDate`. Strutture di filtro: `Filter`, `FilterSet`, `FilterField`, `FilterOperator`, `FilterValue`, `LogicalOperator`. La struct `Genre` è stata rimossa — i generi sono ora tag. |
-| `ritmo_db` | ✅ schema aggiornato | Schema SQLite, seeding, connessione e pool. |
-| `ritmo_repository` | ⚠️ da allineare | Operazioni CRUD per tutte le entità. Il repository per `Genre` va rimosso. Le query su `d_contents` vanno aggiornate (rimosso `genre_id`). Le query sui tag vanno aggiornate per `tag_type`. |
-| `ritmo_core` | ⚠️ da allineare | Logica applicativa, policy di delete, gestione relazioni. I casi d'uso relativi a `Genre` vanno rimossi. |
-| `ritmo_presenter` | ⚠️ da allineare | View model per tutte le entità, trait `I18nDisplayable`. Il presenter per `Genre` e l'i18n correlato vanno rimossi. |
+| `ritmo_domain` | ✅ allineato | Struct di dominio: `Book`, `Content`, `Person`, `Publisher`, `Series`, `Format`, `Role`, `Tag`, `Language`, `Alias`, `Place`, `PlaceType`, `PartialDate`. Strutture di filtro: `Filter`, `FilterSet`, `FilterField`, `FilterOperator`, `FilterValue`, `LogicalOperator`. La struct `Genre` è stata rimossa — i generi sono ora tag. |
+| `ritmo_db` | ✅ allineato | Schema SQLite, seeding, connessione e pool. |
+| `ritmo_repository` | ✅ allineato | Operazioni CRUD per tutte le entità. `genre.rs` rimosso. Query su `d_contents` e `d_tags` aggiornate. |
+| `ritmo_core` | ✅ allineato | Logica applicativa, policy di delete, gestione relazioni. Casi d'uso Genre rimossi. Policy delete per lookup implementate. |
+| `ritmo_presenter` | ✅ allineato | View model per tutte le entità, trait `I18nDisplayable`. Presenter Genre rimosso. |
 | `ritmo_tui` | ❌ abbandonato | Interfaccia TUI con Ratatui — abbandonata. Il crate può essere rimosso dal workspace. |
 | `ritmo_import` | ✅ funzionante | Importazione dati da EPUB e sorgenti esterne. Strumento di lavoro per popolare il database. |
 | `ritmo_app` | ⚠️ da aggiornare | Punto di ingresso. Va aggiornato dopo la rimozione di `ritmo_tui`. |
-| `ritmo_web` | ⚠️ in sviluppo | Server web Axum + HTML. Scaffolding completo, handler da implementare. |
+| `ritmo_web` | ✅ attivo | Server web Axum + HTML. Liste, dettagli, form inserimento/modifica e cancellazione funzionanti per tutte le entità principali e di lookup. |
 
 ---
 
@@ -339,10 +339,78 @@ Preparata issue per Copilot con lista completa dei campi da annotare per tutte e
 | `POST /contents/:id` (save) | ⏳ assegnato a Copilot |
 | `POST /people/:id` (save) | ⏳ assegnato a Copilot |
 
+---
+
+## Sessione del 27 maggio 2026 — parte 2
+
+### ritmo_web — cancellazione entità
+
+Implementata la cancellazione per tutte le entità principali e di lookup.
+
+#### Policy adottate
+
+**Entità principali (Book, Content, Person):** cancellazione sempre permessa, con dialog di conferma JavaScript. Il cascade del database gestisce i legami dipendenti. Avvisi non bloccanti nella pagina di dettaglio:
+- Book senza contenuti collegati → banner giallo: "Questo libro non ha contenuti collegati."
+- Content senza autore → banner giallo: "Questo contenuto non ha un autore."
+
+**Entità di lookup (Publisher, Series, Format, Role, Language):** cancellazione bloccata se referenziata. In caso di blocco, messaggio: "Impossibile eliminare: è utilizzata da N record."
+
+**Tag:** sempre cancellabile, cascade sulle junction.
+
+#### Rotte aggiunte
+
+```
+DELETE /books/:id
+DELETE /contents/:id
+DELETE /people/:id
+DELETE /publishers/:id
+DELETE /series/:id
+DELETE /formats/:id
+DELETE /roles/:id
+DELETE /languages/:id
+DELETE /tags/:id
+```
+
+Implementate via fetch JavaScript (HTML non supporta DELETE nativo nei form).
+
+#### Crate modificati
+
+- `ritmo_core` — aggiunto caso d'uso `delete` con policy per Publisher, Series, Format, Role, Language; delete diretto per Book, Content, Person; aggiunte funzioni `has_contents(book_id)` e `has_author(content_id)`
+- `ritmo_repository` — aggiunto `is_referenced(id)` per Publisher, Series, Format, Role, Language
+- `ritmo_presenter` — aggiunti flag `has_contents: bool` su `BookDetail` e `has_author: bool` su `ContentDetail`
+- `ritmo_web` — handler delete per tutte le entità; banner condizionali nei template di dettaglio; pagine lista minimali per le entità di lookup con bottone Elimina
+
+### Stato attuale delle pagine web
+
+| Pagina | Stato |
+|---|---|
+| `GET /books` | ✅ funzionante |
+| `GET /contents` | ✅ funzionante |
+| `GET /people` | ✅ funzionante |
+| `GET /books/:id` | ✅ funzionante |
+| `GET /contents/:id` | ✅ funzionante |
+| `GET /people/:id` | ✅ funzionante |
+| `GET /books/new` + `POST /books` | ✅ funzionante |
+| `GET /contents/new` + `POST /contents` | ✅ funzionante |
+| `GET /people/new` + `POST /people` | ✅ funzionante |
+| `POST /books/:id` (save) | ✅ funzionante |
+| `POST /contents/:id` (save) | ✅ funzionante |
+| `POST /people/:id` (save) | ✅ funzionante |
+| `DELETE /books/:id` | ✅ funzionante |
+| `DELETE /contents/:id` | ✅ funzionante |
+| `DELETE /people/:id` | ✅ funzionante |
+| `DELETE /publishers/:id` | ✅ funzionante |
+| `DELETE /series/:id` | ✅ funzionante |
+| `DELETE /formats/:id` | ✅ funzionante |
+| `DELETE /roles/:id` | ✅ funzionante |
+| `DELETE /languages/:id` | ✅ funzionante |
+| `DELETE /tags/:id` | ✅ funzionante |
+| Campi relazionali complessi (persone+ruoli, tag, lingue) nelle form | ❌ sola lettura |
+
 ### Prossimi passi
-1. Merge e verifica fix deserializzazione + form unificati
-2. Decidere UX per i campi relazionali complessi (persone+ruoli, tag, lingue)
-3. Estetica — wireframe già prodotto, applicazione rimandata a superficie stabile
+1. Campi relazionali complessi nelle form — persone+ruoli, tag, lingue
+2. Estetica — wireframe già prodotto, applicazione rimandata a superficie stabile
+3. FTS5
 
 ---
 
