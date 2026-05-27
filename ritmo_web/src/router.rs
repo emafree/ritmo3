@@ -1,7 +1,7 @@
 use axum::routing::get;
 use axum::Router;
 
-use crate::handlers::{books, contents, lookups, people};
+use crate::handlers::{books, contents, lookups, people, publishers};
 use crate::state::AppState;
 
 pub fn create_router(state: AppState) -> Router {
@@ -9,7 +9,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/", get(books::list))
         .route("/books", get(books::list).post(books::create))
         .route("/books/new", get(books::form))
-        .route("/books/{id}", get(books::detail).post(books::save).delete(books::delete))
+        .route(
+            "/books/{id}",
+            get(books::detail).post(books::save).delete(books::delete),
+        )
         .route("/contents", get(contents::list).post(contents::create))
         .route("/contents/new", get(contents::form))
         .route(
@@ -20,7 +23,17 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/people", get(people::list).post(people::create))
         .route("/people/new", get(people::form))
-        .route("/people/{id}", get(people::detail).post(people::save).delete(people::delete))
+        .route(
+            "/people/{id}",
+            get(people::detail)
+                .post(people::save)
+                .delete(people::delete),
+        )
+        .route("/publishers", get(publishers::list))
+        .route(
+            "/publishers/{id}",
+            get(publishers::detail).delete(lookups::delete_publisher),
+        )
         .route("/lookups/tags", get(lookups::tags))
         .route("/lookups/publishers", get(lookups::publishers))
         .route("/lookups/series", get(lookups::series))
@@ -28,11 +41,19 @@ pub fn create_router(state: AppState) -> Router {
         .route("/lookups/types", get(lookups::types))
         .route("/lookups/roles", get(lookups::roles))
         .route("/lookups/languages", get(lookups::languages))
-        .route("/publishers/{id}", axum::routing::delete(lookups::delete_publisher))
-        .route("/series/{id}", axum::routing::delete(lookups::delete_series))
-        .route("/formats/{id}", axum::routing::delete(lookups::delete_format))
+        .route(
+            "/series/{id}",
+            axum::routing::delete(lookups::delete_series),
+        )
+        .route(
+            "/formats/{id}",
+            axum::routing::delete(lookups::delete_format),
+        )
         .route("/roles/{id}", axum::routing::delete(lookups::delete_role))
-        .route("/languages/{id}", axum::routing::delete(lookups::delete_language))
+        .route(
+            "/languages/{id}",
+            axum::routing::delete(lookups::delete_language),
+        )
         .route("/tags/{id}", axum::routing::delete(lookups::delete_tag))
         .with_state(state)
 }
