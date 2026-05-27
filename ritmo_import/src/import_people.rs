@@ -1,4 +1,4 @@
-use ritmo_domain::{Alias, PartialDate, Place, PlaceType};
+use ritmo_domain::{Alias, PartialDate, PlaceType};
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
     AliasRepository, LanguageRepository, PersonRepository, PlaceRepository, PlaceTypeRepository,
@@ -133,9 +133,7 @@ async fn import_person(
         let language = lang_repo.get_or_create_by_field(field, value).await?;
         let role = role_repo.get_or_create(&lang_input.role).await?;
         // Ignore duplicate relation errors silently
-        let _ = lang_link_repo
-            .create(person.id, language.id, role.id)
-            .await;
+        let _ = lang_link_repo.create(person.id, language.id, role.id).await;
     }
 
     // 5. Add places, resolving place type by name.
@@ -162,15 +160,15 @@ async fn import_person(
         };
 
         // Create the place record
-        let place = Place {
-            id: 0,
-            continent: place_input.continent.clone(),
-            country: place_input.country.clone(),
-            city: place_input.city.clone(),
-            circa: place_input.circa,
-            disputed: place_input.disputed,
-        };
-        let place_id = place_repo.save(&place).await?;
+        let place_id = place_repo
+            .save(
+                place_input.continent.clone(),
+                place_input.country.clone(),
+                place_input.city.clone(),
+                place_input.circa,
+                place_input.disputed,
+            )
+            .await?;
 
         // Link the place to the person (idempotent via INSERT OR IGNORE)
         let _ = person_places_repo

@@ -14,15 +14,22 @@ impl PlaceRepository {
         }
     }
 
-    pub async fn save(&self, place: &Place) -> RitmoResult<i64> {
+    pub async fn save(
+        &self,
+        continent: Option<String>,
+        country: Option<String>,
+        city: Option<String>,
+        circa: bool,
+        disputed: bool,
+    ) -> RitmoResult<i64> {
         let result = sqlx::query(
             "INSERT OR IGNORE INTO d_places(continent, country, city, circa, disputed) VALUES (?, ?, ?, ?, ?)",
         )
-        .bind(&place.continent)
-        .bind(&place.country)
-        .bind(&place.city)
-        .bind(i64::from(place.circa))
-        .bind(i64::from(place.disputed))
+        .bind(continent)
+        .bind(country)
+        .bind(city)
+        .bind(i64::from(circa))
+        .bind(i64::from(disputed))
         .execute(&self.pool)
         .await
         .map_err(map_insert)?;
@@ -42,16 +49,24 @@ impl PlaceRepository {
         Ok(Self::map_place(row))
     }
 
-    pub async fn update(&self, place: &Place) -> RitmoResult<()> {
+    pub async fn update(
+        &self,
+        id: i64,
+        continent: Option<String>,
+        country: Option<String>,
+        city: Option<String>,
+        circa: bool,
+        disputed: bool,
+    ) -> RitmoResult<()> {
         sqlx::query(
             "UPDATE d_places SET continent = ?, country = ?, city = ?, circa = ?, disputed = ? WHERE id = ?",
         )
-        .bind(&place.continent)
-        .bind(&place.country)
-        .bind(&place.city)
-        .bind(i64::from(place.circa))
-        .bind(i64::from(place.disputed))
-        .bind(place.id)
+        .bind(continent)
+        .bind(country)
+        .bind(city)
+        .bind(i64::from(circa))
+        .bind(i64::from(disputed))
+        .bind(id)
         .execute(&self.pool)
         .await
         .map_err(map_query)?;
@@ -83,10 +98,9 @@ impl PlaceRepository {
         let rows = sqlx::query(
             "SELECT id, continent, country, city, circa, disputed
              FROM d_places
-             WHERE continent LIKE ? OR country LIKE ? OR city LIKE ?
+             WHERE country LIKE ? COLLATE NOCASE OR city LIKE ? COLLATE NOCASE
              ORDER BY continent, country, city, id",
         )
-        .bind(&like_pattern)
         .bind(&like_pattern)
         .bind(&like_pattern)
         .fetch_all(&self.pool)
@@ -105,5 +119,88 @@ impl PlaceRepository {
             circa: row.get::<i64, _>("circa") != 0,
             disputed: row.get::<i64, _>("disputed") != 0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::RepositoryContext;
+
+    #[tokio::test]
+    async fn save_get_update_delete_place() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = PlaceRepository::new(&ctx);
+
+        let place_id = repo
+            .save(
+                Some("Europa".to_owned()),
+                Some("Italia".to_owned()),
+                Some("Roma".to_owned()),
+                false,
+                false,
+            )
+            .await
+            .unwrap();
+
+        let place = repo.get(place_id).await.unwrap();
+        assert_eq!(place.city.as_deref(), Some("Roma"));
+
+        repo.update(
+            place_id,
+            Some("Europa".to_owned()),
+            Some("Italia".to_owned()),
+            Some("Milano".to_owned()),
+            true,
+            false,
+        )
+        .await
+        .unwrap();
+
+        let updated = repo.get(place_id).await.unwrap();
+        assert_eq!(updated.city.as_deref(), Some("Milano"));
+        assert!(updated.circa);
+
+        repo.delete(place_id).await.unwrap();
+        assert!(repo.get(place_id).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn search_matches_country_and_city_case_insensitive() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = PlaceRepository::new(&ctx);
+
+        repo.save(
+            Some("Europa".to_owned()),
+            Some("Italia".to_owned()),
+            Some("Roma".to_owned()),
+            false,
+            false,
+        )
+        .await
+        .unwrap();
+        repo.save(
+            Some("Europa".to_owned()),
+            Some("Francia".to_owned()),
+            Some("Parigi".to_owned()),
+            false,
+            false,
+        )
+        .await
+        .unwrap();
+
+        let by_country = repo.search("itaLIA").await.unwrap();
+        assert_eq!(by_country.len(), 1);
+        assert_eq!(by_country[0].country.as_deref(), Some("Italia"));
+
+        let by_city = repo.search("parI").await.unwrap();
+        assert_eq!(by_city.len(), 1);
+        assert_eq!(by_city[0].city.as_deref(), Some("Parigi"));
     }
 }
