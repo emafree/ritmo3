@@ -17,6 +17,7 @@ pub struct BookListItem {
 pub struct BookDetail {
     pub id: i64,
     pub name: String,
+    pub has_contents: bool,
     pub original_title: Option<String>,
     pub publisher: Option<String>,
     pub format: Option<String>,
@@ -36,6 +37,7 @@ pub struct BookDetail {
 pub fn build_book_detail(
     id: i64,
     name: String,
+    has_contents: bool,
     original_title: Option<String>,
     publisher: Option<String>,
     format: Option<String>,
@@ -54,6 +56,7 @@ pub fn build_book_detail(
     BookDetail {
         id,
         name,
+        has_contents,
         original_title,
         publisher,
         format,
@@ -110,6 +113,7 @@ mod tests {
         let detail = build_book_detail(
             1,
             "Libro".to_owned(),
+            true,
             Some("Original".to_owned()),
             Some("Editore".to_owned()),
             Some("paperback".to_owned()),
@@ -136,6 +140,7 @@ mod tests {
         );
 
         assert_eq!(detail.publication_date.as_deref(), Some("~15 marzo 1984"));
+        assert!(detail.has_contents);
         assert_eq!(detail.contents[0].name, "Capitolo");
         assert_eq!(detail.people[0].role, "author");
         assert_eq!(detail.tags[0].tag_type, "genre");

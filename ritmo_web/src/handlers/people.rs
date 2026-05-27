@@ -1,4 +1,5 @@
 use axum::extract::{Form, Path, State};
+use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
 use ritmo_core::CoreContext;
 use ritmo_domain::{PartialDate, Person};
@@ -71,6 +72,15 @@ pub async fn create(
             Ok(page.into_response())
         }
     }
+}
+
+pub async fn delete(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<StatusCode, WebError> {
+    let core = CoreContext::new(state.repo.clone());
+    ritmo_core::person::delete(&core, id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn render_page(

@@ -1306,6 +1306,7 @@ dependencies = [
 name = "ritmo_core"
 version = "0.1.0"
 dependencies = [
+ "ritmo_db",
  "ritmo_domain",
  "ritmo_errors",
  "ritmo_repository",

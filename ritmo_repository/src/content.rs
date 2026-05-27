@@ -225,6 +225,21 @@ impl ContentRepository {
         Ok(())
     }
 
+    pub async fn has_author(&self, id: i64) -> RitmoResult<bool> {
+        let count = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*)
+             FROM x_contents_people_roles xcpr
+             INNER JOIN d_roles r ON r.id = xcpr.role_id
+             WHERE xcpr.content_id = ?
+               AND r.key = 'author'",
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(count > 0)
+    }
+
     pub async fn list_all(&self) -> RitmoResult<Vec<Content>> {
         let rows = sqlx::query("SELECT id, name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents ORDER BY name")
             .fetch_all(&self.pool)
@@ -363,5 +378,63 @@ impl ContentRepository {
         };
         let id = self.save(&created).await?;
         self.get(id).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{PersonRepository, RepositoryContext, XContentsPeopleRolesRepository};
+    use ritmo_domain::Person;
+
+    #[tokio::test]
+    async fn has_author_reflects_author_links() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = ContentRepository::new(&ctx);
+        let content_id = repo
+            .save(&Content {
+                id: 0,
+                title: "Contenuto".to_owned(),
+                original_title: None,
+                type_id: None,
+                publication_year: None,
+                notes: None,
+            })
+            .await
+            .unwrap();
+
+        assert!(!repo.has_author(content_id).await.unwrap());
+
+        let person_id = PersonRepository::new(&ctx)
+            .save(&Person {
+                id: 0,
+                name: "Autore".to_owned(),
+                display_name: None,
+                given_name: None,
+                surname: None,
+                middle_names: None,
+                title: None,
+                suffix: None,
+                birth_date: None,
+                death_date: None,
+                biography: None,
+                verified: false,
+            })
+            .await
+            .unwrap();
+        let author_role_id =
+            sqlx::query_scalar::<_, i64>("SELECT id FROM d_roles WHERE key = 'author'")
+                .fetch_one(ctx.pool())
+                .await
+                .unwrap();
+        XContentsPeopleRolesRepository::new(&ctx)
+            .create(content_id, person_id, author_role_id)
+            .await
+            .unwrap();
+
+        assert!(repo.has_author(content_id).await.unwrap());
     }
 }

@@ -12,3 +12,6 @@ sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runti
 ritmo_domain = { path = "../ritmo_domain" }
 ritmo_repository = { path = "../ritmo_repository" }
 ritmo_errors = { path = "../ritmo_errors" }
+
+[dev-dependencies]
+ritmo_db = { path = "../ritmo_db" }

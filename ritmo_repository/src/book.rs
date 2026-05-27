@@ -269,6 +269,17 @@ impl BookRepository {
         Ok(())
     }
 
+    pub async fn has_contents(&self, id: i64) -> RitmoResult<bool> {
+        let count = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM x_books_contents WHERE book_id = ?",
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(count > 0)
+    }
+
     pub async fn list_all(&self) -> RitmoResult<Vec<Book>> {
         let rows = sqlx::query("SELECT id, name, original_title, publisher_id, format_id, series_id, series_index, isbn, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes, has_cover, has_paper FROM d_books ORDER BY name")
             .fetch_all(&self.pool)
@@ -435,5 +446,59 @@ impl BookRepository {
                 )
             })
             .collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ContentRepository, RepositoryContext, XBooksContentsRepository};
+    use ritmo_domain::Content;
+
+    fn sample_book() -> Book {
+        Book {
+            id: 0,
+            title: "Libro".to_owned(),
+            original_title: None,
+            publisher_id: None,
+            format_id: None,
+            series_id: None,
+            series_index: None,
+            isbn: None,
+            publication_year: None,
+            notes: None,
+            has_cover: false,
+            has_paper: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn has_contents_reflects_existing_links() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = BookRepository::new(&ctx);
+        let book_id = repo.save(&sample_book()).await.unwrap();
+
+        assert!(!repo.has_contents(book_id).await.unwrap());
+
+        let content_id = ContentRepository::new(&ctx)
+            .save(&Content {
+                id: 0,
+                title: "Contenuto".to_owned(),
+                original_title: None,
+                type_id: None,
+                publication_year: None,
+                notes: None,
+            })
+            .await
+            .unwrap();
+        XBooksContentsRepository::new(&ctx)
+            .create(book_id, content_id)
+            .await
+            .unwrap();
+
+        assert!(repo.has_contents(book_id).await.unwrap());
     }
 }

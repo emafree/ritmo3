@@ -2,8 +2,8 @@ use crate::CoreContext;
 use ritmo_domain::{Book, Person, Role, Tag};
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
-    BookRepository, PersonRepository, RoleRepository, TagRepository, XBookLanguagesRepository,
-    XBooksContentsRepository, XBooksPeopleRolesRepository, XBooksTagsRepository,
+    BookRepository, PersonRepository, RoleRepository, TagRepository, XBooksPeopleRolesRepository,
+    XBooksTagsRepository,
 };
 
 pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Book>> {
@@ -69,26 +69,70 @@ pub async fn update(ctx: &CoreContext, item: &Book) -> RitmoResult<()> {
 }
 
 pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
-    let contents_repo = XBooksContentsRepository::new(&ctx.ctx);
-    for content_id in contents_repo.list_by_book(id).await? {
-        contents_repo.delete(id, content_id).await?;
+    BookRepository::new(&ctx.ctx).delete(id).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ritmo_domain::Content;
+    use ritmo_repository::{ContentRepository, RepositoryContext, XBooksContentsRepository};
+
+    fn sample_book() -> Book {
+        Book {
+            id: 0,
+            title: "Libro".to_owned(),
+            original_title: None,
+            publisher_id: None,
+            format_id: None,
+            series_id: None,
+            series_index: None,
+            isbn: None,
+            publication_year: None,
+            notes: None,
+            has_cover: false,
+            has_paper: false,
+        }
     }
 
-    let people_roles_repo = XBooksPeopleRolesRepository::new(&ctx.ctx);
-    for (person_id, role_id) in people_roles_repo.list_by_book(id).await? {
-        people_roles_repo.delete(id, person_id, role_id).await?;
-    }
+    #[tokio::test]
+    async fn delete_relies_on_database_cascade() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let repo_ctx = RepositoryContext::new(pool);
+        let core = CoreContext::new(repo_ctx.clone());
 
-    let tags_repo = XBooksTagsRepository::new(&ctx.ctx);
-    for tag_id in tags_repo.list_by_book(id).await? {
-        tags_repo.delete(id, tag_id).await?;
-    }
+        let book_id = BookRepository::new(&repo_ctx).save(&sample_book()).await.unwrap();
+        let content_id = ContentRepository::new(&repo_ctx)
+            .save(&Content {
+                id: 0,
+                title: "Contenuto".to_owned(),
+                original_title: None,
+                type_id: None,
+                publication_year: None,
+                notes: None,
+            })
+            .await
+            .unwrap();
+        XBooksContentsRepository::new(&repo_ctx)
+            .create(book_id, content_id)
+            .await
+            .unwrap();
 
-    let langs_repo = XBookLanguagesRepository::new(&ctx.ctx);
-    for (language_id, role_id) in langs_repo.list_by_book(id).await? {
-        langs_repo.delete(id, language_id, role_id).await?;
-    }
+        delete(&core, book_id).await.unwrap();
 
-    let repo = BookRepository::new(&ctx.ctx);
-    repo.delete(id).await
+        assert!(BookRepository::new(&repo_ctx).get(book_id).await.is_err());
+        assert_eq!(
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM x_books_contents WHERE book_id = ?",
+            )
+            .bind(book_id)
+            .fetch_one(repo_ctx.pool())
+            .await
+            .unwrap(),
+            0
+        );
+        assert!(ContentRepository::new(&repo_ctx).get(content_id).await.is_ok());
+    }
 }

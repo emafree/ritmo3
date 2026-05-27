@@ -46,6 +46,19 @@ impl RoleRepository {
         Ok(())
     }
 
+    pub async fn is_referenced(&self, id: i64) -> RitmoResult<i64> {
+        sqlx::query_scalar::<_, i64>(
+            "SELECT
+                (SELECT COUNT(*) FROM x_books_people_roles WHERE role_id = ?)
+              + (SELECT COUNT(*) FROM x_contents_people_roles WHERE role_id = ?)",
+        )
+        .bind(id)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_query)
+    }
+
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
         sqlx::query("DELETE FROM d_roles WHERE id = ?")
             .bind(id)

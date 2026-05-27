@@ -46,6 +46,14 @@ impl PublisherRepository {
         Ok(())
     }
 
+    pub async fn is_referenced(&self, id: i64) -> RitmoResult<i64> {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM d_books WHERE publisher_id = ?")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_query)
+    }
+
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
         sqlx::query("DELETE FROM d_publishers WHERE id = ?")
             .bind(id)
