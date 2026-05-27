@@ -59,10 +59,25 @@ impl LanguageRepository {
         Ok(())
     }
 
+    pub async fn is_referenced(&self, id: i64) -> RitmoResult<i64> {
+        sqlx::query_scalar::<_, i64>(
+        "SELECT
+            (SELECT COUNT(*) FROM x_book_languages WHERE language_id = ?)
+          + (SELECT COUNT(*) FROM x_content_languages WHERE language_id = ?)
+          + (SELECT COUNT(*) FROM x_person_languages WHERE language_id = ?)",
+        )
+        .bind(id)
+        .bind(id)
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_query)
+    }
+
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
         sqlx::query("DELETE FROM d_languages WHERE id = ?")
-            .bind(id)
-            .execute(&self.pool)
+        .bind(id)
+        .execute(&self.pool)
             .await
             .map_err(map_delete)?;
         Ok(())

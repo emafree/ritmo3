@@ -1,4 +1,5 @@
 use axum::extract::{Form, Path, State};
+use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
 use ritmo_core::CoreContext;
 use ritmo_domain::{Content, PartialDate};
@@ -30,9 +31,11 @@ pub async fn detail(
     State(state): State<AppState>,
     Path(id): Path<i64>,
 ) -> Result<Html<String>, WebError> {
-    let detail = ContentRepository::new(&state.repo).get_detail(id).await?;
+    let repo = ContentRepository::new(&state.repo);
+    let detail = repo.get_detail(id).await?;
+    let has_author = repo.has_author(id).await?;
     let form = build_content_form_data(&detail);
-    let content = build_content_detail_vm(detail);
+    let content = build_content_detail_vm(detail, has_author);
     render_page(&state, Some(content), form, false, None).await
 }
 
@@ -55,7 +58,10 @@ pub async fn save(
                 .get_detail(id)
                 .await
                 .ok();
-            let content = detail.map(build_content_detail_vm);
+            let has_author = ContentRepository::new(&state.repo).has_author(id).await.ok();
+            let content = detail
+                .zip(has_author)
+                .map(|(detail, has_author)| build_content_detail_vm(detail, has_author));
             let page = render_page(&state, content, form, false, Some(err.to_string())).await?;
             Ok(page.into_response())
         }
@@ -75,6 +81,15 @@ pub async fn create(
             let page = render_page(&state, None, form, true, Some(err.to_string())).await?;
             Ok(page.into_response())
         }
+    }
+
+    pub async fn delete(
+        State(state): State<AppState>,
+        Path(id): Path<i64>,
+    ) -> Result<StatusCode, WebError> {
+        let core = CoreContext::new(state.repo.clone());
+        ritmo_core::content::delete(&core, id).await?;
+        Ok(StatusCode::NO_CONTENT)
     }
 }
 
@@ -112,10 +127,11 @@ async fn load_content_types(state: &AppState) -> Result<Vec<LookupItem>, WebErro
         .collect())
 }
 
-fn build_content_detail_vm(detail: ContentDetailData) -> ContentDetail {
+fn build_content_detail_vm(detail: ContentDetailData, has_author: bool) -> ContentDetail {
     build_content_detail(
         detail.id,
         detail.name,
+        has_author,
         detail.original_title,
         detail.content_type,
         detail.publication_date,

@@ -1,10 +1,11 @@
 use crate::CoreContext;
 use ritmo_domain::Language;
 use ritmo_errors::{RitmoErr, RitmoResult};
-use ritmo_repository::{
-    LanguageRepository, XBookLanguagesRepository, XContentLanguagesRepository,
-    XPersonLanguagesRepository,
-};
+use ritmo_repository::LanguageRepository;
+
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Language>> {
+    LanguageRepository::new(&ctx.ctx).list_all().await
+}
 
 pub async fn create(ctx: &CoreContext, item: &Language) -> RitmoResult<i64> {
     if item.name.trim().is_empty() {
@@ -23,17 +24,12 @@ pub async fn update(ctx: &CoreContext, item: &Language) -> RitmoResult<()> {
 }
 
 pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
-    let book_langs = XBookLanguagesRepository::new(&ctx.ctx);
-    let content_langs = XContentLanguagesRepository::new(&ctx.ctx);
-    let person_langs = XPersonLanguagesRepository::new(&ctx.ctx);
-    let book_links = book_langs.list_by_language(id, None).await?;
-    let content_links = content_langs.list_by_language(id, None).await?;
-    let person_links = person_langs.list_by_language(id, None).await?;
-    if !book_links.is_empty() || !content_links.is_empty() || !person_links.is_empty() {
-        return Err(RitmoErr::DataIntegrity(
-            "language is referenced and cannot be deleted".to_string(),
-        ));
-    }
     let repo = LanguageRepository::new(&ctx.ctx);
+    let references = repo.is_referenced(id).await?;
+    if references > 0 {
+        return Err(RitmoErr::InvalidInput(format!(
+            "Impossibile eliminare: è utilizzata da {references} record."
+        )));
+    }
     repo.delete(id).await
 }

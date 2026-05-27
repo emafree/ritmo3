@@ -25,5 +25,50 @@ pub async fn update(ctx: &CoreContext, item: &Publisher) -> RitmoResult<()> {
 
 pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
     let repo = PublisherRepository::new(&ctx.ctx);
+    let references = repo.is_referenced(id).await?;
+    if references > 0 {
+        return Err(RitmoErr::InvalidInput(format!(
+            "Impossibile eliminare: è utilizzata da {references} record."
+        )));
+    }
     repo.delete(id).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ritmo_domain::Book;
+    use ritmo_repository::RepositoryContext;
+
+    #[tokio::test]
+    async fn delete_blocks_when_publisher_is_referenced() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let repo_ctx = RepositoryContext::new(pool);
+        let core = CoreContext::new(repo_ctx.clone());
+
+        let publisher_id = PublisherRepository::new(&repo_ctx)
+            .save(&Publisher {
+                id: 0,
+                name: "Editore".to_owned(),
+            })
+            .await
+            .unwrap();
+
+        sqlx::query(
+            "INSERT INTO d_books(name, publisher_id, has_cover, has_paper) VALUES (?, ?, 0, 0)",
+        )
+        .bind("Libro")
+        .bind(publisher_id)
+        .execute(repo_ctx.pool())
+        .await
+        .unwrap();
+
+        let err = delete(&core, publisher_id).await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Invalid input: Impossibile eliminare: è utilizzata da 1 record."
+        );
+    }
 }

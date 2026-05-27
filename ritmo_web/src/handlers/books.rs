@@ -1,6 +1,7 @@
 use crate::error::WebError;
 use crate::state::AppState;
 use axum::extract::{Form, Path, State};
+use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Redirect};
 use ritmo_core::CoreContext;
 use ritmo_domain::{Book, PartialDate};
@@ -30,9 +31,11 @@ pub async fn detail(
     State(state): State<AppState>,
     Path(id): Path<i64>,
 ) -> Result<Html<String>, WebError> {
-    let detail = BookRepository::new(&state.repo).get_detail(id).await?;
+    let repo = BookRepository::new(&state.repo);
+    let detail = repo.get_detail(id).await?;
+    let has_contents = repo.has_contents(id).await?;
     let form = build_book_form_data(&detail);
-    let book = build_book_detail_vm(detail);
+    let book = build_book_detail_vm(detail, has_contents);
     render_page(&state, Some(book), form, false, None).await
 }
 
@@ -52,7 +55,10 @@ pub async fn save(
         Ok(()) => Ok(Redirect::to(&format!("/books/{id}")).into_response()),
         Err(err) => {
             let detail = BookRepository::new(&state.repo).get_detail(id).await.ok();
-            let book = detail.map(build_book_detail_vm);
+            let has_contents = BookRepository::new(&state.repo).has_contents(id).await.ok();
+            let book = detail
+                .zip(has_contents)
+                .map(|(detail, has_contents)| build_book_detail_vm(detail, has_contents));
             let page = render_page(&state, book, form, false, Some(err.to_string())).await?;
             Ok(page.into_response())
         }
@@ -72,6 +78,15 @@ pub async fn create(
             let page = render_page(&state, None, form, true, Some(err.to_string())).await?;
             Ok(page.into_response())
         }
+    }
+
+    pub async fn delete(
+        State(state): State<AppState>,
+        Path(id): Path<i64>,
+    ) -> Result<StatusCode, WebError> {
+        let core = CoreContext::new(state.repo.clone());
+        ritmo_core::book::delete(&core, id).await?;
+        Ok(StatusCode::NO_CONTENT)
     }
 }
 
@@ -133,10 +148,11 @@ async fn load_book_lookups(
     Ok((publishers, formats, series))
 }
 
-fn build_book_detail_vm(detail: BookDetailData) -> BookDetail {
+fn build_book_detail_vm(detail: BookDetailData, has_contents: bool) -> BookDetail {
     build_book_detail(
         detail.id,
         detail.name,
+        has_contents,
         detail.original_title,
         detail.publisher,
         detail.format,

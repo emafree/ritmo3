@@ -74,26 +74,5 @@ pub async fn update(ctx: &CoreContext, item: &Content) -> RitmoResult<()> {
 }
 
 pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
-    let books_repo = XBooksContentsRepository::new(&ctx.ctx);
-    for book_id in books_repo.list_by_content(id).await? {
-        books_repo.delete(book_id, id).await?;
-    }
-
-    let people_roles_repo = XContentsPeopleRolesRepository::new(&ctx.ctx);
-    for (person_id, role_id) in people_roles_repo.list_by_content(id).await? {
-        people_roles_repo.delete(id, person_id, role_id).await?;
-    }
-
-    let tags_repo = XContentsTagsRepository::new(&ctx.ctx);
-    for tag_id in tags_repo.list_by_content(id).await? {
-        tags_repo.delete(id, tag_id).await?;
-    }
-
-    let langs_repo = XContentLanguagesRepository::new(&ctx.ctx);
-    for (language_id, role_id) in langs_repo.list_by_content(id).await? {
-        langs_repo.delete(id, language_id, role_id).await?;
-    }
-
-    let repo = ContentRepository::new(&ctx.ctx);
-    repo.delete(id).await
+    ContentRepository::new(&ctx.ctx).delete(id).await
 }

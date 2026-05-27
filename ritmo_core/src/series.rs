@@ -25,5 +25,11 @@ pub async fn update(ctx: &CoreContext, item: &Series) -> RitmoResult<()> {
 
 pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
     let repo = SeriesRepository::new(&ctx.ctx);
+    let references = repo.is_referenced(id).await?;
+    if references > 0 {
+        return Err(RitmoErr::InvalidInput(format!(
+            "Impossibile eliminare: è utilizzata da {references} record."
+        )));
+    }
     repo.delete(id).await
 }

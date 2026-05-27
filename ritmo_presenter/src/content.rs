@@ -17,6 +17,7 @@ pub struct ContentListItem {
 pub struct ContentDetail {
     pub id: i64,
     pub name: String,
+    pub has_author: bool,
     pub original_title: Option<String>,
     pub content_type: Option<String>,
     pub publication_date: Option<String>,
@@ -30,6 +31,7 @@ pub struct ContentDetail {
 pub fn build_content_detail(
     id: i64,
     name: String,
+    has_author: bool,
     original_title: Option<String>,
     content_type: Option<String>,
     publication_date: Option<PartialDate>,
@@ -42,6 +44,7 @@ pub fn build_content_detail(
     ContentDetail {
         id,
         name,
+        has_author,
         original_title,
         content_type,
         publication_date: format_partial_date(publication_date),
@@ -94,6 +97,7 @@ mod tests {
         let detail = build_content_detail(
             1,
             "Racconto".to_owned(),
+            true,
             Some("Story".to_owned()),
             Some("short_story".to_owned()),
             Some(PartialDate {
@@ -114,6 +118,7 @@ mod tests {
         );
 
         assert_eq!(detail.publication_date.as_deref(), Some("luglio 1952"));
+        assert!(detail.has_author);
         assert_eq!(detail.books[0].name, "Antologia");
         assert_eq!(detail.people[0].role, "author");
         assert_eq!(detail.tags[0].tag_type, "mood");

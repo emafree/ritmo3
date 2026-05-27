@@ -5,13 +5,18 @@
 {% block content %}
 <h1>{% if is_new %}Nuovo libro{% else %}Libro #{{ book.id }}{% endif %}</h1>
 
-{% if error %}
-<p><strong>Errore:</strong> {{ error }}</p>
+<p id="page-error" {% if not error %}hidden{% endif %}><strong>Errore:</strong> <span id="page-error-text">{{ error | default(value="") }}</span></p>
+
+{% if book and not book.has_contents %}
+<p style="background:#fff3cd; border:1px solid #ffe69c; padding:0.75rem;">Questo libro non ha contenuti collegati.</p>
 {% endif %}
 
 <form method="post" action="{% if is_new %}/books{% else %}/books/{{ book.id }}{% endif %}">
   <p>
     <button type="submit" name="_action" value="save">Salva</button>
+    {% if not is_new %}
+    <button type="button" id="delete-button" data-url="/books/{{ book.id }}" data-redirect="/books" data-name="{{ book.name }}">Elimina</button>
+    {% endif %}
     <a href="/books/new">Nuovo</a>
     <a href="/books">Annulla</a>
   </p>
@@ -93,6 +98,31 @@ if (seriesSelect && seriesWrapper) {
   const refresh = () => { seriesWrapper.style.display = seriesSelect.value ? '' : 'none'; };
   seriesSelect.addEventListener('change', refresh);
   refresh();
+}
+
+const deleteButton = document.getElementById('delete-button');
+const pageError = document.getElementById('page-error');
+const pageErrorText = document.getElementById('page-error-text');
+if (deleteButton && pageError && pageErrorText) {
+  deleteButton.addEventListener('click', async function () {
+    const name = deleteButton.dataset.name || 'questo libro';
+    if (!window.confirm(`Confermi l'eliminazione di "${name}"?`)) return;
+    const response = await fetch(deleteButton.dataset.url, { method: 'DELETE', headers: { Accept: 'application/json' } });
+    if (response.ok) {
+      window.location.href = deleteButton.dataset.redirect;
+      return;
+    }
+    let message = 'Operazione non riuscita.';
+    try {
+      const data = await response.json();
+      if (data.error) message = data.error;
+    } catch (_error) {
+      const text = await response.text();
+      if (text) message = text;
+    }
+    pageError.hidden = false;
+    pageErrorText.textContent = message;
+  });
 }
 </script>
 {% endblock %}

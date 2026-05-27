@@ -46,6 +46,14 @@ impl FormatRepository {
         Ok(())
     }
 
+    pub async fn is_referenced(&self, id: i64) -> RitmoResult<i64> {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM d_books WHERE format_id = ?")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_query)
+    }
+
     pub async fn delete(&self, id: i64) -> RitmoResult<()> {
         sqlx::query("DELETE FROM d_formats WHERE id = ?")
             .bind(id)
