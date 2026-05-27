@@ -7,6 +7,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 pub struct ContentListItem {
     pub id: i64,
+    pub title: String,
     pub name: String,
     pub type_key: Option<String>,
     pub original_language: Option<String>,
@@ -78,6 +79,7 @@ pub fn build_content_list_items(
         .map(
             |(id, name, type_key, original_language, authors)| ContentListItem {
                 id,
+                title: name.clone(),
                 name,
                 type_key,
                 original_language,
@@ -89,7 +91,7 @@ pub fn build_content_list_items(
 
 #[cfg(test)]
 mod tests {
-    use super::build_content_detail;
+    use super::{build_content_detail, build_content_list_items};
     use ritmo_domain::PartialDate;
 
     #[test]
@@ -123,5 +125,21 @@ mod tests {
         assert_eq!(detail.people[0].role, "author");
         assert_eq!(detail.tags[0].tag_type, "mood");
         assert_eq!(detail.languages[0].name, "English (en)");
+    }
+
+    #[test]
+    fn build_content_list_items_sets_title() {
+        let rows = vec![(
+            1,
+            "Racconto".to_owned(),
+            Some("short_story".to_owned()),
+            Some("Italiano".to_owned()),
+            vec!["Autore".to_owned()],
+        )];
+
+        let items = build_content_list_items(rows);
+
+        assert_eq!(items[0].name, "Racconto");
+        assert_eq!(items[0].title, "Racconto");
     }
 }
