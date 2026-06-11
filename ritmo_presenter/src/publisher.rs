@@ -11,7 +11,6 @@ pub struct PublisherListItem {
 pub struct PublisherDetail {
     pub id: i64,
     pub name: String,
-    pub country: Option<String>,
     pub website: Option<String>,
     pub notes: Option<String>,
     pub places: Vec<PlaceItem>,
@@ -27,7 +26,6 @@ pub fn build_publisher_list_items(rows: Vec<(i64, String)>) -> Vec<PublisherList
 pub fn build_publisher_detail(
     id: i64,
     name: String,
-    country: Option<String>,
     website: Option<String>,
     notes: Option<String>,
     places: Vec<(
@@ -44,7 +42,6 @@ pub fn build_publisher_detail(
     PublisherDetail {
         id,
         name,
-        country,
         website,
         notes,
         places: places
@@ -83,7 +80,6 @@ mod tests {
         let detail = build_publisher_detail(
             1,
             "Editore".to_owned(),
-            Some("Italia".to_owned()),
             Some("https://example.org".to_owned()),
             Some("Note".to_owned()),
             vec![(

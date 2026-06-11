@@ -45,7 +45,6 @@ fn build_publisher_detail_vm(detail: PublisherDetailData) -> PublisherDetail {
     build_publisher_detail(
         detail.id,
         detail.name,
-        detail.country,
         detail.website,
         detail.notes,
         detail.places,
