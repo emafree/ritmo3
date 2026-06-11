@@ -16,7 +16,6 @@
 <h2>Dati editore</h2>
 <ul>
   <li><strong>Nome:</strong> {{ publisher.name }}</li>
-  <li><strong>Paese:</strong> {{ publisher.country | default(value="—") }}</li>
   <li>
     <strong>Sito web:</strong>
     {% if publisher.website %}
