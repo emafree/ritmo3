@@ -21,19 +21,13 @@ Il database viene caricato integralmente in memoria all'avvio — nessuna query 
 | `ritmo_tui` | ❌ abbandonato | Interfaccia TUI con Ratatui — abbandonata. Il crate può essere rimosso dal workspace. |
 | `ritmo_import` | ✅ funzionante | Importazione dati da EPUB e sorgenti esterne. Strumento di lavoro per popolare il database. |
 | `ritmo_app` | ⚠️ da aggiornare | Punto di ingresso. Va aggiornato dopo la rimozione di `ritmo_tui`. |
-| `ritmo_web` | ✅ attivo | Server web Axum + HTML. Liste, dettagli, form inserimento/modifica e cancellazione funzionanti per tutte le entità principali e di lookup. |
+| `ritmo_web` | ✅ attivo | Server web Axum + HTML. Liste, dettagli, form inserimento/modifica e cancellazione funzionanti per tutte le entità principali e di lookup. Widget place CRUD integrato in People e Publisher. |
 
 ---
 
 ## Interfaccia utente
 
-`ritmo_tui` (Ratatui) è stata abbandonata. Il costo di sviluppo di una TUI è sproporzionato rispetto al valore per un tool personale. Le alternative valutate:
-
-- **Web app locale** — server HTTP leggero (Axum) + interfaccia HTML nel browser. Tutto il backend Rust invariato, si butta solo il layer TUI.
-- **Tauri** — Rust + HTML/CSS/JS nel webview. Riusa esattamente il lavoro della web app locale.
-- **egui / Slint** — GUI nativa Rust.
-
-La scelta non è ancora stata fatta. Il backend (`ritmo_core`, `ritmo_repository`, schema) è indipendente dalla scelta frontend.
+`ritmo_tui` (Ratatui) è stata abbandonata. Il frontend attivo è `ritmo_web` — server Axum + HTML server-rendered nel browser.
 
 ---
 
@@ -407,10 +401,84 @@ Implementate via fetch JavaScript (HTML non supporta DELETE nativo nei form).
 | `DELETE /tags/:id` | ✅ funzionante |
 | Campi relazionali complessi (persone+ruoli, tag, lingue) nelle form | ❌ sola lettura |
 
+---
+
+## Sessione del 11 giugno 2026
+
+### ritmo_web — widget Place (CRUD + unlink)
+
+Implementato widget Tera riutilizzabile per la gestione dei luoghi associati a un'entità. Il widget è un frammento di template includibile in qualsiasi pagina.
+
+#### Decisioni adottate
+
+- Nessuna pagina `/places` autonoma — il widget è l'unico punto di accesso ai luoghi
+- Il widget gestisce CRUD completo + unlink inline nella pagina ospite
+- Aggiunta luogo tramite popup con ricerca semplice su `country`/`city` (LIKE, case-insensitive) — ML da collegare in seguito
+- `d_publishers.country` rimosso da `PublisherDetail` e dal template (il campo resta nel DB senza migration)
+- Policy delete luogo: cancella `d_places` solo se non referenziato da altre entità oltre a quella corrente
+
+#### Crate modificati
+
+- `ritmo_repository/src/place.rs` — `PlaceRepository` con save, get, update, delete, search, list_by_person, list_by_publisher, link/unlink per person e publisher, list_place_types
+- `ritmo_presenter/src/place.rs` — `PlaceItem`, `PlaceFormData`, `PlaceUpdateData`, `build_place_items`
+- `ritmo_presenter` — `PersonDetail` e `PublisherDetail` aggiornate con `places: Vec<PlaceItem>`; `PublisherDetail.country` rimosso
+- `ritmo_core/src/place.rs` — `PlaceService` con create_and_link, update, delete (con policy), unlink, search, link
+- `ritmo_web/src/handlers/places.rs` — handler search, create, update, delete, link, unlink
+- `ritmo_web/src/router.rs` — rotte places aggiunte
+- `templates/widgets/place_list.html` — widget riga luogo con edit inline, scollega, elimina
+- `templates/widgets/place_popup.html` — popup ricerca/creazione luogo
+- `templates/people/detail.html` — sezione luoghi integrata
+- `templates/publishers/detail.html` — creato con sezione luoghi integrata
+
+#### Rotte aggiunte
+
+```
+POST   /places
+PUT    /places/:place_id
+DELETE /places/:place_id
+POST   /people/:id/places
+DELETE /people/:id/places/:place_id
+POST   /publishers/:id/places
+DELETE /publishers/:id/places/:place_id
+GET    /places/search?q=...
+```
+
+### Stato attuale delle pagine web
+
+| Pagina | Stato |
+|---|---|
+| `GET /books` | ✅ funzionante |
+| `GET /contents` | ✅ funzionante |
+| `GET /people` | ✅ funzionante |
+| `GET /publishers` | ✅ funzionante |
+| `GET /books/:id` | ✅ funzionante |
+| `GET /contents/:id` | ✅ funzionante |
+| `GET /people/:id` | ✅ funzionante (con widget places) |
+| `GET /publishers/:id` | ✅ funzionante (con widget places) |
+| `GET /books/new` + `POST /books` | ✅ funzionante |
+| `GET /contents/new` + `POST /contents` | ✅ funzionante |
+| `GET /people/new` + `POST /people` | ✅ funzionante |
+| `POST /books/:id` (save) | ✅ funzionante |
+| `POST /contents/:id` (save) | ✅ funzionante |
+| `POST /people/:id` (save) | ✅ funzionante |
+| `DELETE /books/:id` | ✅ funzionante |
+| `DELETE /contents/:id` | ✅ funzionante |
+| `DELETE /people/:id` | ✅ funzionante |
+| `DELETE /publishers/:id` | ✅ funzionante |
+| `DELETE /series/:id` | ✅ funzionante |
+| `DELETE /formats/:id` | ✅ funzionante |
+| `DELETE /roles/:id` | ✅ funzionante |
+| `DELETE /languages/:id` | ✅ funzionante |
+| `DELETE /tags/:id` | ✅ funzionante |
+| Link dettaglio dalle pagine lista (books, contents, people, publishers) | ⏳ assegnato a Copilot |
+| Campi relazionali complessi (persone+ruoli, tag, lingue) nelle form | ❌ sola lettura |
+
 ### Prossimi passi
-1. Campi relazionali complessi nelle form — persone+ruoli, tag, lingue
-2. Estetica — wireframe già prodotto, applicazione rimandata a superficie stabile
-3. FTS5
+
+1. Merge issue "link dettaglio nelle pagine lista" (assegnata a Copilot)
+2. Campi relazionali nelle form — persone+ruoli, tag, lingue
+3. Estetica — wireframe già prodotto, applicazione rimandata a superficie stabile
+4. FTS5
 
 ---
 
@@ -420,7 +488,7 @@ Implementate via fetch JavaScript (HTML non supporta DELETE nativo nei form).
 Virtual table FTS5 su titoli (`d_books.name`, `d_contents.name`), note, nomi persone. Collegare alla ricerca principale.
 
 ### 2. Sistema ML
-Esiste in ritmo2 ed è funzionante. Va importato quando si inizia a inserire dati reali — serve per normalizzazione nomi, luoghi, tag.
+Esiste in ritmo2 ed è funzionante. Va importato quando si inizia a inserire dati reali — serve per normalizzazione nomi, luoghi, tag. Il popup place è il primo punto di integrazione previsto.
 
 ---
 
