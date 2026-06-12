@@ -9,6 +9,7 @@ use ritmo_presenter::{
     build_book_detail, build_book_list_items, BookDetail, BookFormData, LookupItem,
 };
 use ritmo_repository::{BookDetailData, BookRepository};
+use std::collections::HashSet;
 use tera::Context;
 
 pub async fn list(State(state): State<AppState>) -> Result<Html<String>, WebError> {
@@ -50,9 +51,21 @@ pub async fn save(
 ) -> Result<impl IntoResponse, WebError> {
     let core = CoreContext::new(state.repo.clone());
     let book = to_domain_book(id, &form);
+    let tag_names = parse_tag_names(&form.tags);
 
     match ritmo_core::book::update(&core, &book).await {
-        Ok(()) => Ok(Redirect::to(&format!("/books/{id}")).into_response()),
+        Ok(()) => match ritmo_core::book::replace_tags_from_names(&core, id, &tag_names).await {
+            Ok(()) => Ok(Redirect::to(&format!("/books/{id}")).into_response()),
+            Err(err) => {
+                let detail = BookRepository::new(&state.repo).get_detail(id).await.ok();
+                let has_contents = BookRepository::new(&state.repo).has_contents(id).await.ok();
+                let book = detail
+                    .zip(has_contents)
+                    .map(|(detail, has_contents)| build_book_detail_vm(detail, has_contents));
+                let page = render_page(&state, book, form, false, Some(err.to_string())).await?;
+                Ok(page.into_response())
+            }
+        },
         Err(err) => {
             let detail = BookRepository::new(&state.repo).get_detail(id).await.ok();
             let has_contents = BookRepository::new(&state.repo).has_contents(id).await.ok();
@@ -71,9 +84,21 @@ pub async fn create(
 ) -> Result<impl IntoResponse, WebError> {
     let core = CoreContext::new(state.repo.clone());
     let book = to_domain_book(0, &form);
+    let tag_names = parse_tag_names(&form.tags);
 
     match ritmo_core::book::create(&core, &book).await {
-        Ok(id) => Ok(Redirect::to(&format!("/books/{id}")).into_response()),
+        Ok(id) => match ritmo_core::book::replace_tags_from_names(&core, id, &tag_names).await {
+            Ok(()) => Ok(Redirect::to(&format!("/books/{id}")).into_response()),
+            Err(err) => {
+                let detail = BookRepository::new(&state.repo).get_detail(id).await.ok();
+                let has_contents = BookRepository::new(&state.repo).has_contents(id).await.ok();
+                let book = detail
+                    .zip(has_contents)
+                    .map(|(detail, has_contents)| build_book_detail_vm(detail, has_contents));
+                let page = render_page(&state, book, form, false, Some(err.to_string())).await?;
+                Ok(page.into_response())
+            }
+        },
         Err(err) => {
             let page = render_page(&state, None, form, true, Some(err.to_string())).await?;
             Ok(page.into_response())
@@ -97,7 +122,7 @@ async fn render_page(
     is_new: bool,
     error: Option<String>,
 ) -> Result<Html<String>, WebError> {
-    let (publishers, formats, series) = load_book_lookups(state).await?;
+    let (publishers, formats, series, available_tags) = load_book_lookups(state).await?;
 
     let mut ctx = Context::new();
     ctx.insert("book", &book);
@@ -105,6 +130,7 @@ async fn render_page(
     ctx.insert("publishers", &publishers);
     ctx.insert("formats", &formats);
     ctx.insert("series", &series);
+    ctx.insert("available_tags", &available_tags);
     ctx.insert("is_new", &is_new);
     ctx.insert("error", &error);
 
@@ -118,7 +144,7 @@ async fn render_page(
 
 async fn load_book_lookups(
     state: &AppState,
-) -> Result<(Vec<LookupItem>, Vec<LookupItem>, Vec<LookupItem>), WebError> {
+) -> Result<(Vec<LookupItem>, Vec<LookupItem>, Vec<LookupItem>, Vec<String>), WebError> {
     let core = CoreContext::new(state.repo.clone());
 
     let publishers = ritmo_core::publisher::list_all(&core)
@@ -145,7 +171,13 @@ async fn load_book_lookups(
         })
         .collect();
 
-    Ok((publishers, formats, series))
+    let available_tags = ritmo_core::tag::list_all(&core)
+        .await?
+        .into_iter()
+        .map(|tag| tag.name)
+        .collect();
+
+    Ok((publishers, formats, series, available_tags))
 }
 
 fn build_book_detail_vm(detail: BookDetailData, has_contents: bool) -> BookDetail {
@@ -190,6 +222,12 @@ fn build_book_form_data(detail: &BookDetailData) -> BookFormData {
         format_id: detail.format_id,
         series_id: detail.series_id,
         series_index: detail.series_index,
+        tags: detail
+            .tags
+            .iter()
+            .map(|(name, _tag_type)| name.clone())
+            .collect::<Vec<_>>()
+            .join(", "),
     }
 }
 
@@ -238,4 +276,33 @@ fn normalize_optional(value: &Option<String>) -> Option<String> {
         .as_ref()
         .map(|text| text.trim().to_owned())
         .filter(|text| !text.is_empty())
+}
+
+fn parse_tag_names(raw: &str) -> Vec<String> {
+    let mut seen = HashSet::new();
+    raw.split(',')
+        .filter_map(|part| {
+            let name = part.trim();
+            if name.is_empty() {
+                return None;
+            }
+            let key = name.to_ascii_lowercase();
+            if seen.insert(key) {
+                Some(name.to_owned())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_tag_names;
+
+    #[test]
+    fn parse_tag_names_trims_and_deduplicates_case_insensitive() {
+        let parsed = parse_tag_names(" Noir,  noir ,  , Fantasy ,fantasy");
+        assert_eq!(parsed, vec!["Noir", "Fantasy"]);
+    }
 }

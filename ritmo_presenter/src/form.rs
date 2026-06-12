@@ -68,6 +68,8 @@ pub struct BookFormData {
     pub series_id: Option<i64>,
     #[serde(deserialize_with = "deserialize_optional_i64")]
     pub series_index: Option<i64>,
+    #[serde(default)]
+    pub tags: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -85,6 +87,8 @@ pub struct ContentFormData {
     pub notes: Option<String>,
     #[serde(deserialize_with = "deserialize_optional_i64")]
     pub type_id: Option<i64>,
+    #[serde(default)]
+    pub tags: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

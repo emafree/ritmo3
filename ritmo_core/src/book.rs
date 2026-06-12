@@ -5,6 +5,7 @@ use ritmo_repository::{
     BookRepository, PersonRepository, RoleRepository, TagRepository, XBooksPeopleRolesRepository,
     XBooksTagsRepository,
 };
+use std::collections::HashSet;
 
 pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Book>> {
     BookRepository::new(&ctx.ctx).list_all().await
@@ -66,6 +67,59 @@ pub async fn update(ctx: &CoreContext, item: &Book) -> RitmoResult<()> {
     }
     let repo = BookRepository::new(&ctx.ctx);
     repo.update(item).await
+}
+
+pub async fn replace_tags_from_names(
+    ctx: &CoreContext,
+    book_id: i64,
+    tag_names: &[String],
+) -> RitmoResult<()> {
+    let tags_rel_repo = XBooksTagsRepository::new(&ctx.ctx);
+    let tag_repo = TagRepository::new(&ctx.ctx);
+
+    let mut target_tag_ids = HashSet::new();
+    for tag_name in tag_names {
+        let tag_name = tag_name.trim();
+        if tag_name.is_empty() {
+            continue;
+        }
+
+        let tag_id = if let Some(existing_tag) = tag_repo
+            .search(tag_name)
+            .await?
+            .into_iter()
+            .find(|tag| tag.name.eq_ignore_ascii_case(tag_name))
+        {
+            existing_tag.id
+        } else {
+            tag_repo
+                .save(&Tag {
+                    id: 0,
+                    name: tag_name.to_owned(),
+                    tag_type: "personal".to_owned(),
+                })
+                .await?;
+            tag_repo
+                .search(tag_name)
+                .await?
+                .into_iter()
+                .find(|tag| tag.name.eq_ignore_ascii_case(tag_name))
+                .ok_or_else(|| RitmoErr::RecordNotFound)?
+                .id
+        };
+        target_tag_ids.insert(tag_id);
+    }
+
+    let current_tag_ids: HashSet<i64> = tags_rel_repo.list_by_book(book_id).await?.into_iter().collect();
+
+    for tag_id in current_tag_ids.difference(&target_tag_ids) {
+        tags_rel_repo.delete(book_id, *tag_id).await?;
+    }
+    for tag_id in target_tag_ids.difference(&current_tag_ids) {
+        tags_rel_repo.create(book_id, *tag_id).await?;
+    }
+
+    Ok(())
 }
 
 pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
@@ -134,5 +188,46 @@ mod tests {
             0
         );
         assert!(ContentRepository::new(&repo_ctx).get(content_id).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn replace_tags_from_names_uses_existing_case_insensitive_tags() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let repo_ctx = RepositoryContext::new(pool);
+        let core = CoreContext::new(repo_ctx.clone());
+
+        let book_id = BookRepository::new(&repo_ctx).save(&sample_book()).await.unwrap();
+        let existing_tag_id = sqlx::query("INSERT INTO d_tags(name, tag_type) VALUES (?, ?)")
+            .bind("Noir")
+            .bind("genre")
+            .execute(repo_ctx.pool())
+            .await
+            .unwrap()
+            .last_insert_rowid();
+        let second_tag_id = sqlx::query("INSERT INTO d_tags(name, tag_type) VALUES (?, ?)")
+            .bind("Fantasy")
+            .bind("setting")
+            .execute(repo_ctx.pool())
+            .await
+            .unwrap()
+            .last_insert_rowid();
+        XBooksTagsRepository::new(&repo_ctx)
+            .create(book_id, existing_tag_id)
+            .await
+            .unwrap();
+
+        replace_tags_from_names(&core, book_id, &[" noir ".to_owned(), "fantasy".to_owned()])
+            .await
+            .unwrap();
+
+        let linked = XBooksTagsRepository::new(&repo_ctx)
+            .list_by_book(book_id)
+            .await
+            .unwrap();
+        assert_eq!(linked.len(), 2);
+        assert!(linked.contains(&existing_tag_id));
+        assert!(linked.contains(&second_tag_id));
     }
 }

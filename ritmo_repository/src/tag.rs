@@ -91,7 +91,8 @@ impl TagRepository {
     }
 
     pub async fn get_or_create(&self, value: &str, val_type: &str) -> RitmoResult<Tag> {
-        if let Some(row) = sqlx::query("SELECT id, name, tag_type FROM d_tags WHERE name = ?")
+        if let Some(row) =
+            sqlx::query("SELECT id, name, tag_type FROM d_tags WHERE name = ? COLLATE NOCASE")
             .bind(value)
             .fetch_optional(&self.pool)
             .await
@@ -110,6 +111,22 @@ impl TagRepository {
             tag_type: val_type.to_string(),
         };
         let id = self.save(&created).await?;
-        self.get(id).await
+        if id > 0 {
+            if let Ok(tag) = self.get(id).await {
+                return Ok(tag);
+            }
+        }
+
+        let row = sqlx::query("SELECT id, name, tag_type FROM d_tags WHERE name = ? COLLATE NOCASE")
+            .bind(value)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_query)?
+            .ok_or_else(not_found)?;
+        Ok(Tag {
+            id: row.get("id"),
+            name: row.get("name"),
+            tag_type: row.get("tag_type"),
+        })
     }
 }
