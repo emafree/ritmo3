@@ -7,6 +7,7 @@ use ritmo_presenter::{
     build_content_detail, build_content_list_items, ContentDetail, ContentFormData, LookupItem,
 };
 use ritmo_repository::{ContentDetailData, ContentRepository};
+use std::collections::HashSet;
 use tera::Context;
 
 use crate::error::WebError;
@@ -50,9 +51,24 @@ pub async fn save(
 ) -> Result<impl IntoResponse, WebError> {
     let core = CoreContext::new(state.repo.clone());
     let content = to_domain_content(id, &form);
+    let tag_names = parse_tag_names(&form.tags);
 
     match ritmo_core::content::update(&core, &content).await {
-        Ok(()) => Ok(Redirect::to(&format!("/contents/{id}")).into_response()),
+        Ok(()) => match ritmo_core::content::replace_tags_from_names(&core, id, &tag_names).await {
+            Ok(()) => Ok(Redirect::to(&format!("/contents/{id}")).into_response()),
+            Err(err) => {
+                let detail = ContentRepository::new(&state.repo)
+                    .get_detail(id)
+                    .await
+                    .ok();
+                let has_author = ContentRepository::new(&state.repo).has_author(id).await.ok();
+                let content = detail
+                    .zip(has_author)
+                    .map(|(detail, has_author)| build_content_detail_vm(detail, has_author));
+                let page = render_page(&state, content, form, false, Some(err.to_string())).await?;
+                Ok(page.into_response())
+            }
+        },
         Err(err) => {
             let detail = ContentRepository::new(&state.repo)
                 .get_detail(id)
@@ -74,9 +90,24 @@ pub async fn create(
 ) -> Result<impl IntoResponse, WebError> {
     let core = CoreContext::new(state.repo.clone());
     let content = to_domain_content(0, &form);
+    let tag_names = parse_tag_names(&form.tags);
 
     match ritmo_core::content::create(&core, &content).await {
-        Ok(id) => Ok(Redirect::to(&format!("/contents/{id}")).into_response()),
+        Ok(id) => match ritmo_core::content::replace_tags_from_names(&core, id, &tag_names).await {
+            Ok(()) => Ok(Redirect::to(&format!("/contents/{id}")).into_response()),
+            Err(err) => {
+                let detail = ContentRepository::new(&state.repo)
+                    .get_detail(id)
+                    .await
+                    .ok();
+                let has_author = ContentRepository::new(&state.repo).has_author(id).await.ok();
+                let content = detail
+                    .zip(has_author)
+                    .map(|(detail, has_author)| build_content_detail_vm(detail, has_author));
+                let page = render_page(&state, content, form, false, Some(err.to_string())).await?;
+                Ok(page.into_response())
+            }
+        },
         Err(err) => {
             let page = render_page(&state, None, form, true, Some(err.to_string())).await?;
             Ok(page.into_response())
@@ -101,11 +132,13 @@ async fn render_page(
     error: Option<String>,
 ) -> Result<Html<String>, WebError> {
     let content_types = load_content_types(state).await?;
+    let available_tags = load_available_tags(state).await?;
 
     let mut ctx = Context::new();
     ctx.insert("content", &content);
     ctx.insert("form", &form);
     ctx.insert("types", &content_types);
+    ctx.insert("available_tags", &available_tags);
     ctx.insert("is_new", &is_new);
     ctx.insert("error", &error);
 
@@ -124,6 +157,15 @@ async fn load_content_types(state: &AppState) -> Result<Vec<LookupItem>, WebErro
         .await?
         .into_iter()
         .map(|(id, _key, label)| LookupItem { id, label })
+        .collect())
+}
+
+async fn load_available_tags(state: &AppState) -> Result<Vec<String>, WebError> {
+    let core = CoreContext::new(state.repo.clone());
+    Ok(ritmo_core::tag::list_all(&core)
+        .await?
+        .into_iter()
+        .map(|tag| tag.name)
         .collect())
 }
 
@@ -157,6 +199,12 @@ fn build_content_form_data(detail: &ContentDetailData) -> ContentFormData {
             .unwrap_or(false),
         notes: detail.notes.clone(),
         type_id: detail.type_id,
+        tags: detail
+            .tags
+            .iter()
+            .map(|(name, _tag_type)| name.clone())
+            .collect::<Vec<_>>()
+            .join(", "),
     }
 }
 
@@ -199,4 +247,33 @@ fn normalize_optional(value: &Option<String>) -> Option<String> {
         .as_ref()
         .map(|text| text.trim().to_owned())
         .filter(|text| !text.is_empty())
+}
+
+fn parse_tag_names(raw: &str) -> Vec<String> {
+    let mut seen = HashSet::new();
+    raw.split(',')
+        .filter_map(|part| {
+            let name = part.trim();
+            if name.is_empty() {
+                return None;
+            }
+            let key = name.to_ascii_lowercase();
+            if seen.insert(key) {
+                Some(name.to_owned())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_tag_names;
+
+    #[test]
+    fn parse_tag_names_trims_and_deduplicates_case_insensitive() {
+        let parsed = parse_tag_names(" Noir,  noir ,  , Fantasy ,fantasy");
+        assert_eq!(parsed, vec!["Noir", "Fantasy"]);
+    }
 }

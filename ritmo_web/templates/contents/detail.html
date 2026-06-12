@@ -39,12 +39,17 @@
       </select>
     </label>
   </p>
+  <p>
+    <label>Tag (separati da virgola)
+      <input type="text" id="tags_input" name="tags" value="{{ form.tags | default(value="") }}" list="tags_suggestions">
+    </label>
+    <datalist id="tags_suggestions"></datalist>
+  </p>
   <p><label>Note <textarea name="notes">{{ form.notes | default(value="") }}</textarea></label></p>
 </form>
 
 <h2>Relazioni</h2>
 <p>Persone + ruoli: modifica non ancora disponibile.</p>
-<p>Tag: modifica non ancora disponibile.</p>
 <p>Lingue: modifica non ancora disponibile.</p>
 <p>Libri collegati: modifica non ancora disponibile.</p>
 
@@ -87,6 +92,39 @@ if (deleteButton && pageError && pageErrorText) {
     pageError.hidden = false;
     pageErrorText.textContent = message;
   });
+}
+
+const availableTags = {{ available_tags | json_encode | safe }};
+const tagsInput = document.getElementById('tags_input');
+const tagsDatalist = document.getElementById('tags_suggestions');
+if (tagsInput && tagsDatalist) {
+  const refreshTagSuggestions = () => {
+    const cursor = tagsInput.selectionStart ?? tagsInput.value.length;
+    const beforeCursor = tagsInput.value.slice(0, cursor);
+    const currentPart = beforeCursor.split(',').pop().trim().toLowerCase();
+    const selected = new Set(
+      tagsInput.value
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value.length > 0)
+    );
+
+    tagsDatalist.innerHTML = '';
+    if (!currentPart) return;
+
+    availableTags
+      .filter((tag) => tag.toLowerCase().includes(currentPart))
+      .filter((tag) => !selected.has(tag.toLowerCase()) || tag.toLowerCase() === currentPart)
+      .slice(0, 10)
+      .forEach((tag) => {
+        const option = document.createElement('option');
+        option.value = tag;
+        tagsDatalist.appendChild(option);
+      });
+  };
+
+  tagsInput.addEventListener('input', refreshTagSuggestions);
+  tagsInput.addEventListener('focus', refreshTagSuggestions);
 }
 </script>
 {% endblock %}
