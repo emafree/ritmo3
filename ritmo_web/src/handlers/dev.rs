@@ -1,6 +1,7 @@
 use axum::extract::State;
 use axum::response::Html;
 use ritmo_core::place::{self, PlaceOwner};
+use ritmo_core::{book, content};
 use serde::Serialize;
 use tera::Context;
 
@@ -18,6 +19,7 @@ struct DateWidgetExample {
 }
 
 pub async fn widgets(State(state): State<AppState>) -> Result<Html<String>, WebError> {
+    // Places (entity: people/1)
     let linked_places = place::list_linked(&state.core, PlaceOwner::Person(1)).await?;
     let places = linked_places
         .into_iter()
@@ -33,6 +35,28 @@ pub async fn widgets(State(state): State<AppState>) -> Result<Html<String>, WebE
             )
         })
         .collect::<Vec<_>>();
+
+    // People+Roles (entity: books/1)
+    let pr_pairs = book::list_people_with_roles(&state.core, 1).await.unwrap_or_default();
+    let pr_people_roles = ritmo_presenter::build_people_role_items(
+        pr_pairs
+            .into_iter()
+            .map(|(person, role)| (person.id, person.name, role.id, role.i18n_key))
+            .collect(),
+    );
+
+    // Tags (entity: books/1)
+    let tag_list = book::list_tags(&state.core, 1).await.unwrap_or_default();
+    let tag_items = ritmo_presenter::build_tag_badges(
+        tag_list
+            .into_iter()
+            .map(|t| (t.id, t.name, t.tag_type))
+            .collect(),
+    );
+
+    // Languages (entity: contents/1)
+    let lang_pairs = content::list_languages_with_roles(&state.core, 1).await.unwrap_or_default();
+    let lang_items = ritmo_presenter::build_lang_widget_items(lang_pairs);
 
     let mut ctx = Context::new();
     ctx.insert(
@@ -67,6 +91,15 @@ pub async fn widgets(State(state): State<AppState>) -> Result<Html<String>, WebE
     ctx.insert("entity_type", "people");
     ctx.insert("entity_id", &1_i64);
     ctx.insert("places", &ritmo_presenter::build_place_items(places, "it"));
+    ctx.insert("pr_entity_type", "books");
+    ctx.insert("pr_entity_id", &1_i64);
+    ctx.insert("pr_people_roles", &pr_people_roles);
+    ctx.insert("tag_entity_type", "books");
+    ctx.insert("tag_entity_id", &1_i64);
+    ctx.insert("tag_items", &tag_items);
+    ctx.insert("lang_entity_type", "contents");
+    ctx.insert("lang_entity_id", &1_i64);
+    ctx.insert("lang_items", &lang_items);
 
     let html = state
         .tera
@@ -103,3 +136,4 @@ mod tests {
         assert!(html.contains("Widget: Luoghi"));
     }
 }
+

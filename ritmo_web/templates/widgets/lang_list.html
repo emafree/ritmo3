@@ -1,0 +1,25 @@
+<div class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <div id="lang-list-{{ lang_entity_type }}-{{ lang_entity_id }}" style="display: grid; gap: 8px;">
+    {% for item in lang_items %}
+    {% include "widgets/lang_row.html" %}
+    {% else %}
+    <div class="content-row" style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;">
+      <span class="content-title">Nessuna lingua collegata.</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div>
+    <button
+      class="topbar-btn"
+      hx-get="/languages/search-panel?entity_type={{ lang_entity_type }}&entity_id={{ lang_entity_id }}"
+      hx-target="#lang-search-panel-{{ lang_entity_type }}-{{ lang_entity_id }}"
+      hx-swap="innerHTML"
+      type="button"
+    >
+      + Aggiungi lingua
+    </button>
+  </div>
+
+  <div id="lang-search-panel-{{ lang_entity_type }}-{{ lang_entity_id }}"></div>
+</div>

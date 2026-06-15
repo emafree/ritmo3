@@ -2,8 +2,8 @@ use crate::CoreContext;
 use ritmo_domain::{Book, Person, Role, Tag};
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{
-    BookRepository, PersonRepository, RoleRepository, TagRepository, XBooksPeopleRolesRepository,
-    XBooksTagsRepository,
+    BookRepository, PersonRepository, RoleRepository, TagRepository, XBookLanguagesRepository,
+    XBooksPeopleRolesRepository, XBooksTagsRepository,
 };
 use std::collections::HashSet;
 
@@ -43,6 +43,16 @@ pub async fn list_tags(ctx: &CoreContext, book_id: i64) -> RitmoResult<Vec<Tag>>
         tags.push(tag_repo.get(tag_id).await?);
     }
     Ok(tags)
+}
+
+/// Returns (language_id, official_name, role_id, role_label) tuples for languages linked to a book.
+pub async fn list_languages_with_roles(
+    ctx: &CoreContext,
+    book_id: i64,
+) -> RitmoResult<Vec<(i64, String, i64, String)>> {
+    XBookLanguagesRepository::new(&ctx.ctx)
+        .list_with_roles_by_book(book_id)
+        .await
 }
 
 pub async fn get_format_name(ctx: &CoreContext, book_id: i64) -> RitmoResult<Option<String>> {

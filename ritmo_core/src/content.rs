@@ -57,6 +57,16 @@ pub async fn list_languages(ctx: &CoreContext, content_id: i64) -> RitmoResult<V
     Ok(languages)
 }
 
+/// Returns (language_id, official_name, role_id, role_label) tuples for languages linked to a content.
+pub async fn list_languages_with_roles(
+    ctx: &CoreContext,
+    content_id: i64,
+) -> RitmoResult<Vec<(i64, String, i64, String)>> {
+    XContentLanguagesRepository::new(&ctx.ctx)
+        .list_with_roles_by_content(content_id)
+        .await
+}
+
 pub async fn create(ctx: &CoreContext, item: &Content) -> RitmoResult<i64> {
     if item.title.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("title cannot be empty".to_string()));

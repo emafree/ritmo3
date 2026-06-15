@@ -61,6 +61,40 @@ impl XBookLanguagesRepository {
             .collect())
     }
 
+    /// Returns (language_id, official_name, role_id, role_label) for languages linked to a book.
+    pub async fn list_with_roles_by_book(
+        &self,
+        book_id: i64,
+    ) -> RitmoResult<Vec<(i64, String, i64, String)>> {
+        let rows = sqlx::query(
+            "SELECT l.id AS language_id, l.official_name,
+                    r.id AS role_id,
+                    COALESCE(rt.label, r.code) AS role_label
+             FROM x_book_languages xbl
+             INNER JOIN d_languages l ON l.id = xbl.language_id
+             INNER JOIN s_book_language_roles r ON r.id = xbl.role_id
+             LEFT JOIN s_book_language_role_translations rt
+                    ON rt.role_id = r.id AND rt.language_code = 'it'
+             WHERE xbl.book_id = ?
+             ORDER BY r.code COLLATE NOCASE, l.official_name COLLATE NOCASE",
+        )
+        .bind(book_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get::<i64, _>("language_id"),
+                    row.get::<String, _>("official_name"),
+                    row.get::<i64, _>("role_id"),
+                    row.get::<String, _>("role_label"),
+                )
+            })
+            .collect())
+    }
+
     pub async fn list_by_language(
         &self,
         language_id: i64,

@@ -1,0 +1,25 @@
+<div class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <div id="people-roles-list-{{ pr_entity_type }}-{{ pr_entity_id }}" style="display: grid; gap: 8px;">
+    {% for item in pr_people_roles %}
+    {% include "widgets/people_roles_row.html" %}
+    {% else %}
+    <div class="content-row" style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;">
+      <span class="content-title">Nessuna persona collegata.</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div>
+    <button
+      class="topbar-btn"
+      hx-get="/people-roles/search-panel?entity_type={{ pr_entity_type }}&entity_id={{ pr_entity_id }}"
+      hx-target="#people-roles-panel-{{ pr_entity_type }}-{{ pr_entity_id }}"
+      hx-swap="innerHTML"
+      type="button"
+    >
+      + Aggiungi persona
+    </button>
+  </div>
+
+  <div id="people-roles-panel-{{ pr_entity_type }}-{{ pr_entity_id }}"></div>
+</div>

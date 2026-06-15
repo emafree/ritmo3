@@ -1,0 +1,18 @@
+<div id="lang-search-panel-{{ lang_entity_type }}-{{ lang_entity_id }}" class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <input
+    type="text"
+    name="q"
+    placeholder="Cerca lingua per nome o codice"
+    hx-get="/languages/search"
+    hx-trigger="keyup changed delay:200ms"
+    hx-target="#lang-search-results-{{ lang_entity_type }}-{{ lang_entity_id }}"
+    hx-include="#lang-search-panel-{{ lang_entity_type }}-{{ lang_entity_id }}"
+    style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+  >
+  <input type="hidden" name="entity_type" value="{{ lang_entity_type }}">
+  <input type="hidden" name="entity_id" value="{{ lang_entity_id }}">
+
+  <div id="lang-search-results-{{ lang_entity_type }}-{{ lang_entity_id }}" style="display: grid; gap: 8px;">
+    {% include "widgets/lang_search_results.html" %}
+  </div>
+</div>
