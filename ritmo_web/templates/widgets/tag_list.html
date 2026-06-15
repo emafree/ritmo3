@@ -1,0 +1,29 @@
+<div class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <div id="tag-list-{{ tag_entity_type }}-{{ tag_entity_id }}" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px;">
+    {% for tag in tag_items %}
+    {% include "widgets/tag_badge.html" %}
+    {% endfor %}
+  </div>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
+    <input
+      type="text"
+      name="q"
+      placeholder="Cerca o crea tag"
+      hx-get="/tags/search"
+      hx-trigger="keyup changed delay:200ms"
+      hx-target="#tag-search-results-{{ tag_entity_type }}-{{ tag_entity_id }}"
+      hx-include="#tag-search-panel-{{ tag_entity_type }}-{{ tag_entity_id }}"
+      style="flex: 1; min-width: 180px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+    >
+    <input type="hidden" name="entity_type" value="{{ tag_entity_type }}">
+    <input type="hidden" name="entity_id" value="{{ tag_entity_id }}">
+  </div>
+
+  <div id="tag-search-panel-{{ tag_entity_type }}-{{ tag_entity_id }}" style="display:none;">
+    <input type="hidden" name="entity_type" value="{{ tag_entity_type }}">
+    <input type="hidden" name="entity_id" value="{{ tag_entity_id }}">
+  </div>
+
+  <div id="tag-search-results-{{ tag_entity_type }}-{{ tag_entity_id }}" style="display: grid; gap: 8px;"></div>
+</div>

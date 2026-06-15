@@ -33,6 +33,70 @@ pub struct LanguageItem {
     pub role: String,
 }
 
+/// Item used by the People+Roles widget to represent a linked (person, role) pair.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct PeopleRoleItem {
+    pub person_id: i64,
+    pub person_name: String,
+    pub role_id: i64,
+    pub role_key: String,
+}
+
+/// Tag badge used by the Tag widget.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct TagBadge {
+    pub tag_id: i64,
+    pub name: String,
+    pub tag_type: String,
+}
+
+/// Item used by the Language widget to represent a linked (language, role) pair.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct LangWidgetItem {
+    pub language_id: i64,
+    pub official_name: String,
+    pub role_id: i64,
+    pub role_name: String,
+}
+
+pub fn build_people_role_items(
+    pairs: Vec<(i64, String, i64, String)>,
+) -> Vec<PeopleRoleItem> {
+    pairs
+        .into_iter()
+        .map(|(person_id, person_name, role_id, role_key)| PeopleRoleItem {
+            person_id,
+            person_name,
+            role_id,
+            role_key,
+        })
+        .collect()
+}
+
+pub fn build_tag_badges(tags: Vec<(i64, String, String)>) -> Vec<TagBadge> {
+    tags.into_iter()
+        .map(|(tag_id, name, tag_type)| TagBadge {
+            tag_id,
+            name,
+            tag_type,
+        })
+        .collect()
+}
+
+pub fn build_lang_widget_items(
+    langs: Vec<(i64, String, i64, String)>,
+) -> Vec<LangWidgetItem> {
+    langs
+        .into_iter()
+        .map(|(language_id, official_name, role_id, role_name)| LangWidgetItem {
+            language_id,
+            official_name,
+            role_id,
+            role_name,
+        })
+        .collect()
+}
+
 pub fn format_partial_date(date: Option<PartialDate>) -> Option<String> {
     let date = date?;
     let mut parts = Vec::new();

@@ -23,6 +23,10 @@ pub async fn delete(ctx: &CoreContext, id: i64) -> RitmoResult<()> {
     PersonRepository::new(&ctx.ctx).delete(id).await
 }
 
+pub async fn search(ctx: &CoreContext, query: &str) -> RitmoResult<Vec<Person>> {
+    PersonRepository::new(&ctx.ctx).search(query.trim()).await
+}
+
 pub async fn add_alias(ctx: &CoreContext, alias: &Alias) -> RitmoResult<i64> {
     if alias.alternative_name.trim().is_empty() {
         return Err(RitmoErr::InvalidInput(

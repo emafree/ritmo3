@@ -1,0 +1,15 @@
+<span
+  id="tag-badge-{{ tag_entity_type }}-{{ tag_entity_id }}-{{ tag.tag_id }}"
+  style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; font-size: 0.85em;"
+>
+  {{ tag.name }}
+  <button
+    class="book-action delete"
+    hx-delete="/{{ tag_entity_type }}/{{ tag_entity_id }}/tags/{{ tag.tag_id }}"
+    hx-target="#tag-badge-{{ tag_entity_type }}-{{ tag_entity_id }}-{{ tag.tag_id }}"
+    hx-swap="outerHTML"
+    type="button"
+    style="padding: 0 2px; font-size: 0.9em; line-height: 1;"
+    title="Rimuovi tag"
+  >✕</button>
+</span>

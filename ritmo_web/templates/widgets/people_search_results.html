@@ -1,0 +1,26 @@
+{% if results | length > 0 %}
+  {% for result in results %}
+  <div class="book-item" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); display: grid; gap: 8px;">
+    <span class="content-title">{{ result.name }}</span>
+    <form
+      hx-post="/{{ pr_entity_type }}/{{ pr_entity_id }}/people"
+      hx-target="#people-roles-list-{{ pr_entity_type }}-{{ pr_entity_id }}"
+      hx-swap="beforeend"
+    >
+      <input type="hidden" name="person_id" value="{{ result.id }}">
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <select name="role_id" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+          {% for role in roles %}
+          <option value="{{ role.id }}">{{ role.i18n_key }}</option>
+          {% endfor %}
+        </select>
+        <button class="book-action" type="submit">Collega</button>
+      </div>
+    </form>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="content-row" style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;">
+    <span class="content-title">Nessun risultato.</span>
+  </div>
+{% endif %}

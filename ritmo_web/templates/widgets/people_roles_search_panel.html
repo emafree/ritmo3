@@ -1,0 +1,18 @@
+<div id="people-roles-panel-{{ pr_entity_type }}-{{ pr_entity_id }}" class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <input
+    type="text"
+    name="q"
+    placeholder="Cerca persona per nome"
+    hx-get="/people/search"
+    hx-trigger="keyup changed delay:200ms"
+    hx-target="#people-search-results-{{ pr_entity_type }}-{{ pr_entity_id }}"
+    hx-include="#people-roles-panel-{{ pr_entity_type }}-{{ pr_entity_id }}"
+    style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+  >
+  <input type="hidden" name="entity_type" value="{{ pr_entity_type }}">
+  <input type="hidden" name="entity_id" value="{{ pr_entity_id }}">
+
+  <div id="people-search-results-{{ pr_entity_type }}-{{ pr_entity_id }}" style="display: grid; gap: 8px;">
+    {% include "widgets/people_search_results.html" %}
+  </div>
+</div>

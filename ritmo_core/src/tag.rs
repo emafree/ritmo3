@@ -7,6 +7,18 @@ pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Tag>> {
     TagRepository::new(&ctx.ctx).list_all().await
 }
 
+pub async fn get(ctx: &CoreContext, id: i64) -> RitmoResult<Tag> {
+    TagRepository::new(&ctx.ctx).get(id).await
+}
+
+pub async fn search(ctx: &CoreContext, query: &str) -> RitmoResult<Vec<Tag>> {
+    TagRepository::new(&ctx.ctx).search(query.trim()).await
+}
+
+pub async fn get_or_create(ctx: &CoreContext, name: &str, tag_type: &str) -> RitmoResult<Tag> {
+    TagRepository::new(&ctx.ctx).get_or_create(name.trim(), tag_type).await
+}
+
 pub async fn create(ctx: &CoreContext, item: &Tag) -> RitmoResult<i64> {
     if item.name.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("name cannot be empty".to_string()));

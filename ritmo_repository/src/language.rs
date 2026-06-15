@@ -123,6 +123,91 @@ impl LanguageRepository {
             .collect())
     }
 
+    /// Search languages by official_name OR iso_code_2char.
+    pub async fn search_by_name_or_code(&self, query: &str) -> RitmoResult<Vec<Language>> {
+        let pattern = format!("%{query}%");
+        let rows = sqlx::query(
+            "SELECT id, iso_code_2char, iso_code_3char, official_name
+             FROM d_languages
+             WHERE official_name LIKE ? COLLATE NOCASE
+                OR iso_code_2char LIKE ? COLLATE NOCASE
+             ORDER BY official_name",
+        )
+        .bind(&pattern)
+        .bind(&pattern)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| Language {
+                id: row.get("id"),
+                iso_639_2: row.get("iso_code_2char"),
+                iso_639_3: row.get("iso_code_3char"),
+                name: row.get("official_name"),
+            })
+            .collect())
+    }
+
+    /// Returns available language roles for book-language relationships.
+    /// Returns (role_id, role_key, role_label) tuples.
+    pub async fn list_book_language_roles(
+        &self,
+        lang: &str,
+    ) -> RitmoResult<Vec<(i64, String, String)>> {
+        let rows = sqlx::query(
+            "SELECT r.id, r.code, COALESCE(rt.label, r.code) AS label
+             FROM s_book_language_roles r
+             LEFT JOIN s_book_language_role_translations rt
+                    ON rt.role_id = r.id AND rt.language_code = ?
+             ORDER BY r.code",
+        )
+        .bind(lang)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get::<i64, _>("id"),
+                    row.get::<String, _>("code"),
+                    row.get::<String, _>("label"),
+                )
+            })
+            .collect())
+    }
+
+    /// Returns available language roles for content-language relationships.
+    /// Returns (role_id, role_key, role_label) tuples.
+    pub async fn list_content_language_roles(
+        &self,
+        lang: &str,
+    ) -> RitmoResult<Vec<(i64, String, String)>> {
+        let rows = sqlx::query(
+            "SELECT r.id, r.code, COALESCE(rt.label, r.code) AS label
+             FROM s_content_language_roles r
+             LEFT JOIN s_content_language_role_translations rt
+                    ON rt.role_id = r.id AND rt.language_code = ?
+             ORDER BY r.code",
+        )
+        .bind(lang)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_query)?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get::<i64, _>("id"),
+                    row.get::<String, _>("code"),
+                    row.get::<String, _>("label"),
+                )
+            })
+            .collect())
+    }
+
     pub async fn get_or_create(&self, name: &str) -> RitmoResult<Language> {
         if let Some(row) = sqlx::query(
             "SELECT id, iso_code_2char, iso_code_3char, official_name FROM d_languages WHERE official_name = ?",

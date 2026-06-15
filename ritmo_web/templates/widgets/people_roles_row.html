@@ -1,0 +1,15 @@
+<div id="people-roles-row-{{ pr_entity_type }}-{{ pr_entity_id }}-{{ item.person_id }}-{{ item.role_id }}" class="content-row" style="padding-left: 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);">
+  <span class="content-title">{{ item.person_name }} · {{ item.role_key }}</span>
+  <div class="book-actions" style="opacity: 1;">
+    <button
+      class="book-action delete"
+      hx-delete="/{{ pr_entity_type }}/{{ pr_entity_id }}/people/{{ item.person_id }}/roles/{{ item.role_id }}"
+      hx-target="#people-roles-row-{{ pr_entity_type }}-{{ pr_entity_id }}-{{ item.person_id }}-{{ item.role_id }}"
+      hx-swap="outerHTML"
+      hx-confirm="Scollegare questa persona?"
+      type="button"
+    >
+      Scollega
+    </button>
+  </div>
+</div>

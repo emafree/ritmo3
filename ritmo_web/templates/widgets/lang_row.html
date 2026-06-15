@@ -1,0 +1,15 @@
+<div id="lang-row-{{ lang_entity_type }}-{{ lang_entity_id }}-{{ item.language_id }}-{{ item.role_id }}" class="content-row" style="padding-left: 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);">
+  <span class="content-title">{{ item.official_name }} · {{ item.role_name }}</span>
+  <div class="book-actions" style="opacity: 1;">
+    <button
+      class="book-action delete"
+      hx-delete="/{{ lang_entity_type }}/{{ lang_entity_id }}/languages/{{ item.language_id }}/roles/{{ item.role_id }}"
+      hx-target="#lang-row-{{ lang_entity_type }}-{{ lang_entity_id }}-{{ item.language_id }}-{{ item.role_id }}"
+      hx-swap="outerHTML"
+      hx-confirm="Scollegare questa lingua?"
+      type="button"
+    >
+      Scollega
+    </button>
+  </div>
+</div>
