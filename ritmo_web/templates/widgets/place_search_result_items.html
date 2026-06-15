@@ -13,8 +13,22 @@
     <button class="book-action" type="submit">Collega</button>
   </form>
   {% endfor %}
-{% else %}
+{% elif not query %}
   <div class="content-row" style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;">
     <span class="content-title">Nessun risultato.</span>
   </div>
+{% endif %}
+{% if query %}
+<form
+  class="content-row"
+  style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;"
+  hx-post="/{{ entity_type }}/{{ entity_id }}/places/new"
+  hx-target="#place-list-{{ entity_type }}-{{ entity_id }}"
+  hx-swap="beforeend"
+  hx-include="#place-search-panel-{{ entity_type }}-{{ entity_id }}"
+>
+  <input type="hidden" name="q" value="{{ query }}">
+  <span class="content-title">+ Aggiungi &ldquo;{{ query }}&rdquo;</span>
+  <button class="book-action" type="submit">Crea e collega</button>
+</form>
 {% endif %}

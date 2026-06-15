@@ -27,6 +27,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/places", post(places::create))
         .route("/places/{place_id}", put(places::update))
         .route("/{entity_type}/{entity_id}/places", post(places::link))
+        .route("/{entity_type}/{entity_id}/places/new", post(places::create_and_link))
         .route(
             "/{entity_type}/{entity_id}/places/{place_id}",
             delete(places::unlink),
@@ -35,6 +36,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/people-roles/search-panel", get(people_roles::search_panel))
         .route("/people/search", get(people_roles::person_search))
         .route("/{entity_type}/{entity_id}/people", post(people_roles::link))
+        .route("/{entity_type}/{entity_id}/people/new", post(people_roles::create_and_link_person))
         .route(
             "/{entity_type}/{entity_id}/people/{person_id}/roles/{role_id}",
             delete(people_roles::unlink),

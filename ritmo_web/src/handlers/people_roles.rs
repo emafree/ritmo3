@@ -1,6 +1,7 @@
 use axum::extract::{Form, Path, Query, State};
 use axum::response::Html;
-use ritmo_core::{book, content, rel_book_person, rel_content_person, role};
+use ritmo_core::{book, content, person, rel_book_person, rel_content_person, role};
+use ritmo_domain::Person;
 use serde::{Deserialize, Serialize};
 use tera::Context;
 
@@ -102,6 +103,7 @@ pub async fn person_search(
     ctx.insert("pr_entity_id", &query.entity_id);
     ctx.insert("results", &results);
     ctx.insert("roles", &roles);
+    ctx.insert("q", &q);
     let html = state
         .tera
         .render("widgets/people_search_results.html", &ctx)
@@ -160,4 +162,75 @@ pub async fn unlink(
         _ => return Err(ritmo_errors::RitmoErr::InvalidInput(format!("unknown entity_type: {entity_type}")).into()),
     }
     Ok(Html(String::new()))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePersonAndLinkForm {
+    person_name: String,
+    role_id: i64,
+}
+
+pub async fn create_and_link_person(
+    State(state): State<AppState>,
+    Path((entity_type, entity_id)): Path<(String, i64)>,
+    Form(form): Form<CreatePersonAndLinkForm>,
+) -> Result<Html<String>, WebError> {
+    validate_entity_type(&entity_type)?;
+    let name = form.person_name.trim().to_owned();
+    if name.is_empty() {
+        return Err(ritmo_errors::RitmoErr::InvalidInput("person_name required".to_owned()).into());
+    }
+    let person_id = person::create(
+        &state.core,
+        &Person {
+            id: 0,
+            name: name.clone(),
+            display_name: None,
+            given_name: None,
+            surname: None,
+            middle_names: None,
+            title: None,
+            suffix: None,
+            birth_date: None,
+            death_date: None,
+            biography: None,
+            verified: false,
+        },
+    )
+    .await?;
+
+    match entity_type.as_str() {
+        "books" => rel_book_person::link(&state.core, entity_id, person_id, form.role_id).await?,
+        "contents" => rel_content_person::link(&state.core, entity_id, person_id, form.role_id).await?,
+        _ => unreachable!(),
+    }
+
+    let pairs = match entity_type.as_str() {
+        "books" => book::list_people_with_roles(&state.core, entity_id).await?,
+        _ => content::list_people_with_roles(&state.core, entity_id).await?,
+    };
+
+    let found = pairs
+        .into_iter()
+        .find(|(p, r)| p.id == person_id && r.id == form.role_id);
+
+    if let Some((p, r)) = found {
+        let item = ritmo_presenter::PeopleRoleItem {
+            person_id: p.id,
+            person_name: p.name,
+            role_id: r.id,
+            role_key: r.i18n_key,
+        };
+        let mut ctx = Context::new();
+        ctx.insert("pr_entity_type", &entity_type);
+        ctx.insert("pr_entity_id", &entity_id);
+        ctx.insert("item", &item);
+        let html = state
+            .tera
+            .render("widgets/people_roles_row.html", &ctx)
+            .map_err(|e| ritmo_errors::RitmoErr::UnknownError(format!("Template error: {e}")))?;
+        Ok(Html(html))
+    } else {
+        Ok(Html(String::new()))
+    }
 }
