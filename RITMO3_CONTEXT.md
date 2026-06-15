@@ -617,4 +617,4 @@ Si butta:
 - Il router esistente
 - Tutta la logica di form e dettaglio basata su pagine separate
 
-Il primo passo della ricostruzione è il layout shell — la struttura HTML fissa con topbar, sidebar, area contenuto e statusbar, senza ancora contenuto reale. Da lì si costruisce incrementalmente.
+Il primo passo della ricostruzione è il layout shell — la struttura HTML fissa con topbar, sidebar, area contenuto e statusbar, senza ancora contenuto reale. Da lì si costruisce incrementalmente. | ✅ fatto |
