@@ -523,3 +523,98 @@ Obbligatoria. Ogni tabella deve avere uno di questi prefissi:
 - `s_` — tabelle di sistema: dati interni al funzionamento dell'applicazione
 
 Nessuna tabella senza prefisso. Schema, seed e query in `ritmo_repository` devono essere sempre allineati.
+
+
+---
+
+## Sessione del 15 giugno 2026 — Revisione dell'interfaccia
+
+### Decisione: rifacimento completo di `ritmo_web`
+
+L'interfaccia web esistente è stata valutata insufficiente. Il problema non è tecnico ma concettuale: il modello "pagine separate per ogni entità" non corrisponde al modello mentale dell'applicazione. Il frontend va rifatto da zero con una direzione chiara.
+
+**Tutto il resto del progetto è intoccabile.** `ritmo_repository`, `ritmo_core`, `ritmo_presenter`, lo schema SQL, il seeding — nessuna modifica. Il rifacimento riguarda esclusivamente `ritmo_web`.
+
+---
+
+### Modello utente chiarito
+
+**Modalità di uso primarie:**
+
+1. **Navigazione esplorativa** — l'utente cerca un libro con ricordo vago (autore incerto, titolo parziale, ricorda che era un racconto in un'antologia). Il percorso è: cerco → filtro → trovo → approfondisco → confronto.
+
+2. **Data entry intensivo** — l'utente ha un batch di EPUB da catalogare. Il flusso è ripetitivo: apro un EPUB → estraggo quello che posso → completo a mano → salvo → prossimo.
+
+**Distribuzione del tempo stimata:**
+- Liste: 40%
+- Vista filtri: 20%
+- Vista libri: 15%
+- Vista contenuti: 15%
+- Altre visualizzazioni (autori, persone, luoghi, ecc.): 10%
+
+**Deployment:** server web locale (`localhost`), accessibile da più browser sulla stessa rete locale (es. utente principale + moglie). Nessun server remoto.
+
+**Sessioni utente:** identificazione tramite cookie di sessione, senza login esplicito. Ogni browser ha la propria sessione. I filtri salvati e le preferenze sono per sessione, memorizzati nel database (`s_filter_sets`, `s_filter_conditions` già presenti nello schema). Nessuna gestione password.
+
+---
+
+### Architettura del nuovo frontend
+
+**Stack tecnologico:**
+- **Axum** — server web locale (invariato)
+- **Tera** — template engine server-rendered (invariato)
+- **HTMX** — reattività senza SPA; il server restituisce frammenti HTML, HTMX aggiorna il DOM in place
+- **FTS5** — ricerca full-text SQLite per autocomplete e ricerca fuzzy
+- **CSS** — layout applicativo secondo il wireframe (IBM Plex Sans/Mono, dark theme, accenti gold/amber)
+
+**Modello di layout (dal wireframe `rwf.html`):**
+┌─────────────────────────────────────────────────┐
+│ TOPBAR: logo · toggle vista · search · azioni   │
+├──────────────┬──────────────────────────────────┤
+│              │                                  │
+│   SIDEBAR    │         LISTA / CONTENUTO        │
+│   (filtri)   │                                  │
+│   240px      │                                  │
+│              │                                  │
+├──────────────┴──────────────────────────────────┤
+│ STATUSBAR: contatori · filtri attivi · Kobo     │
+└─────────────────────────────────────────────────┘
+- Layout fisso a quattro zone: topbar, sidebar, contenuto, statusbar
+- Una sola superficie applicativa — nessuna navigazione tra pagine
+- Il toggle in topbar cambia la vista attiva (Libri / Contenuti / Persone / ecc.)
+- I filtri nella sidebar si accumulano e restano visibili e attivi
+- La lista si aggiorna via HTMX senza reload
+- Le viste di dettaglio e i form si aprono come **popup/modale** sovrapposto alla lista — la lista rimane sotto, chiudendo il popup si torna esattamente dove si era
+
+**Autocomplete — elemento centrale dell'interfaccia:**
+
+L'autocomplete è la funzione più importante del progetto. È il meccanismo principale per navigare, filtrare e collegare entità. Funzionamento:
+
+- L'utente digita nel campo di ricerca/filtro
+- Si apre un popup con lista di items che matchano quanto digitato
+- La lista si riduce man mano che si digita
+- La lista è cliccabile
+- Implementazione: `hx-trigger="keyup changed delay:200ms"` → GET al server → server interroga FTS5 → restituisce frammento HTML lista → HTMX sostituisce in place
+- Per l'autocomplete con selezione multipla (filtri) può essere necessaria una piccola libreria JS dedicata (es. Tom Select)
+
+---
+
+### Stato di `ritmo_web` dopo questa sessione
+
+Il crate `ritmo_web` va svuotato e ricostruito. Si conservano:
+- La struttura del crate e il suo posto nel workspace
+- Le dipendenze: `axum`, `tokio`, `tera`, `dotenvy`, `serde`, `serde_json`
+- Il file `.env` con `DATABASE_URL` e `WEB_BIND`
+- Il pattern di inizializzazione: `ritmo_db::create_sqlite_pool` → `RepositoryContext` → `AppState`
+
+Si aggiunge:
+- `htmx` (CDN, nessuna dipendenza Rust)
+- Font IBM Plex Sans e IBM Plex Mono (Google Fonts o locale)
+
+Si butta:
+- Tutti i template esistenti
+- Tutti gli handler esistenti
+- Il router esistente
+- Tutta la logica di form e dettaglio basata su pagine separate
+
+Il primo passo della ricostruzione è il layout shell — la struttura HTML fissa con topbar, sidebar, area contenuto e statusbar, senza ancora contenuto reale. Da lì si costruisce incrementalmente.
