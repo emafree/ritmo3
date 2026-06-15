@@ -22,12 +22,12 @@ pub fn create_router(state: AppState) -> Router {
         .route("/dev/widgets", get(dev::widgets))
         .route("/places/search-panel", get(places::search_panel))
         .route("/places/search", get(places::search))
-        .route("/places/:place_id/edit-row", get(places::edit_row))
+        .route("/places/{place_id}/edit-row", get(places::edit_row))
         .route("/places", post(places::create))
-        .route("/places/:place_id", put(places::update))
-        .route("/:entity_type/:entity_id/places", post(places::link))
+        .route("/places/{place_id}", put(places::update))
+        .route("/{entity_type}/{entity_id}/places", post(places::link))
         .route(
-            "/:entity_type/:entity_id/places/:place_id",
+            "/{entity_type}/{entity_id}/places/{place_id}",
             delete(places::unlink),
         )
         .with_state(state)
