@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Ritmo · Dev widgets{% endblock title %}
+
+{% block content %}
+<div class="results-header">
+  <div class="results-count">Sviluppo widget</div>
+</div>
+
+<section class="book-item" style="padding: 16px; display: grid; gap: 16px;">
+  <div>
+    <div class="book-title" style="margin-bottom: 12px;">Widget: Data</div>
+    <div style="display: grid; gap: 12px;">
+      {% for example in date_examples %}
+      {% set date_prefix = example.prefix %}
+      {% set date_label = example.label %}
+      {% set date_year = example.year %}
+      {% set date_month = example.month %}
+      {% set date_day = example.day %}
+      {% set date_circa = example.circa %}
+      {% include "widgets/date_input.html" %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <div class="book-title" style="margin-bottom: 12px;">Widget: Luoghi</div>
+    {% include "widgets/place_list.html" %}
+  </div>
+</section>
+{% endblock content %}

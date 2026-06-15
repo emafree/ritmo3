@@ -4,6 +4,7 @@ use axum::Json;
 use ritmo_errors::RitmoErr;
 use serde_json::json;
 
+#[derive(Debug)]
 pub struct WebError(pub RitmoErr);
 
 impl From<RitmoErr> for WebError {

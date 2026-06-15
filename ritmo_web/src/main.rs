@@ -1,15 +1,14 @@
 mod error;
+mod handlers;
 mod router;
 mod state;
 
 use crate::router::create_router;
-use crate::state::{AppConfig, AppState};
+use crate::state::{load_tera, AppConfig, AppState};
 use dotenv::dotenv;
 use ritmo_errors::{RitmoErr, RitmoResult};
-use ritmo_repository::RepositoryContext;
 use std::env;
 use std::net::SocketAddr;
-use tera::Tera;
 use tokio::net::TcpListener;
 
 #[tokio::main]
@@ -22,15 +21,11 @@ async fn main() -> RitmoResult<()> {
         .parse()
         .map_err(|e| RitmoErr::ConfigParseError(format!("Invalid WEB_BIND: {e}")))?;
 
-    let pool = ritmo_db::create_sqlite_pool(&database_url).await?;
-    let repo = RepositoryContext::new(pool);
-
-    let mut tera = Tera::default();
-    tera.add_raw_template("base.html", include_str!("../templates/base.html"))
-        .map_err(|e| RitmoErr::UnknownError(format!("Template error: {e}")))?;
+    let core = ritmo_core::CoreContext::connect(&database_url).await?;
+    let tera = load_tera()?;
 
     let state = AppState::new(
-        repo,
+        core,
         AppConfig {
             bind_addr,
             database_url,

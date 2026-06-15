@@ -1,0 +1,41 @@
+<div class="book-item" style="padding: 12px;">
+  <label style="display: grid; gap: 8px;">
+    <span class="saved-filter-name" style="padding: 0;">{{ date_label }}</span>
+    <span style="display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <input
+        type="number"
+        name="{{ date_prefix }}_year"
+        value="{{ date_year | default(value='') }}"
+        placeholder="Anno"
+        style="width: 80px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+      >
+      <input
+        type="number"
+        name="{{ date_prefix }}_month"
+        value="{{ date_month | default(value='') }}"
+        min="1"
+        max="12"
+        placeholder="Mese"
+        style="width: 55px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+      >
+      <input
+        type="number"
+        name="{{ date_prefix }}_day"
+        value="{{ date_day | default(value='') }}"
+        min="1"
+        max="31"
+        placeholder="Giorno"
+        style="width: 55px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+      >
+      <label style="display: inline-flex; gap: 6px; align-items: center; color: var(--text2);">
+        <input
+          type="checkbox"
+          name="{{ date_prefix }}_circa"
+          value="true"
+          {% if date_circa %}checked{% endif %}
+        >
+        circa
+      </label>
+    </span>
+  </label>
+</div>

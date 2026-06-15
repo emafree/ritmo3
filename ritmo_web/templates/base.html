@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ritmo</title>
+<title>{% block title %}Ritmo{% endblock title %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -604,6 +604,7 @@
 
   <!-- CONTENT AREA -->
   <div class="content">
+    {% block content %}
     <div class="results-header">
       <div class="results-count">— risultati</div>
       <div class="list-display-toggle">
@@ -611,88 +612,7 @@
         <button class="list-display-btn">⊞</button>
       </div>
     </div>
-
-    <!-- Card 1 -->
-    <div class="book-item">
-      <div class="book-row">
-        <div class="book-cover">📖</div>
-        <div class="book-meta">
-          <div class="book-title">Titolo libro placeholder 1</div>
-          <div class="book-info">
-            <span>Editore · 2024</span>
-            <span><span class="tag">tag</span></span>
-          </div>
-        </div>
-        <div class="book-actions">
-          <button class="book-action export">⇒ Kobo</button>
-          <button class="book-action">✎ Modifica</button>
-          <button class="book-action delete">✕</button>
-        </div>
-        <button class="book-expand-btn" onclick="toggleContents('c1', this)">▶</button>
-      </div>
-      <div class="contents-list" id="c1">
-        <div class="content-row">
-          <span class="content-title">Contenuto placeholder 1</span>
-          <div class="content-meta"><span>Autore</span><span>italiano</span><span class="tag">romanzo</span></div>
-        </div>
-        <div class="content-row">
-          <span class="content-title">Contenuto placeholder 2</span>
-          <div class="content-meta"><span>Autore</span><span>italiano</span><span class="tag">racconto</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 2 -->
-    <div class="book-item">
-      <div class="book-row">
-        <div class="book-cover">📖</div>
-        <div class="book-meta">
-          <div class="book-title">Titolo libro placeholder 2</div>
-          <div class="book-info">
-            <span>Editore · 2023</span>
-            <span><span class="tag">tag</span></span>
-          </div>
-        </div>
-        <div class="book-actions">
-          <button class="book-action export">⇒ Kobo</button>
-          <button class="book-action">✎ Modifica</button>
-          <button class="book-action delete">✕</button>
-        </div>
-        <button class="book-expand-btn" onclick="toggleContents('c2', this)">▶</button>
-      </div>
-      <div class="contents-list" id="c2">
-        <div class="content-row">
-          <span class="content-title">Contenuto placeholder</span>
-          <div class="content-meta"><span>Autore</span><span>italiano</span><span class="tag">romanzo</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 3 -->
-    <div class="book-item">
-      <div class="book-row">
-        <div class="book-cover">📖</div>
-        <div class="book-meta">
-          <div class="book-title">Titolo libro placeholder 3</div>
-          <div class="book-info">
-            <span>Editore · 2022</span>
-            <span><span class="tag">tag</span></span>
-          </div>
-        </div>
-        <div class="book-actions">
-          <button class="book-action export">⇒ Kobo</button>
-          <button class="book-action">✎ Modifica</button>
-          <button class="book-action delete">✕</button>
-        </div>
-        <button class="book-expand-btn" onclick="toggleContents('c3', this)">▶</button>
-      </div>
-      <div class="contents-list" id="c3">
-        <div class="content-row">
-          <span class="content-title">Contenuto placeholder</span>
-          <div class="content-meta"><span>Autore</span><span>italiano</span><span class="tag">romanzo</span></div>
-        </div>
-      </div>
-    </div>
+    {% endblock content %}
   </div>
 </div>
 

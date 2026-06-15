@@ -1,0 +1,37 @@
+<form
+  id="place-row-{{ entity_type }}-{{ entity_id }}-{{ place.place_id }}"
+  class="content-row"
+  style="padding-left: 14px; border: 1px solid var(--accent2); border-radius: 6px; background: var(--surface); align-items: flex-start;"
+  hx-put="/places/{{ place.place_id }}"
+  hx-target="#place-row-{{ entity_type }}-{{ entity_id }}-{{ place.place_id }}"
+  hx-swap="outerHTML"
+>
+  <input type="hidden" name="entity_type" value="{{ entity_type }}">
+  <input type="hidden" name="entity_id" value="{{ entity_id }}">
+  <input type="hidden" name="current_place_type_key" value="{{ place.place_type_key }}">
+  <div style="display: grid; gap: 8px; flex: 1;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <select name="place_type_key" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+        {% for option in place_types %}
+        <option value="{{ option.key }}" {% if option.key == place.place_type_key %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="continent" value="{{ place.continent | default(value='') }}" placeholder="Continente" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      <input type="text" name="country" value="{{ place.country | default(value='') }}" placeholder="Paese" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      <input type="text" name="city" value="{{ place.city | default(value='') }}" placeholder="Città" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <label style="display: inline-flex; gap: 6px; align-items: center;">
+        <input type="checkbox" name="circa" value="true" {% if place.circa %}checked{% endif %}>
+        circa
+      </label>
+      <label style="display: inline-flex; gap: 6px; align-items: center;">
+        <input type="checkbox" name="disputed" value="true" {% if place.disputed %}checked{% endif %}>
+        disputato
+      </label>
+    </div>
+  </div>
+  <div class="book-actions" style="opacity: 1;">
+    <button class="book-action" type="submit">Salva</button>
+  </div>
+</form>
