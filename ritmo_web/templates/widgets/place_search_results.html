@@ -1,0 +1,60 @@
+<div id="place-search-panel-{{ entity_type }}-{{ entity_id }}" class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <select name="place_type_key" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      {% for option in place_types %}
+      <option value="{{ option.key }}" {% if option.key == selected_place_type_key %}selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+    <input
+      type="text"
+      name="q"
+      value="{{ query }}"
+      placeholder="Cerca paese o città"
+      hx-get="/places/search"
+      hx-trigger="keyup changed delay:200ms"
+      hx-target="#place-search-results-{{ entity_type }}-{{ entity_id }}"
+      hx-include="#place-search-panel-{{ entity_type }}-{{ entity_id }}"
+      style="flex: 1; min-width: 220px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+    >
+    <input type="hidden" name="entity_type" value="{{ entity_type }}">
+    <input type="hidden" name="entity_id" value="{{ entity_id }}">
+  </div>
+
+  <div id="place-search-results-{{ entity_type }}-{{ entity_id }}" style="display: grid; gap: 8px;">
+    {% include "widgets/place_search_result_items.html" %}
+  </div>
+
+  <details>
+    <summary class="book-action" style="display: inline-block; cursor: pointer;">Crea nuovo</summary>
+    <form
+      style="display: grid; gap: 8px; margin-top: 10px;"
+      hx-post="/places"
+      hx-target="#place-list-{{ entity_type }}-{{ entity_id }}"
+      hx-swap="beforeend"
+    >
+      <input type="hidden" name="entity_type" value="{{ entity_type }}">
+      <input type="hidden" name="entity_id" value="{{ entity_id }}">
+      <select name="place_type_key" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+        {% for option in place_types %}
+        <option value="{{ option.key }}" {% if option.key == selected_place_type_key %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="continent" placeholder="Continente" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      <input type="text" name="country" placeholder="Paese" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      <input type="text" name="city" placeholder="Città" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+      <div style="display: flex; gap: 12px;">
+        <label style="display: inline-flex; gap: 6px; align-items: center;">
+          <input type="checkbox" name="circa" value="true">
+          circa
+        </label>
+        <label style="display: inline-flex; gap: 6px; align-items: center;">
+          <input type="checkbox" name="disputed" value="true">
+          disputato
+        </label>
+      </div>
+      <div>
+        <button class="topbar-btn primary" type="submit">Crea nuovo</button>
+      </div>
+    </form>
+  </details>
+</div>

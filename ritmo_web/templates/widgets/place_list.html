@@ -1,0 +1,25 @@
+<div class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <div id="place-list-{{ entity_type }}-{{ entity_id }}" style="display: grid; gap: 8px;">
+    {% for place in places %}
+    {% include "widgets/place_row.html" %}
+    {% else %}
+    <div class="content-row" style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;">
+      <span class="content-title">Nessun luogo collegato.</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div>
+    <button
+      class="topbar-btn"
+      hx-get="/places/search-panel?entity_type={{ entity_type }}&entity_id={{ entity_id }}"
+      hx-target="#place-search-panel-{{ entity_type }}-{{ entity_id }}"
+      hx-swap="innerHTML"
+      type="button"
+    >
+      + Aggiungi luogo
+    </button>
+  </div>
+
+  <div id="place-search-panel-{{ entity_type }}-{{ entity_id }}"></div>
+</div>

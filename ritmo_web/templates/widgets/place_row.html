@@ -1,0 +1,30 @@
+<div id="place-row-{{ entity_type }}-{{ entity_id }}-{{ place.place_id }}" class="content-row" style="padding-left: 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);">
+  <span class="content-title">
+    {{ place.place_type_label }} · {{ place.continent | default(value="—") }} · {{ place.country | default(value="—") }} · {{ place.city | default(value="—") }}
+    {% if place.circa or place.disputed %}
+    ·
+    {% if place.circa %}circa{% endif %}{% if place.circa and place.disputed %} / {% endif %}{% if place.disputed %}disputato{% endif %}
+    {% endif %}
+  </span>
+  <div class="book-actions" style="opacity: 1;">
+    <button
+      class="book-action"
+      hx-get="/places/{{ place.place_id }}/edit-row?entity_type={{ entity_type }}&entity_id={{ entity_id }}&place_type_key={{ place.place_type_key }}"
+      hx-target="#place-row-{{ entity_type }}-{{ entity_id }}-{{ place.place_id }}"
+      hx-swap="outerHTML"
+      type="button"
+    >
+      Modifica
+    </button>
+    <button
+      class="book-action delete"
+      hx-delete="/{{ entity_type }}/{{ entity_id }}/places/{{ place.place_id }}?place_type_key={{ place.place_type_key }}"
+      hx-target="#place-row-{{ entity_type }}-{{ entity_id }}-{{ place.place_id }}"
+      hx-swap="outerHTML"
+      hx-confirm="Scollegare questo luogo?"
+      type="button"
+    >
+      Scollega
+    </button>
+  </div>
+</div>

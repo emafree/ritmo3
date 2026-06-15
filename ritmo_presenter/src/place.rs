@@ -22,6 +22,12 @@ pub struct PlaceItem {
     pub place_type_label: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct PlaceTypeOption {
+    pub key: String,
+    pub label: String,
+}
+
 pub fn build_place_items(rows: Vec<PlaceRow>, lang: &str) -> Vec<PlaceItem> {
     rows.into_iter()
         .map(
@@ -39,7 +45,16 @@ pub fn build_place_items(rows: Vec<PlaceRow>, lang: &str) -> Vec<PlaceItem> {
         .collect()
 }
 
-fn place_type_label(lang: &str, key: &str) -> String {
+pub fn build_place_type_options(keys: Vec<String>, lang: &str) -> Vec<PlaceTypeOption> {
+    keys.into_iter()
+        .map(|key| PlaceTypeOption {
+            label: place_type_label(lang, &key),
+            key,
+        })
+        .collect()
+}
+
+pub fn place_type_label(lang: &str, key: &str) -> String {
     match lang {
         "it" => match key {
             "birth" => "Luogo di nascita",
@@ -80,6 +95,7 @@ fn place_type_label(lang: &str, key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::build_place_items;
+    use super::build_place_type_options;
 
     #[test]
     fn build_place_items_maps_place_and_type_label() {
@@ -102,5 +118,12 @@ mod tests {
         assert!(items[0].circa);
         assert_eq!(items[0].place_type_key, "birth");
         assert_eq!(items[0].place_type_label, "Luogo di nascita");
+    }
+
+    #[test]
+    fn build_place_type_options_maps_labels() {
+        let items = build_place_type_options(vec!["birth".to_owned(), "other".to_owned()], "it");
+        assert_eq!(items[0].label, "Luogo di nascita");
+        assert_eq!(items[1].label, "Altro");
     }
 }
