@@ -60,6 +60,12 @@ pub struct LinkPlaceForm {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct CreateAndLinkPlaceForm {
+    q: String,
+    place_type_key: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UpsertPlaceForm {
     continent: Option<String>,
     country: Option<String>,
@@ -146,6 +152,7 @@ pub async fn search(
     ctx.insert("entity_type", &query.entity_type);
     ctx.insert("entity_id", &query.entity_id);
     ctx.insert("results", &matches);
+    ctx.insert("query", &q);
     let html = state
         .tera
         .render("widgets/place_search_result_items.html", &ctx)
@@ -287,6 +294,35 @@ pub async fn unlink(
     let entity_route = EntityRoute::parse(&entity_type)?;
     place::unlink(&state.core, entity_route.owner(entity_id), place_id).await?;
     Ok(Html(String::new()))
+}
+
+pub async fn create_and_link(
+    State(state): State<AppState>,
+    Path((entity_type, entity_id)): Path<(String, i64)>,
+    Form(form): Form<CreateAndLinkPlaceForm>,
+) -> Result<Html<String>, WebError> {
+    let entity_route = EntityRoute::parse(&entity_type)?;
+    let city = form.q.trim().to_owned();
+    let place_id = place::create(
+        &state.core,
+        &Place {
+            id: 0,
+            continent: None,
+            country: None,
+            city: if city.is_empty() { None } else { Some(city) },
+            circa: false,
+            disputed: false,
+        },
+    )
+    .await?;
+    place::link(
+        &state.core,
+        entity_route.owner(entity_id),
+        place_id,
+        &form.place_type_key,
+    )
+    .await?;
+    render_linked_place_row(&state, &entity_type, entity_id, place_id, &form.place_type_key).await
 }
 
 async fn render_search_panel(
