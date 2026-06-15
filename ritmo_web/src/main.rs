@@ -25,13 +25,17 @@ async fn main() -> RitmoResult<()> {
     let pool = ritmo_db::create_sqlite_pool(&database_url).await?;
     let repo = RepositoryContext::new(pool);
 
+    let mut tera = Tera::default();
+    tera.add_raw_template("base.html", include_str!("../templates/base.html"))
+        .map_err(|e| RitmoErr::UnknownError(format!("Template error: {e}")))?;
+
     let state = AppState::new(
         repo,
         AppConfig {
             bind_addr,
             database_url,
         },
-        Tera::default(),
+        tera,
     );
 
     let listener = TcpListener::bind(state.config.bind_addr)
