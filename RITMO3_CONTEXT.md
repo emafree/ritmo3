@@ -618,3 +618,113 @@ Si butta:
 - Tutta la logica di form e dettaglio basata su pagine separate
 
 Il primo passo della ricostruzione è il layout shell — la struttura HTML fissa con topbar, sidebar, area contenuto e statusbar, senza ancora contenuto reale. Da lì si costruisce incrementalmente. | ✅ fatto |
+
+
+---
+
+## Sessione del 19 giugno 2026 — Widget riutilizzabili (Date, Luoghi, Persone+Ruoli, Tag, Lingue)
+
+### Pagina di sviluppo `/dev/widgets`
+
+Creata route `GET /dev/widgets` per verificare visivamente e funzionalmente i widget Tera prima dell'integrazione nelle pagine principali. Usa il layout shell esistente. Nessuna protezione/flag — da rimuovere o proteggere prima del rilascio pubblico.
+
+**File:**
+- `ritmo_web/src/handlers/dev.rs`
+- `ritmo_web/templates/dev/widgets.html`
+
+### Widget Date — ✅ completato e mergiato
+
+**File:** `ritmo_web/templates/widgets/date_input.html`
+
+Widget parametrizzato (`date_prefix`, `date_label`, `date_year`, `date_month`, `date_day`, `date_circa`) incluso via `{% include %}`. Tre campi numerici (anno/mese/giorno) + checkbox circa. Nessuna validazione JS, validazione server-side. Verificato in `/dev/widgets` con tre istanze (publication_date, birth_date, death_date).
+
+### Pattern unificato di ricerca e collegamento — decisione architetturale
+
+Stabilito un pattern obbligatorio per **tutti** i widget di collegamento (luoghi, persone, ruoli, tag, lingue), senza eccezioni:
+
+1. L'utente digita nel campo di ricerca
+2. I risultati mostrano i record esistenti che corrispondono
+3. In fondo alla lista risultati compare sempre **[+ Aggiungi "testo digitato"]**
+4. Click su risultato esistente → collega
+5. Click su [+ Aggiungi "..."] → crea il record e lo collega in un'unica operazione, senza form separati, senza step intermedi
+
+**Nessun widget ha un bottone "Crea nuovo" indipendente dalla ricerca.**
+
+Per il widget Tag, il `tag_type` si seleziona tramite un **filtro sopra il campo di ricerca**, prima di cercare — non al momento della creazione. I risultati di ricerca sono già filtrati per tipo; se si crea un nuovo tag, eredita il tipo selezionato nel filtro.
+
+### Widget Luoghi — ✅ completato e mergiato (con fix)
+
+Prima versione implementata con bottone "Crea nuovo" separato — non conforme al pattern unificato. Corretta nella stessa sessione.
+
+**File:**
+- `ritmo_web/templates/widgets/place_list.html`
+- `ritmo_web/templates/widgets/place_search_results.html`
+
+**Fix applicato:** rimosso bottone "Crea nuovo"; aggiunta voce `[+ Aggiungi "..."]` in fondo ai risultati di ricerca; nuova route `POST /:entity_type/:entity_id/places/new` (crea con `city = testo digitato`, collega in un'unica operazione).
+
+Verificato in `/dev/widgets` con `entity_type="people"`, `entity_id=1`. CRUD via HTMX confermato funzionante: ricerca, aggiungi (esistente e nuovo), modifica inline, scollega.
+
+### Widget Persone+Ruoli — ✅ completato e mergiato
+
+Coppie (persona, ruolo) collegabili a `books`/`contents`. Flusso in due fasi: ricerca persona (con crea-e-seleziona inline) → ricerca ruolo (con crea-e-seleziona inline) → [Collega].
+
+**File:**
+- `ritmo_web/templates/widgets/people_roles_list.html`
+- `ritmo_web/templates/widgets/people_roles_row.html`
+- `ritmo_web/templates/widgets/people_search_results.html`
+- `ritmo_web/templates/widgets/roles_search_results.html`
+
+Nuovo view model `PersonRoleItem` in `ritmo_presenter` (`person_id`, `person_name`, `role_id`, `role_key`).
+
+**Route aggiunte:** `GET /people/search-panel`, `GET /people/search`, `GET /roles/search`, `POST /people/new-and-select`, `POST /roles/new-and-select`, `POST /{books,contents}/:id/people`, `DELETE /{books,contents}/:id/people/:person_id/roles/:role_id`
+
+Verificato in `/dev/widgets` con `pr_entity_type="books"`, `pr_entity_id=1`.
+
+### Widget Tag — ✅ completato e mergiato
+
+Badge con nome+tipo, filtro tipo sopra la ricerca, crea-e-collega inline.
+
+**File:**
+- `ritmo_web/templates/widgets/tags_list.html`
+- `ritmo_web/templates/widgets/tags_row.html`
+- `ritmo_web/templates/widgets/tags_search_results.html`
+
+**Route aggiunte:** `GET /tags/search`, `POST /{books,contents}/:id/tags`, `DELETE /{books,contents}/:id/tags/:tag_id`, `POST /{books,contents}/:id/tags/new-and-link`
+
+Verificato in `/dev/widgets` con `tag_entity_type="books"`, `tag_entity_id=1`.
+
+### Widget Lingue — ✅ completato e mergiato
+
+Lingue con ruolo (`s_content_language_roles` per contents, `s_book_language_roles` per books). **Nessuna creazione inline** — vocabolario fisso, solo ricerca e selezione ruolo da dropdown.
+
+**File:**
+- `ritmo_web/templates/widgets/languages_list.html`
+- `ritmo_web/templates/widgets/languages_row.html`
+- `ritmo_web/templates/widgets/languages_search_results.html`
+
+Nuovo view model `LangRoleItem` in `ritmo_presenter` (`role_id`, `role_key`, `role_label`).
+
+**Route aggiunte:** `GET /languages/search-panel`, `GET /languages/search`, `POST /{books,contents}/:id/languages`, `DELETE /{books,contents}/:id/languages/:language_id/roles/:role_id`
+
+Verificato in `/dev/widgets` con `lang_entity_type="contents"`, `lang_entity_id=1`.
+
+### `/dev/widgets` — stato finale
+
+Sei sezioni attive, tutte con dati reali dal database (nessun hardcoding): Data, Luoghi, Persone+Ruoli, Tag, Lingue.
+
+### Widget completati finora — riepilogo
+
+| Widget | Stato |
+|---|---|
+| Date | ✅ mergiato |
+| Luoghi | ✅ mergiato (con fix) |
+| Persone+Ruoli | ✅ mergiato |
+| Tag | ✅ mergiato |
+| Lingue | ✅ mergiato |
+| Lookup singolo con autocomplete (publisher/series/format/type) | ⏳ non ancora iniziato |
+
+### Prossimi passi
+
+1. Widget Lookup singolo con autocomplete (publisher, series, format, type) — stesso pattern unificato di ricerca/aggiunta
+2. Assemblaggio delle pagine principali (Libri / Contenuti / Persone) usando i widget completati
+3. FTS5 — ricerca full-text, prerequisito per autocomplete reale su larga scala (attualmente le ricerche dei widget usano `LIKE`, da sostituire)
