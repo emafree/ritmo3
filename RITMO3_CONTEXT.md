@@ -721,10 +721,51 @@ Sei sezioni attive, tutte con dati reali dal database (nessun hardcoding): Data,
 | Persone+Ruoli | ✅ mergiato |
 | Tag | ✅ mergiato |
 | Lingue | ✅ mergiato |
-| Lookup singolo con autocomplete (publisher/series/format/type) | ⏳ non ancora iniziato |
+| Lookup singolo con autocomplete (publisher/series/format/type) | ✅ mergiato |
+
+---
+
+## Sessione del 20 giugno 2026 — Widget Lookup singolo (publisher, series, format, type)
+
+### Widget Lookup singolo — ✅ completato, verificato e mergiato
+
+Applica il pattern unificato di ricerca/collegamento a quattro lookup che, a differenza dei widget precedenti, sono **FK singole dirette** su `d_books` / `d_contents` (non relazioni N-a-N tramite junction table). Selezionare un nuovo valore sostituisce il valore corrente invece di aggiungerlo a una lista.
+
+**Entità coperte:**
+
+| lookup_kind | tabella | campo FK | entità portante | creazione inline |
+|---|---|---|---|---|
+| `publisher` | `d_publishers` | `d_books.publisher_id` | books | sì |
+| `series` | `d_series` | `d_books.series_id` | books | sì |
+| `format` | `d_formats` | `d_books.format_id` | books | sì |
+| `type` | `d_types` | `d_contents.type_id` | contents | sì |
+
+**Decisioni adottate:**
+- Widget Tera unico parametrizzato (`lookup_select.html`, parametro `lookup_kind`) — nessuna duplicazione di template per le quattro varianti, sul modello del widget Date.
+- Submit immediato via HTMX alla selezione o creazione (stesso comportamento di Luoghi/Tag/Lingue) — nessuna attesa del Salva generale.
+- Creazione inline ammessa per tutti e quattro, incluso `type` (a differenza di Lingue, che resta vocabolario chiuso). Un `type` creato inline non ha traduzioni in `s_type_translations`; il presenter applica fallback sulla `key` grezza quando manca la traduzione per la lingua corrente.
+- Find-or-create case-insensitive/trim su tutti e quattro, sfruttando gli indici UNIQUE già presenti nello schema (`idx_publishers_name_unique`, `idx_series_name_unique`, UNIQUE su `d_formats.key` e `d_types.key`) — nessun duplicato possibile in creazione inline.
+- Bottone esplicito di rimozione (azzera la FK a NULL), visibile solo quando un valore è attualmente impostato.
+- `series_index` resta fuori scope — campo separato e indipendente nel form di Book, non gestito da questo widget.
+
+**File:**
+- `ritmo_web/templates/widgets/lookup_select.html`
+- `ritmo_web/templates/widgets/lookup_search_results.html`
+
+**Route aggiunte:** `GET /lookups/:lookup_kind/search`, `POST /{books,contents}/:id/lookups/:lookup_kind`, `DELETE /{books,contents}/:id/lookups/:lookup_kind` — route singola parametrizzata, non duplicata per tipo. Handler validano `lookup_kind` (404/400 se non tra i quattro ammessi) e la coerenza entità portante ↔ lookup_kind (`type` solo su contents; `publisher`/`series`/`format` solo su books).
+
+**Crate modificati:**
+- `ritmo_repository` — metodi di ricerca case-insensitive e find-or-create per Publisher, Series, Format, Type; metodi di set/clear della FK singola su `d_books` e `d_contents`
+- `ritmo_core` — casi d'uso `set_lookup` e `clear_lookup`
+- `ritmo_presenter` — view model risultati ricerca lookup; fallback i18n per `type` su key non tradotta
+
+Verificato in `/dev/widgets` con tutte e quattro le istanze (`publisher`/`series`/`format` su `entity_type="books"`, `entity_id=1`; `type` su `entity_type="contents"`, `entity_id=1`). Confermato funzionante: ricerca, selezione esistente, creazione nuovo con fallback su duplicato case-insensitive, rimozione.
+
+### `/dev/widgets` — stato finale aggiornato
+
+Sette sezioni attive: Data, Luoghi, Persone+Ruoli, Tag, Lingue, Lookup singolo (×4 istanze).
 
 ### Prossimi passi
 
-1. Widget Lookup singolo con autocomplete (publisher, series, format, type) — stesso pattern unificato di ricerca/aggiunta
-2. Assemblaggio delle pagine principali (Libri / Contenuti / Persone) usando i widget completati
-3. FTS5 — ricerca full-text, prerequisito per autocomplete reale su larga scala (attualmente le ricerche dei widget usano `LIKE`, da sostituire)
+1. Assemblaggio delle pagine principali (Libri / Contenuti / Persone) usando tutti i widget ora completati
+2. FTS5 — ricerca full-text, prerequisito per autocomplete reale su larga scala (attualmente le ricerche dei widget usano `LIKE`, da sostituire)
