@@ -1,11 +1,12 @@
 use axum::extract::State;
 use axum::response::Html;
 use ritmo_core::place::{self, PlaceOwner};
-use ritmo_core::{book, content};
+use ritmo_core::{book, content, lookup};
 use serde::Serialize;
 use tera::Context;
 
 use crate::error::WebError;
+use crate::handlers::lookups::render_lookup_widget;
 use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize)]
@@ -37,7 +38,9 @@ pub async fn widgets(State(state): State<AppState>) -> Result<Html<String>, WebE
         .collect::<Vec<_>>();
 
     // People+Roles (entity: books/1)
-    let pr_pairs = book::list_people_with_roles(&state.core, 1).await.unwrap_or_default();
+    let pr_pairs = book::list_people_with_roles(&state.core, 1)
+        .await
+        .unwrap_or_default();
     let pr_people_roles = ritmo_presenter::build_people_role_items(
         pr_pairs
             .into_iter()
@@ -55,8 +58,22 @@ pub async fn widgets(State(state): State<AppState>) -> Result<Html<String>, WebE
     );
 
     // Languages (entity: contents/1)
-    let lang_pairs = content::list_languages_with_roles(&state.core, 1).await.unwrap_or_default();
+    let lang_pairs = content::list_languages_with_roles(&state.core, 1)
+        .await
+        .unwrap_or_default();
     let lang_items = ritmo_presenter::build_lang_widget_items(lang_pairs);
+    let publisher_lookup = render_lookup_widget(&state, "books", 1, lookup::LookupKind::Publisher)
+        .await?
+        .0;
+    let series_lookup = render_lookup_widget(&state, "books", 1, lookup::LookupKind::Series)
+        .await?
+        .0;
+    let format_lookup = render_lookup_widget(&state, "books", 1, lookup::LookupKind::Format)
+        .await?
+        .0;
+    let type_lookup = render_lookup_widget(&state, "contents", 1, lookup::LookupKind::Type)
+        .await?
+        .0;
 
     let mut ctx = Context::new();
     ctx.insert(
@@ -100,6 +117,10 @@ pub async fn widgets(State(state): State<AppState>) -> Result<Html<String>, WebE
     ctx.insert("lang_entity_type", "contents");
     ctx.insert("lang_entity_id", &1_i64);
     ctx.insert("lang_items", &lang_items);
+    ctx.insert("publisher_lookup_widget", &publisher_lookup);
+    ctx.insert("series_lookup_widget", &series_lookup);
+    ctx.insert("format_lookup_widget", &format_lookup);
+    ctx.insert("type_lookup_widget", &type_lookup);
 
     let html = state
         .tera
@@ -115,6 +136,7 @@ mod tests {
     use crate::state::{load_tera, AppConfig, AppState};
     use axum::extract::State;
     use ritmo_core::CoreContext;
+    use ritmo_domain::{Book, Content};
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
     #[tokio::test]
@@ -129,11 +151,45 @@ mod tests {
             load_tera().unwrap(),
         );
 
+        ritmo_core::book::create(
+            &state.core,
+            &Book {
+                id: 0,
+                title: "Libro widget".to_owned(),
+                original_title: None,
+                publisher_id: None,
+                format_id: None,
+                series_id: None,
+                series_index: None,
+                isbn: None,
+                publication_year: None,
+                notes: None,
+                has_cover: false,
+                has_paper: false,
+            },
+        )
+        .await
+        .unwrap();
+        ritmo_core::content::create(
+            &state.core,
+            &Content {
+                id: 0,
+                title: "Contenuto widget".to_owned(),
+                original_title: None,
+                type_id: None,
+                publication_year: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
         let html = widgets(State(state)).await.unwrap().0;
         assert!(html.contains("Widget: Data"));
         assert!(html.contains("publication_date_year"));
         assert!(html.contains("birth_date_circa"));
         assert!(html.contains("Widget: Luoghi"));
+        assert!(html.contains("Widget: Lookup Publisher"));
+        assert!(html.contains("Widget: Lookup Type"));
     }
 }
-

@@ -4,7 +4,7 @@ use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 use crate::error::WebError;
-use crate::handlers::{dev, languages, people_roles, places, tags};
+use crate::handlers::{dev, languages, lookups, people_roles, places, tags};
 use crate::state::AppState;
 
 async fn index(State(state): State<AppState>) -> Result<Html<String>, WebError> {
@@ -47,6 +47,12 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/{entity_type}/{entity_id}/tags/{tag_id}",
             delete(tags::unlink),
+        )
+        // Single lookup widget
+        .route("/lookups/{lookup_kind}/search", get(lookups::search))
+        .route(
+            "/{entity_type}/{entity_id}/lookups/{lookup_kind}",
+            post(lookups::set).delete(lookups::clear),
         )
         // Languages widget
         .route("/languages/search-panel", get(languages::search_panel))

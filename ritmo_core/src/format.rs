@@ -3,6 +3,10 @@ use ritmo_domain::Format;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::FormatRepository;
 
+pub async fn get(ctx: &CoreContext, id: i64) -> RitmoResult<Format> {
+    FormatRepository::new(&ctx.ctx).get(id).await
+}
+
 pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Format>> {
     FormatRepository::new(&ctx.ctx).list_all().await
 }
@@ -13,6 +17,16 @@ pub async fn list_all_with_label(
 ) -> RitmoResult<Vec<(i64, String, String)>> {
     FormatRepository::new(&ctx.ctx)
         .list_all_with_label(language_code)
+        .await
+}
+
+pub async fn search(ctx: &CoreContext, query: &str) -> RitmoResult<Vec<Format>> {
+    FormatRepository::new(&ctx.ctx).search(query.trim()).await
+}
+
+pub async fn get_or_create(ctx: &CoreContext, key: &str) -> RitmoResult<Format> {
+    FormatRepository::new(&ctx.ctx)
+        .get_or_create(key.trim())
         .await
 }
 

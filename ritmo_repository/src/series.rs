@@ -96,11 +96,14 @@ impl SeriesRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Series> {
-        if let Some(row) = sqlx::query("SELECT id, name FROM d_series WHERE name = ?")
-            .bind(value)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_query)?
+        let value = value.trim();
+
+        if let Some(row) =
+            sqlx::query("SELECT id, name FROM d_series WHERE TRIM(name) = ? COLLATE NOCASE")
+                .bind(value)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?
         {
             return Ok(Series {
                 id: row.get("id"),
@@ -113,6 +116,46 @@ impl SeriesRepository {
             name: value.to_string(),
         };
         let id = self.save(&created).await?;
-        self.get(id).await
+        if id > 0 {
+            return self.get(id).await;
+        }
+
+        let row = sqlx::query("SELECT id, name FROM d_series WHERE TRIM(name) = ? COLLATE NOCASE")
+            .bind(value)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_query)?
+            .ok_or_else(not_found)?;
+        Ok(Series {
+            id: row.get("id"),
+            name: row.get("name"),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::RepositoryContext;
+
+    #[tokio::test]
+    async fn get_or_create_reuses_existing_series_case_insensitively() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = SeriesRepository::new(&ctx);
+        let existing_id = repo
+            .save(&Series {
+                id: 0,
+                name: "Urania".to_owned(),
+            })
+            .await
+            .unwrap();
+
+        let series = repo.get_or_create("  urania ").await.unwrap();
+
+        assert_eq!(series.id, existing_id);
+        assert_eq!(series.name, "Urania");
     }
 }

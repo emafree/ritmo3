@@ -270,13 +270,12 @@ impl BookRepository {
     }
 
     pub async fn has_contents(&self, id: i64) -> RitmoResult<bool> {
-        let count = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM x_books_contents WHERE book_id = ?",
-        )
-        .bind(id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let count =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM x_books_contents WHERE book_id = ?")
+                .bind(id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(count > 0)
     }
 
@@ -360,6 +359,40 @@ impl BookRepository {
         .await
         .map_err(map_query)?;
         Ok(row.map(|r| r.get::<String, _>("name")))
+    }
+
+    pub async fn set_publisher_id(
+        &self,
+        book_id: i64,
+        publisher_id: Option<i64>,
+    ) -> RitmoResult<()> {
+        sqlx::query("UPDATE d_books SET publisher_id = ? WHERE id = ?")
+            .bind(publisher_id)
+            .bind(book_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_query)?;
+        Ok(())
+    }
+
+    pub async fn set_series_id(&self, book_id: i64, series_id: Option<i64>) -> RitmoResult<()> {
+        sqlx::query("UPDATE d_books SET series_id = ? WHERE id = ?")
+            .bind(series_id)
+            .bind(book_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_query)?;
+        Ok(())
+    }
+
+    pub async fn set_format_id(&self, book_id: i64, format_id: Option<i64>) -> RitmoResult<()> {
+        sqlx::query("UPDATE d_books SET format_id = ? WHERE id = ?")
+            .bind(format_id)
+            .bind(book_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_query)?;
+        Ok(())
     }
 
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Book> {
@@ -500,5 +533,53 @@ mod tests {
             .unwrap();
 
         assert!(repo.has_contents(book_id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn set_lookup_columns_updates_nullable_foreign_keys() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = BookRepository::new(&ctx);
+        let book_id = repo.save(&sample_book()).await.unwrap();
+        let publisher_id = sqlx::query("INSERT INTO d_publishers(name) VALUES (?)")
+            .bind("Editore")
+            .execute(ctx.pool())
+            .await
+            .unwrap()
+            .last_insert_rowid();
+        let series_id = sqlx::query("INSERT INTO d_series(name) VALUES (?)")
+            .bind("Saga")
+            .execute(ctx.pool())
+            .await
+            .unwrap()
+            .last_insert_rowid();
+        let format_id = sqlx::query("INSERT INTO d_formats(key) VALUES (?)")
+            .bind("inline_format")
+            .execute(ctx.pool())
+            .await
+            .unwrap()
+            .last_insert_rowid();
+
+        repo.set_publisher_id(book_id, Some(publisher_id))
+            .await
+            .unwrap();
+        repo.set_series_id(book_id, Some(series_id)).await.unwrap();
+        repo.set_format_id(book_id, Some(format_id)).await.unwrap();
+
+        let book = repo.get(book_id).await.unwrap();
+        assert_eq!(book.publisher_id, Some(publisher_id));
+        assert_eq!(book.series_id, Some(series_id));
+        assert_eq!(book.format_id, Some(format_id));
+
+        repo.set_publisher_id(book_id, None).await.unwrap();
+        repo.set_series_id(book_id, None).await.unwrap();
+        repo.set_format_id(book_id, None).await.unwrap();
+
+        let cleared = repo.get(book_id).await.unwrap();
+        assert_eq!(cleared.publisher_id, None);
+        assert_eq!(cleared.series_id, None);
+        assert_eq!(cleared.format_id, None);
     }
 }

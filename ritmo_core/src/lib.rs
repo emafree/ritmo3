@@ -3,6 +3,7 @@ pub mod content;
 pub mod content_type;
 pub mod format;
 pub mod language;
+pub mod lookup;
 pub mod person;
 pub mod place;
 pub mod publisher;

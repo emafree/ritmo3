@@ -1,0 +1,33 @@
+{% if results | length > 0 %}
+  {% for result in results %}
+  <form
+    class="book-item"
+    hx-post="/{{ entity_type }}/{{ entity_id }}/lookups/{{ lookup_kind }}"
+    hx-target="#lookup-widget-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}"
+    hx-swap="outerHTML"
+    style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap;"
+  >
+    <input type="hidden" name="lookup_id" value="{{ result.id }}">
+    <span class="content-title">{{ result.label }}</span>
+    <button class="book-action" type="submit">Seleziona</button>
+  </form>
+  {% endfor %}
+{% elif not lookup_value %}
+  <div class="content-row" style="padding-left: 14px; border: 1px dashed var(--border); border-radius: 6px;">
+    <span class="content-title">Nessun risultato.</span>
+  </div>
+{% endif %}
+
+{% if lookup_value %}
+<form
+  class="book-item"
+  hx-post="/{{ entity_type }}/{{ entity_id }}/lookups/{{ lookup_kind }}"
+  hx-target="#lookup-widget-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}"
+  hx-swap="outerHTML"
+  style="padding: 10px; border: 1px dashed var(--border); border-radius: 6px; display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap;"
+>
+  <input type="hidden" name="lookup_value" value="{{ lookup_value }}">
+  <span class="content-title">+ Aggiungi &ldquo;{{ lookup_value }}&rdquo;</span>
+  <button class="book-action" type="submit">Crea e seleziona</button>
+</form>
+{% endif %}

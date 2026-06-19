@@ -3,8 +3,22 @@ use ritmo_domain::Publisher;
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::PublisherRepository;
 
+pub async fn get(ctx: &CoreContext, id: i64) -> RitmoResult<Publisher> {
+    PublisherRepository::new(&ctx.ctx).get(id).await
+}
+
 pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Publisher>> {
     PublisherRepository::new(&ctx.ctx).list_all().await
+}
+
+pub async fn search(ctx: &CoreContext, query: &str) -> RitmoResult<Vec<Publisher>> {
+    PublisherRepository::new(&ctx.ctx).search(query.trim()).await
+}
+
+pub async fn get_or_create(ctx: &CoreContext, name: &str) -> RitmoResult<Publisher> {
+    PublisherRepository::new(&ctx.ctx)
+        .get_or_create(name.trim())
+        .await
 }
 
 pub async fn create(ctx: &CoreContext, item: &Publisher) -> RitmoResult<i64> {
