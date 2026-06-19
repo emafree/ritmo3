@@ -62,8 +62,14 @@ pub async fn set(
     validate_combination(entity_type_parsed, lookup_kind_parsed)?;
 
     if let Some(lookup_id) = form.lookup_id {
-        lookup::set_lookup_by_id(&state.core, &entity_type, entity_id, &lookup_kind, lookup_id)
-            .await?;
+        lookup::set_lookup_by_id(
+            &state.core,
+            &entity_type,
+            entity_id,
+            &lookup_kind,
+            lookup_id,
+        )
+        .await?;
     } else if let Some(lookup_value) = form.lookup_value {
         lookup::set_lookup_by_value(
             &state.core,
@@ -122,18 +128,16 @@ async fn search_results(
     query: &str,
 ) -> Result<Vec<ritmo_presenter::LookupSearchResultItem>, WebError> {
     Ok(match lookup_kind {
-        lookup::LookupKind::Publisher => {
-            ritmo_presenter::build_publisher_lookup_items(publisher::search(&state.core, query).await?)
-        }
+        lookup::LookupKind::Publisher => ritmo_presenter::build_publisher_lookup_items(
+            publisher::search(&state.core, query).await?,
+        ),
         lookup::LookupKind::Series => {
             ritmo_presenter::build_series_lookup_items(series::search(&state.core, query).await?)
         }
-        lookup::LookupKind::Format => {
-            ritmo_presenter::build_format_lookup_items(
-                format::search(&state.core, query).await?,
-                DEFAULT_LOCALE,
-            )
-        }
+        lookup::LookupKind::Format => ritmo_presenter::build_format_lookup_items(
+            format::search(&state.core, query).await?,
+            DEFAULT_LOCALE,
+        ),
         lookup::LookupKind::Type => ritmo_presenter::build_content_type_lookup_items(
             content_type::search(&state.core, query).await?,
             DEFAULT_LOCALE,
@@ -191,10 +195,10 @@ async fn load_widget_state(
     if entity_type == "books" || entity_type == "contents" {
         Ok(ritmo_presenter::build_lookup_widget_state(current))
     } else {
-        Err(ritmo_errors::RitmoErr::InvalidInput(format!(
-            "unknown entity_type: {entity_type}"
-        ))
-        .into())
+        Err(
+            ritmo_errors::RitmoErr::InvalidInput(format!("unknown entity_type: {entity_type}"))
+                .into(),
+        )
     }
 }
 
@@ -246,6 +250,7 @@ mod tests {
     use super::{render_lookup_widget, search, validate_combination, LookupSearchQuery};
     use crate::state::{load_tera, AppConfig, AppState};
     use axum::extract::{Path, Query, State};
+    use ritmo_core::lookup;
     use ritmo_core::CoreContext;
     use ritmo_domain::{Book, Content};
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -268,16 +273,14 @@ mod tests {
             lookup::LookupKind::Publisher
         )
         .is_ok());
-        assert!(validate_combination(
-            lookup::LookupEntityType::Contents,
-            lookup::LookupKind::Type
-        )
-        .is_ok());
-        assert!(validate_combination(
-            lookup::LookupEntityType::Books,
-            lookup::LookupKind::Type
-        )
-        .is_err());
+        assert!(
+            validate_combination(lookup::LookupEntityType::Contents, lookup::LookupKind::Type)
+                .is_ok()
+        );
+        assert!(
+            validate_combination(lookup::LookupEntityType::Books, lookup::LookupKind::Type)
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -339,19 +342,27 @@ mod tests {
         .await
         .unwrap();
 
-        let empty_html = render_lookup_widget(&state, "books", book_id, lookup::LookupKind::Publisher)
-            .await
-            .unwrap()
-            .0;
+        let empty_html =
+            render_lookup_widget(&state, "books", book_id, lookup::LookupKind::Publisher)
+                .await
+                .unwrap()
+                .0;
         assert!(!empty_html.contains("Rimuovi"));
 
-        ritmo_core::lookup::set_lookup_by_value(&core, "contents", content_id, "type", "inline_type")
-            .await
-            .unwrap();
-        let filled_html = render_lookup_widget(&state, "contents", content_id, lookup::LookupKind::Type)
-            .await
-            .unwrap()
-            .0;
+        ritmo_core::lookup::set_lookup_by_value(
+            &core,
+            "contents",
+            content_id,
+            "type",
+            "inline_type",
+        )
+        .await
+        .unwrap();
+        let filled_html =
+            render_lookup_widget(&state, "contents", content_id, lookup::LookupKind::Type)
+                .await
+                .unwrap()
+                .0;
         assert!(filled_html.contains("inline_type"));
         assert!(filled_html.contains("Rimuovi"));
     }

@@ -130,11 +130,12 @@ impl FormatRepository {
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Format> {
         let value = value.trim();
 
-        if let Some(row) = sqlx::query("SELECT id, key FROM d_formats WHERE TRIM(key) = ? COLLATE NOCASE")
-            .bind(value)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_query)?
+        if let Some(row) =
+            sqlx::query("SELECT id, key FROM d_formats WHERE TRIM(key) = ? COLLATE NOCASE")
+                .bind(value)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?
         {
             return Ok(Format {
                 id: row.get("id"),
@@ -179,14 +180,14 @@ mod tests {
         let existing_id = repo
             .save(&Format {
                 id: 0,
-                i18n_key: "epub".to_owned(),
+                i18n_key: "custom_format".to_owned(),
             })
             .await
             .unwrap();
 
-        let format = repo.get_or_create(" EPUB ").await.unwrap();
+        let format = repo.get_or_create(" CUSTOM_FORMAT ").await.unwrap();
 
         assert_eq!(format.id, existing_id);
-        assert_eq!(format.i18n_key, "epub");
+        assert_eq!(format.i18n_key, "custom_format");
     }
 }

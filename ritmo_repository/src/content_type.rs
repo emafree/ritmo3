@@ -86,13 +86,12 @@ impl ContentTypeRepository {
 
     pub async fn search(&self, query: &str) -> RitmoResult<Vec<ContentType>> {
         let pattern = format!("%{query}%");
-        let rows = sqlx::query(
-            "SELECT id, key FROM d_types WHERE key LIKE ? COLLATE NOCASE ORDER BY key",
-        )
-        .bind(pattern)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let rows =
+            sqlx::query("SELECT id, key FROM d_types WHERE key LIKE ? COLLATE NOCASE ORDER BY key")
+                .bind(pattern)
+                .fetch_all(&self.pool)
+                .await
+                .map_err(map_query)?;
 
         Ok(rows
             .into_iter()
@@ -106,11 +105,12 @@ impl ContentTypeRepository {
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<ContentType> {
         let value = value.trim();
 
-        if let Some(row) = sqlx::query("SELECT id, key FROM d_types WHERE TRIM(key) = ? COLLATE NOCASE")
-            .bind(value)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_query)?
+        if let Some(row) =
+            sqlx::query("SELECT id, key FROM d_types WHERE TRIM(key) = ? COLLATE NOCASE")
+                .bind(value)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?
         {
             return Ok(ContentType {
                 id: row.get("id"),
@@ -155,14 +155,14 @@ mod tests {
         let existing_id = repo
             .save(&ContentType {
                 id: 0,
-                i18n_key: "novel".to_owned(),
+                i18n_key: "custom_type".to_owned(),
             })
             .await
             .unwrap();
 
-        let content_type = repo.get_or_create(" NOVEL ").await.unwrap();
+        let content_type = repo.get_or_create(" CUSTOM_TYPE ").await.unwrap();
 
         assert_eq!(content_type.id, existing_id);
-        assert_eq!(content_type.i18n_key, "novel");
+        assert_eq!(content_type.i18n_key, "custom_type");
     }
 }

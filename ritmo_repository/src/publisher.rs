@@ -179,11 +179,12 @@ impl PublisherRepository {
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Publisher> {
         let value = value.trim();
 
-        if let Some(row) = sqlx::query("SELECT id, name FROM d_publishers WHERE TRIM(name) = ? COLLATE NOCASE")
-            .bind(value)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_query)?
+        if let Some(row) =
+            sqlx::query("SELECT id, name FROM d_publishers WHERE TRIM(name) = ? COLLATE NOCASE")
+                .bind(value)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?
         {
             return Ok(Publisher {
                 id: row.get("id"),
@@ -200,12 +201,13 @@ impl PublisherRepository {
             return self.get(id).await;
         }
 
-        let row = sqlx::query("SELECT id, name FROM d_publishers WHERE TRIM(name) = ? COLLATE NOCASE")
-            .bind(value)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_query)?
-            .ok_or_else(not_found)?;
+        let row =
+            sqlx::query("SELECT id, name FROM d_publishers WHERE TRIM(name) = ? COLLATE NOCASE")
+                .bind(value)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?
+                .ok_or_else(not_found)?;
         Ok(Publisher {
             id: row.get("id"),
             name: row.get("name"),

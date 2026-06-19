@@ -270,13 +270,12 @@ impl BookRepository {
     }
 
     pub async fn has_contents(&self, id: i64) -> RitmoResult<bool> {
-        let count = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM x_books_contents WHERE book_id = ?",
-        )
-        .bind(id)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_query)?;
+        let count =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM x_books_contents WHERE book_id = ?")
+                .bind(id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(map_query)?;
         Ok(count > 0)
     }
 
@@ -362,7 +361,11 @@ impl BookRepository {
         Ok(row.map(|r| r.get::<String, _>("name")))
     }
 
-    pub async fn set_publisher_id(&self, book_id: i64, publisher_id: Option<i64>) -> RitmoResult<()> {
+    pub async fn set_publisher_id(
+        &self,
+        book_id: i64,
+        publisher_id: Option<i64>,
+    ) -> RitmoResult<()> {
         sqlx::query("UPDATE d_books SET publisher_id = ? WHERE id = ?")
             .bind(publisher_id)
             .bind(book_id)
@@ -553,13 +556,15 @@ mod tests {
             .unwrap()
             .last_insert_rowid();
         let format_id = sqlx::query("INSERT INTO d_formats(key) VALUES (?)")
-            .bind("epub")
+            .bind("inline_format")
             .execute(ctx.pool())
             .await
             .unwrap()
             .last_insert_rowid();
 
-        repo.set_publisher_id(book_id, Some(publisher_id)).await.unwrap();
+        repo.set_publisher_id(book_id, Some(publisher_id))
+            .await
+            .unwrap();
         repo.set_series_id(book_id, Some(series_id)).await.unwrap();
         repo.set_format_id(book_id, Some(format_id)).await.unwrap();
 

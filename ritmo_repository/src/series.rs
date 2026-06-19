@@ -98,11 +98,12 @@ impl SeriesRepository {
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Series> {
         let value = value.trim();
 
-        if let Some(row) = sqlx::query("SELECT id, name FROM d_series WHERE TRIM(name) = ? COLLATE NOCASE")
-            .bind(value)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_query)?
+        if let Some(row) =
+            sqlx::query("SELECT id, name FROM d_series WHERE TRIM(name) = ? COLLATE NOCASE")
+                .bind(value)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(map_query)?
         {
             return Ok(Series {
                 id: row.get("id"),
