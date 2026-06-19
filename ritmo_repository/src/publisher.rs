@@ -177,7 +177,9 @@ impl PublisherRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Publisher> {
-        if let Some(row) = sqlx::query("SELECT id, name FROM d_publishers WHERE name = ?")
+        let value = value.trim();
+
+        if let Some(row) = sqlx::query("SELECT id, name FROM d_publishers WHERE TRIM(name) = ? COLLATE NOCASE")
             .bind(value)
             .fetch_optional(&self.pool)
             .await
@@ -194,7 +196,20 @@ impl PublisherRepository {
             name: value.to_string(),
         };
         let id = self.save(&created).await?;
-        self.get(id).await
+        if id > 0 {
+            return self.get(id).await;
+        }
+
+        let row = sqlx::query("SELECT id, name FROM d_publishers WHERE TRIM(name) = ? COLLATE NOCASE")
+            .bind(value)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_query)?
+            .ok_or_else(not_found)?;
+        Ok(Publisher {
+            id: row.get("id"),
+            name: row.get("name"),
+        })
     }
 }
 
@@ -261,5 +276,26 @@ mod tests {
         assert_eq!(detail.places[0].0, place_id);
         assert_eq!(detail.places[0].6, "activity");
         assert!(!detail.places[0].7.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_or_create_reuses_existing_publisher_case_insensitively() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = PublisherRepository::new(&ctx);
+        let existing_id = repo
+            .save(&Publisher {
+                id: 0,
+                name: "Einaudi".to_owned(),
+            })
+            .await
+            .unwrap();
+
+        let publisher = repo.get_or_create("  einaudi  ").await.unwrap();
+
+        assert_eq!(publisher.id, existing_id);
+        assert_eq!(publisher.name, "Einaudi");
     }
 }

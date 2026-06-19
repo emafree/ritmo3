@@ -1,0 +1,39 @@
+<div id="lookup-widget-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}" class="book-item" style="padding: 12px; display: grid; gap: 12px;">
+  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <span class="saved-filter-name" style="padding: 0;">{{ lookup_label }}</span>
+    {% if lookup_state.current %}
+    <span class="content-title">{{ lookup_state.current.label }}</span>
+    <button
+      class="book-action"
+      hx-delete="/{{ entity_type }}/{{ entity_id }}/lookups/{{ lookup_kind }}"
+      hx-target="#lookup-widget-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}"
+      hx-swap="outerHTML"
+      type="button"
+    >
+      Rimuovi
+    </button>
+    {% else %}
+    <span class="content-title">Nessun valore selezionato.</span>
+    {% endif %}
+  </div>
+
+  <div>
+    <input
+      type="text"
+      name="q"
+      placeholder="{{ lookup_placeholder }}"
+      hx-get="/lookups/{{ lookup_kind }}/search"
+      hx-trigger="keyup changed delay:200ms"
+      hx-target="#lookup-search-results-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}"
+      hx-include="#lookup-search-context-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}"
+      style="width: 100%; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);"
+    >
+  </div>
+
+  <div id="lookup-search-context-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}" style="display:none;">
+    <input type="hidden" name="entity_type" value="{{ entity_type }}">
+    <input type="hidden" name="entity_id" value="{{ entity_id }}">
+  </div>
+
+  <div id="lookup-search-results-{{ entity_type }}-{{ entity_id }}-{{ lookup_kind }}" style="display: grid; gap: 8px;"></div>
+</div>

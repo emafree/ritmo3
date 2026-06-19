@@ -1,4 +1,5 @@
-use ritmo_domain::PartialDate;
+use crate::I18nDisplayable;
+use ritmo_domain::{ContentType, Format, PartialDate, Publisher, Series};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -59,6 +60,17 @@ pub struct LangWidgetItem {
     pub role_name: String,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct LookupSearchResultItem {
+    pub id: i64,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, Default)]
+pub struct LookupWidgetState {
+    pub current: Option<LookupSearchResultItem>,
+}
+
 pub fn build_people_role_items(
     pairs: Vec<(i64, String, i64, String)>,
 ) -> Vec<PeopleRoleItem> {
@@ -95,6 +107,64 @@ pub fn build_lang_widget_items(
             role_name,
         })
         .collect()
+}
+
+pub fn build_publisher_lookup_item(item: Publisher) -> LookupSearchResultItem {
+    LookupSearchResultItem {
+        id: item.id,
+        label: item.name,
+    }
+}
+
+pub fn build_series_lookup_item(item: Series) -> LookupSearchResultItem {
+    LookupSearchResultItem {
+        id: item.id,
+        label: item.name,
+    }
+}
+
+pub fn build_format_lookup_item(item: Format, locale: &str) -> LookupSearchResultItem {
+    LookupSearchResultItem {
+        id: item.id,
+        label: item.display_name(locale),
+    }
+}
+
+pub fn build_content_type_lookup_item(item: ContentType, locale: &str) -> LookupSearchResultItem {
+    let label = item.display_name(locale);
+    LookupSearchResultItem {
+        id: item.id,
+        label: if label.is_empty() { item.i18n_key } else { label },
+    }
+}
+
+pub fn build_publisher_lookup_items(items: Vec<Publisher>) -> Vec<LookupSearchResultItem> {
+    items.into_iter().map(build_publisher_lookup_item).collect()
+}
+
+pub fn build_series_lookup_items(items: Vec<Series>) -> Vec<LookupSearchResultItem> {
+    items.into_iter().map(build_series_lookup_item).collect()
+}
+
+pub fn build_format_lookup_items(items: Vec<Format>, locale: &str) -> Vec<LookupSearchResultItem> {
+    items
+        .into_iter()
+        .map(|item| build_format_lookup_item(item, locale))
+        .collect()
+}
+
+pub fn build_content_type_lookup_items(
+    items: Vec<ContentType>,
+    locale: &str,
+) -> Vec<LookupSearchResultItem> {
+    items
+        .into_iter()
+        .map(|item| build_content_type_lookup_item(item, locale))
+        .collect()
+}
+
+pub fn build_lookup_widget_state(current: Option<LookupSearchResultItem>) -> LookupWidgetState {
+    LookupWidgetState { current }
 }
 
 pub fn format_partial_date(date: Option<PartialDate>) -> Option<String> {
@@ -176,8 +246,11 @@ fn month_name(month: u8) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_place_display, format_language_name, format_partial_date};
-    use ritmo_domain::PartialDate;
+    use super::{
+        build_content_type_lookup_item, build_lookup_widget_state, build_place_display,
+        format_language_name, format_partial_date,
+    };
+    use ritmo_domain::{ContentType, PartialDate};
 
     #[test]
     fn format_partial_date_uses_available_parts_and_circa_prefix() {
@@ -224,5 +297,20 @@ mod tests {
             format_language_name("Italian".to_owned(), Some("it".to_owned())),
             "Italian (it)"
         );
+    }
+
+    #[test]
+    fn content_type_lookup_item_falls_back_to_key_for_missing_translation() {
+        let item = build_content_type_lookup_item(
+            ContentType {
+                id: 7,
+                i18n_key: "inline_type".to_owned(),
+            },
+            "it",
+        );
+        let state = build_lookup_widget_state(Some(item.clone()));
+
+        assert_eq!(item.label, "inline_type");
+        assert_eq!(state.current, Some(item));
     }
 }

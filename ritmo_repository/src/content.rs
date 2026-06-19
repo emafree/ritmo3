@@ -346,6 +346,16 @@ impl ContentRepository {
             .collect())
     }
 
+    pub async fn set_type_id(&self, content_id: i64, type_id: Option<i64>) -> RitmoResult<()> {
+        sqlx::query("UPDATE d_contents SET type_id = ? WHERE id = ?")
+            .bind(type_id)
+            .bind(content_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_query)?;
+        Ok(())
+    }
+
     pub async fn get_or_create(&self, title: &str) -> RitmoResult<Content> {
         if let Some(row) = sqlx::query("SELECT id, name, original_title, type_id, publication_date_year, publication_date_month, publication_date_day, publication_date_circa, notes FROM d_contents WHERE name = ?")
             .bind(title)
@@ -436,5 +446,37 @@ mod tests {
             .unwrap();
 
         assert!(repo.has_author(content_id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn set_type_id_updates_nullable_foreign_key() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = ContentRepository::new(&ctx);
+        let content_id = repo
+            .save(&Content {
+                id: 0,
+                title: "Contenuto".to_owned(),
+                original_title: None,
+                type_id: None,
+                publication_year: None,
+                notes: None,
+            })
+            .await
+            .unwrap();
+        let type_id = sqlx::query("INSERT INTO d_types(key) VALUES (?)")
+            .bind("inline_type")
+            .execute(ctx.pool())
+            .await
+            .unwrap()
+            .last_insert_rowid();
+
+        repo.set_type_id(content_id, Some(type_id)).await.unwrap();
+        assert_eq!(repo.get(content_id).await.unwrap().type_id, Some(type_id));
+
+        repo.set_type_id(content_id, None).await.unwrap();
+        assert_eq!(repo.get(content_id).await.unwrap().type_id, None);
     }
 }

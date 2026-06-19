@@ -128,7 +128,9 @@ impl FormatRepository {
     }
 
     pub async fn get_or_create(&self, value: &str) -> RitmoResult<Format> {
-        if let Some(row) = sqlx::query("SELECT id, key FROM d_formats WHERE key = ?")
+        let value = value.trim();
+
+        if let Some(row) = sqlx::query("SELECT id, key FROM d_formats WHERE TRIM(key) = ? COLLATE NOCASE")
             .bind(value)
             .fetch_optional(&self.pool)
             .await
@@ -145,6 +147,46 @@ impl FormatRepository {
             i18n_key: value.to_string(),
         };
         let id = self.save(&created).await?;
-        self.get(id).await
+        if id > 0 {
+            return self.get(id).await;
+        }
+
+        let row = sqlx::query("SELECT id, key FROM d_formats WHERE TRIM(key) = ? COLLATE NOCASE")
+            .bind(value)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(map_query)?
+            .ok_or_else(not_found)?;
+        Ok(Format {
+            id: row.get("id"),
+            i18n_key: row.get("key"),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::RepositoryContext;
+
+    #[tokio::test]
+    async fn get_or_create_reuses_existing_format_case_insensitively() {
+        let pool = ritmo_db::create_sqlite_pool("sqlite::memory:")
+            .await
+            .unwrap();
+        let ctx = RepositoryContext::new(pool);
+        let repo = FormatRepository::new(&ctx);
+        let existing_id = repo
+            .save(&Format {
+                id: 0,
+                i18n_key: "epub".to_owned(),
+            })
+            .await
+            .unwrap();
+
+        let format = repo.get_or_create(" EPUB ").await.unwrap();
+
+        assert_eq!(format.id, existing_id);
+        assert_eq!(format.i18n_key, "epub");
     }
 }

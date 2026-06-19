@@ -42,5 +42,25 @@
     <div class="book-title" style="margin-bottom: 12px;">Widget: Lingue</div>
     {% include "widgets/lang_list.html" %}
   </div>
+
+  <div>
+    <div class="book-title" style="margin-bottom: 12px;">Widget: Lookup Publisher</div>
+    {{ publisher_lookup_widget | safe }}
+  </div>
+
+  <div>
+    <div class="book-title" style="margin-bottom: 12px;">Widget: Lookup Series</div>
+    {{ series_lookup_widget | safe }}
+  </div>
+
+  <div>
+    <div class="book-title" style="margin-bottom: 12px;">Widget: Lookup Format</div>
+    {{ format_lookup_widget | safe }}
+  </div>
+
+  <div>
+    <div class="book-title" style="margin-bottom: 12px;">Widget: Lookup Type</div>
+    {{ type_lookup_widget | safe }}
+  </div>
 </section>
 {% endblock content %}
