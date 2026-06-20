@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% set current_section = "people" %}
 {% block title %}Persone — Ritmo{% endblock title %}
 {% block global_new_button %}
 <button
@@ -14,6 +13,7 @@
 {% endblock global_new_button %}
 {% block content %}
 <div class="results-header">
+  {% set current_section = "people" %}
   <div class="results-count">{{ people | length }} risultati</div>
   <button
     class="topbar-btn primary"
