@@ -46,6 +46,7 @@ struct BookFormView {
 
 pub async fn list(State(state): State<AppState>) -> Result<Html<String>, WebError> {
     let mut ctx = Context::new();
+    ctx.insert("current_section", "books");
     ctx.insert("books", &load_list_items(&state).await?);
     let html = state
         .tera
@@ -363,7 +364,7 @@ fn trim_to_option(value: Option<String>) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{create, new_form, BookFormData};
+    use super::{create, list, new_form, BookFormData};
     use crate::state::{load_tera, AppConfig, AppState};
     use axum::extract::{Form, State};
     use ritmo_core::CoreContext;
@@ -384,7 +385,17 @@ mod tests {
     async fn new_popup_disables_relational_widgets() {
         let core = CoreContext::connect("sqlite::memory:").await.unwrap();
         let html = new_form(State(app_state(core))).await.unwrap().0;
+        assert!(html.contains("overlay visible"));
         assert!(html.contains("I widget relazionali saranno disponibili"));
+    }
+
+    #[tokio::test]
+    async fn list_marks_books_active_and_wires_global_new() {
+        let core = CoreContext::connect("sqlite::memory:").await.unwrap();
+        let html = list(State(app_state(core))).await.unwrap().0;
+        assert!(html.contains(r#"href="/books""#));
+        assert!(html.contains(r#"class="view-toggle-link active""#));
+        assert!(html.contains(r#"hx-get="/books/new""#));
     }
 
     #[tokio::test]
