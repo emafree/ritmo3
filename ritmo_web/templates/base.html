@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/htmx.org@2" defer></script>
+<script src="https://unpkg.com/htmx.org@2"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -59,6 +59,7 @@
     color: var(--accent);
     letter-spacing: 0.1em;
     margin-right: 8px;
+    text-decoration: none;
   }
 
   .view-toggle {
@@ -69,7 +70,7 @@
     overflow: hidden;
   }
 
-  .view-toggle button {
+  .view-toggle-link {
     padding: 5px 14px;
     border: none;
     background: transparent;
@@ -79,9 +80,12 @@
     font-size: 12px;
     font-weight: 500;
     transition: all 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
   }
 
-  .view-toggle button.active {
+  .view-toggle-link.active {
     background: var(--accent);
     color: #0f0f0f;
   }
@@ -126,6 +130,7 @@
     align-items: center;
     gap: 6px;
     transition: all 0.15s;
+    text-decoration: none;
   }
 
   .topbar-btn.primary {
@@ -540,18 +545,21 @@
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <span class="app-name">RITMO</span>
+  <a class="app-name" href="/books">RITMO</a>
   <div class="view-toggle">
-    <button class="active">Libri</button>
-    <button>Contenuti</button>
-    <button>Persone</button>
+    {% set current_section = current_section | default(value="books") %}
+    <a href="/books" class="view-toggle-link{% if current_section == "books" %} active{% endif %}">Libri</a>
+    <a href="/contents" class="view-toggle-link{% if current_section == "contents" %} active{% endif %}">Contenuti</a>
+    <a href="/people" class="view-toggle-link{% if current_section == "people" %} active{% endif %}">Persone</a>
   </div>
   <div class="search-box">
     <span class="search-icon">⌕</span>
     <input type="text" placeholder="Cerca...">
   </div>
   <div class="spacer"></div>
-  <button class="topbar-btn primary">+ Nuovo</button>
+  {% block global_new_button %}
+  <a class="topbar-btn primary" href="/books">+ Nuovo</a>
+  {% endblock global_new_button %}
 </div>
 
 <!-- MAIN -->

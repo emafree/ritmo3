@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Persone — Ritmo{% endblock title %}
+{% block global_new_button %}
+<button
+  class="topbar-btn primary"
+  type="button"
+  hx-get="/people/new"
+  hx-target="#popup-root"
+  hx-swap="innerHTML"
+>
+  + Nuovo
+</button>
+{% endblock global_new_button %}
 {% block content %}
+{% set current_section = "people" %}
 <div class="results-header">
   <div class="results-count">{{ people | length }} risultati</div>
   <button
