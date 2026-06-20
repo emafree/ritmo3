@@ -11,6 +11,12 @@ pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Book>> {
     BookRepository::new(&ctx.ctx).list_all().await
 }
 
+pub async fn list_all_for_display(
+    ctx: &CoreContext,
+) -> RitmoResult<Vec<(i64, String, Vec<String>, Option<String>, Option<String>)>> {
+    BookRepository::new(&ctx.ctx).list_all_with_authors().await
+}
+
 pub async fn get(ctx: &CoreContext, id: i64) -> RitmoResult<Book> {
     BookRepository::new(&ctx.ctx).get(id).await
 }
@@ -120,7 +126,11 @@ pub async fn replace_tags_from_names(
         target_tag_ids.insert(tag_id);
     }
 
-    let current_tag_ids: HashSet<i64> = tags_rel_repo.list_by_book(book_id).await?.into_iter().collect();
+    let current_tag_ids: HashSet<i64> = tags_rel_repo
+        .list_by_book(book_id)
+        .await?
+        .into_iter()
+        .collect();
 
     for tag_id in current_tag_ids.difference(&target_tag_ids) {
         tags_rel_repo.delete(book_id, *tag_id).await?;
@@ -167,7 +177,10 @@ mod tests {
         let repo_ctx = RepositoryContext::new(pool);
         let core = CoreContext::new(repo_ctx.clone());
 
-        let book_id = BookRepository::new(&repo_ctx).save(&sample_book()).await.unwrap();
+        let book_id = BookRepository::new(&repo_ctx)
+            .save(&sample_book())
+            .await
+            .unwrap();
         let content_id = ContentRepository::new(&repo_ctx)
             .save(&Content {
                 id: 0,
@@ -197,7 +210,10 @@ mod tests {
             .unwrap(),
             0
         );
-        assert!(ContentRepository::new(&repo_ctx).get(content_id).await.is_ok());
+        assert!(ContentRepository::new(&repo_ctx)
+            .get(content_id)
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
@@ -208,7 +224,10 @@ mod tests {
         let repo_ctx = RepositoryContext::new(pool);
         let core = CoreContext::new(repo_ctx.clone());
 
-        let book_id = BookRepository::new(&repo_ctx).save(&sample_book()).await.unwrap();
+        let book_id = BookRepository::new(&repo_ctx)
+            .save(&sample_book())
+            .await
+            .unwrap();
         let existing_tag_id = sqlx::query("INSERT INTO d_tags(name, tag_type) VALUES (?, ?)")
             .bind("Noir")
             .bind("genre")

@@ -4,7 +4,9 @@ use axum::routing::{delete, get, post, put};
 use axum::Router;
 
 use crate::error::WebError;
-use crate::handlers::{dev, languages, lookups, people_roles, places, tags};
+use crate::handlers::{
+    books, contents, dev, languages, lookups, people, people_roles, places, tags,
+};
 use crate::state::AppState;
 
 async fn index(State(state): State<AppState>) -> Result<Html<String>, WebError> {
@@ -19,6 +21,21 @@ async fn index(State(state): State<AppState>) -> Result<Html<String>, WebError> 
 pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(index))
+        .route("/books", get(books::list).post(books::create))
+        .route("/books/new", get(books::new_form))
+        .route("/books/{book_id}", get(books::detail).post(books::update))
+        .route("/contents", get(contents::list).post(contents::create))
+        .route("/contents/new", get(contents::new_form))
+        .route(
+            "/contents/{content_id}",
+            get(contents::detail).post(contents::update),
+        )
+        .route("/people", get(people::list).post(people::create))
+        .route("/people/new", get(people::new_form))
+        .route(
+            "/people/{person_id}",
+            get(people::detail).post(people::update),
+        )
         .route("/dev/widgets", get(dev::widgets))
         // Places widget
         .route("/places/search-panel", get(places::search_panel))
@@ -27,16 +44,28 @@ pub fn create_router(state: AppState) -> Router {
         .route("/places", post(places::create))
         .route("/places/{place_id}", put(places::update))
         .route("/{entity_type}/{entity_id}/places", post(places::link))
-        .route("/{entity_type}/{entity_id}/places/new", post(places::create_and_link))
+        .route(
+            "/{entity_type}/{entity_id}/places/new",
+            post(places::create_and_link),
+        )
         .route(
             "/{entity_type}/{entity_id}/places/{place_id}",
             delete(places::unlink),
         )
         // People+Roles widget
-        .route("/people-roles/search-panel", get(people_roles::search_panel))
+        .route(
+            "/people-roles/search-panel",
+            get(people_roles::search_panel),
+        )
         .route("/people/search", get(people_roles::person_search))
-        .route("/{entity_type}/{entity_id}/people", post(people_roles::link))
-        .route("/{entity_type}/{entity_id}/people/new", post(people_roles::create_and_link_person))
+        .route(
+            "/{entity_type}/{entity_id}/people",
+            post(people_roles::link),
+        )
+        .route(
+            "/{entity_type}/{entity_id}/people/new",
+            post(people_roles::create_and_link_person),
+        )
         .route(
             "/{entity_type}/{entity_id}/people/{person_id}/roles/{role_id}",
             delete(people_roles::unlink),
@@ -57,7 +86,10 @@ pub fn create_router(state: AppState) -> Router {
         // Languages widget
         .route("/languages/search-panel", get(languages::search_panel))
         .route("/languages/search", get(languages::lang_search))
-        .route("/{entity_type}/{entity_id}/languages", post(languages::link))
+        .route(
+            "/{entity_type}/{entity_id}/languages",
+            post(languages::link),
+        )
         .route(
             "/{entity_type}/{entity_id}/languages/{language_id}/roles/{role_id}",
             delete(languages::unlink),

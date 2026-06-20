@@ -522,6 +522,18 @@
     align-items: center;
     justify-content: center;
   }
+
+  .popup-large {
+    width: min(980px, 95vw);
+    max-height: 90vh;
+  }
+
+  .popup-form-body {
+    display: block;
+    min-height: 0;
+    max-height: calc(90vh - 56px);
+    overflow: auto;
+  }
 </style>
 </head>
 <body>
@@ -627,18 +639,7 @@
   </div>
 </div>
 
-<!-- OVERLAY POPUP -->
-<div class="overlay" id="overlay" onclick="closePopup()">
-  <div class="popup" onclick="event.stopPropagation()">
-    <div class="popup-header">
-      <span class="popup-title">Nuovo</span>
-      <button class="popup-close" onclick="closePopup()">✕</button>
-    </div>
-    <div class="popup-body">
-      Contenuto placeholder
-    </div>
-  </div>
-</div>
+<div id="popup-root"></div>
 
 <script>
   function toggleFilter(id) {
@@ -658,12 +659,17 @@
     btn.textContent = open ? '▼' : '▶';
   }
 
-  function openPopup() {
-    document.getElementById('overlay').classList.add('visible');
+  function closePopup() {
+    var root = document.getElementById('popup-root');
+    if (root) {
+      root.innerHTML = '';
+    }
   }
 
-  function closePopup() {
-    document.getElementById('overlay').classList.remove('visible');
+  function closePopupFromEvent(event) {
+    if (event.target === event.currentTarget) {
+      closePopup();
+    }
   }
 </script>
 </body>

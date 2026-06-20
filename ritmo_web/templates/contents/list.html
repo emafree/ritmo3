@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Contenuti — Ritmo{% endblock title %}
+{% block content %}
+<div class="results-header">
+  <div class="results-count">{{ contents | length }} risultati</div>
+  <button
+    class="topbar-btn primary"
+    type="button"
+    hx-get="/contents/new"
+    hx-target="#popup-root"
+    hx-swap="innerHTML"
+  >
+    + Nuovo contenuto
+  </button>
+</div>
+<div id="contents-list">
+  {% include "contents/list_rows.html" %}
+</div>
+{% endblock content %}
