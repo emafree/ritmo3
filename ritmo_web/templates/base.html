@@ -40,7 +40,6 @@
     font-size: 13px;
   }
 
-  /* ── TOPBAR ── */
   .topbar {
     height: 44px;
     background: var(--surface);
@@ -142,14 +141,12 @@
 
   .topbar-btn.primary:hover { background: var(--accent2); }
 
-  /* ── MAIN LAYOUT ── */
   .main {
     display: flex;
     flex: 1;
     overflow: hidden;
   }
 
-  /* ── SIDEBAR ── */
   .sidebar {
     width: 240px;
     flex-shrink: 0;
@@ -267,7 +264,6 @@
   .saved-filter-icon { color: var(--accent); font-size: 11px; }
   .saved-filter-name { font-size: 12px; color: var(--text2); flex: 1; }
 
-  /* ── CONTENT AREA ── */
   .content {
     flex: 1;
     overflow-y: auto;
@@ -418,7 +414,6 @@
   .content-title { flex: 1; font-size: 12px; color: var(--text); }
   .content-meta { display: flex; gap: 10px; font-size: 11px; color: var(--text2); }
 
-  /* ── STATUSBAR ── */
   .statusbar {
     height: 26px;
     background: var(--surface);
@@ -458,7 +453,6 @@
     background: var(--text3);
   }
 
-  /* ── OVERLAY / POPUP ── */
   .overlay {
     position: fixed;
     inset: 0;
@@ -549,13 +543,12 @@
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <a class="app-name" href="/books">RITMO</a>
   <div class="view-toggle">
-    <a href="/books" class="view-toggle-link{% if current_section == "books" %} active{% endif %}">Libri</a>
-    <a href="/contents" class="view-toggle-link{% if current_section == "contents" %} active{% endif %}">Contenuti</a>
-    <a href="/people" class="view-toggle-link{% if current_section == "people" %} active{% endif %}">Persone</a>
+    <a href="/books" class="view-toggle-link{% if current_section | default(value="books") == "books" %} active{% endif %}">Libri</a>
+    <a href="/contents" class="view-toggle-link{% if current_section | default(value="books") == "contents" %} active{% endif %}">Contenuti</a>
+    <a href="/people" class="view-toggle-link{% if current_section | default(value="books") == "people" %} active{% endif %}">Persone</a>
   </div>
   <div class="search-box">
     <span class="search-icon">⌕</span>
@@ -567,10 +560,7 @@
   {% endblock global_new_button %}
 </div>
 
-<!-- MAIN -->
 <div class="main">
-
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-section">
       <div class="sidebar-section-title">Filtri attivi</div>
@@ -627,7 +617,6 @@
     </div>
   </div>
 
-  <!-- CONTENT AREA -->
   <div class="content">
     {% block content %}
     <div class="results-header">
@@ -641,7 +630,6 @@
   </div>
 </div>
 
-<!-- STATUSBAR -->
 <div class="statusbar">
   <div class="statusbar-item">Books: <span class="val">—</span></div>
   <div class="statusbar-item">Contents: <span class="val">—</span></div>
