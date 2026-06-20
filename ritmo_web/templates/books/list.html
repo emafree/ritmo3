@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Libri — Ritmo{% endblock title %}
+{% block content %}
+<div class="results-header">
+  <div class="results-count">{{ books | length }} risultati</div>
+  <button
+    class="topbar-btn primary"
+    type="button"
+    hx-get="/books/new"
+    hx-target="#popup-root"
+    hx-swap="innerHTML"
+  >
+    + Nuovo libro
+  </button>
+</div>
+<div id="books-list">
+  {% include "books/list_rows.html" %}
+</div>
+{% endblock content %}

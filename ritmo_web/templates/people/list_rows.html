@@ -1,0 +1,30 @@
+{% if people %}
+  {% for person in people %}
+  <div class="book-item">
+    <button
+      class="book-row"
+      type="button"
+      style="width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer;"
+      hx-get="/people/{{ person.id }}"
+      hx-target="#popup-root"
+      hx-swap="innerHTML"
+    >
+      <div class="book-meta">
+        <div class="book-title">{{ person.name }}</div>
+        <div class="book-info">
+          <span>{{ person.display_name | default(value="—") }}</span>
+          <span>{{ person.birth_year | default(value="—") }} - {{ person.death_year | default(value="—") }}</span>
+        </div>
+      </div>
+    </button>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="book-item">
+  <div class="book-row">
+    <div class="book-meta">
+      <div class="book-title">Nessuna persona nel database.</div>
+    </div>
+  </div>
+</div>
+{% endif %}

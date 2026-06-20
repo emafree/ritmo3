@@ -1,0 +1,31 @@
+{% if contents %}
+  {% for content in contents %}
+  <div class="book-item">
+    <button
+      class="book-row"
+      type="button"
+      style="width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer;"
+      hx-get="/contents/{{ content.id }}"
+      hx-target="#popup-root"
+      hx-swap="innerHTML"
+    >
+      <div class="book-meta">
+        <div class="book-title">{{ content.title }}</div>
+        <div class="book-info">
+          <span>{{ content.authors | join(sep=", ") | default(value="—") }}</span>
+          <span>Tipo: {{ content.type_key | default(value="—") }}</span>
+          <span>Lingua orig.: {{ content.original_language | default(value="—") }}</span>
+        </div>
+      </div>
+    </button>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="book-item">
+  <div class="book-row">
+    <div class="book-meta">
+      <div class="book-title">Nessun contenuto nel database.</div>
+    </div>
+  </div>
+</div>
+{% endif %}

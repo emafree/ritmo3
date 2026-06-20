@@ -11,6 +11,12 @@ pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Content>> {
     ContentRepository::new(&ctx.ctx).list_all().await
 }
 
+pub async fn list_all_for_display(
+    ctx: &CoreContext,
+) -> RitmoResult<Vec<(i64, String, Option<String>, Option<String>, Vec<String>)>> {
+    ContentRepository::list_all_with_people(ctx.ctx.pool()).await
+}
+
 pub async fn get(ctx: &CoreContext, id: i64) -> RitmoResult<Content> {
     ContentRepository::new(&ctx.ctx).get(id).await
 }

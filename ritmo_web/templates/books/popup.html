@@ -1,0 +1,91 @@
+<div class="overlay" onclick="closePopupFromEvent(event)">
+  <div class="popup popup-large" onclick="event.stopPropagation()">
+    <div class="popup-header">
+      <span class="popup-title">
+        {% if is_new %}Nuovo libro{% else %}Libro #{{ form.id }}{% endif %}
+      </span>
+      <button class="popup-close" type="button" onclick="closePopup()">✕</button>
+    </div>
+    <div class="popup-body popup-form-body">
+      {% if error %}
+      <div class="book-item" style="padding: 10px; border-color: var(--red); color: #f2b6ae; margin-bottom: 12px;">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form
+        hx-post="{{ save_url }}"
+        hx-target="#popup-root"
+        hx-swap="innerHTML"
+        style="display: grid; gap: 12px;"
+      >
+        <div class="book-item" style="padding: 12px; display: grid; gap: 8px;">
+          <label style="display: grid; gap: 6px;">
+            <span class="saved-filter-name" style="padding: 0;">Titolo</span>
+            <input type="text" name="title" value="{{ form.title }}" required style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+          </label>
+          <label style="display: grid; gap: 6px;">
+            <span class="saved-filter-name" style="padding: 0;">Titolo originale</span>
+            <input type="text" name="original_title" value="{{ form.original_title | default(value='') }}" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+          </label>
+          <label style="display: grid; gap: 6px;">
+            <span class="saved-filter-name" style="padding: 0;">ISBN</span>
+            <input type="text" name="isbn" value="{{ form.isbn | default(value='') }}" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+          </label>
+          <label style="display: grid; gap: 6px;">
+            <span class="saved-filter-name" style="padding: 0;">Indice serie</span>
+            <input type="number" name="series_index" value="{{ form.series_index | default(value='') }}" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+          </label>
+          <label style="display: grid; gap: 6px;">
+            <span class="saved-filter-name" style="padding: 0;">Note</span>
+            <textarea name="notes" rows="4" style="padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">{{ form.notes | default(value='') }}</textarea>
+          </label>
+          <label style="display: inline-flex; gap: 6px; align-items: center; color: var(--text2);">
+            <input type="checkbox" name="has_cover" value="true" {% if form.has_cover %}checked{% endif %}>
+            Ha copertina
+          </label>
+          <label style="display: inline-flex; gap: 6px; align-items: center; color: var(--text2);">
+            <input type="checkbox" name="has_paper" value="true" {% if form.has_paper %}checked{% endif %}>
+            Supporto cartaceo
+          </label>
+        </div>
+
+        {% set date_label = "Data pubblicazione" %}
+        {% set date_prefix = "publication_date" %}
+        {% set date_year = form.publication_date_year %}
+        {% set date_month = form.publication_date_month %}
+        {% set date_day = form.publication_date_day %}
+        {% set date_circa = form.publication_date_circa %}
+        {% include "widgets/date_input.html" %}
+
+        {% if widgets_enabled %}
+          {{ publisher_lookup_widget | safe }}
+          {{ series_lookup_widget | safe }}
+          {{ format_lookup_widget | safe }}
+          {% include "widgets/people_roles_list.html" %}
+          {% include "widgets/tag_list.html" %}
+        {% else %}
+        <div class="book-item" style="padding: 12px; color: var(--text2);">
+          I widget relazionali saranno disponibili dopo il primo salvataggio.
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="topbar-btn" onclick="closePopup()">Annulla</button>
+          {% if not is_new %}
+          <button
+            type="button"
+            class="topbar-btn"
+            hx-get="/books/new"
+            hx-target="#popup-root"
+            hx-swap="innerHTML"
+          >
+            Nuovo
+          </button>
+          {% endif %}
+          <button type="submit" class="topbar-btn primary">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

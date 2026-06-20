@@ -3,6 +3,20 @@ use ritmo_domain::{Alias, Person, Place};
 use ritmo_errors::{RitmoErr, RitmoResult};
 use ritmo_repository::{AliasRepository, PersonRepository, PlaceRepository};
 
+pub async fn list_all(ctx: &CoreContext) -> RitmoResult<Vec<Person>> {
+    PersonRepository::new(&ctx.ctx).list_all().await
+}
+
+pub async fn list_all_for_display(
+    ctx: &CoreContext,
+) -> RitmoResult<Vec<(i64, String, Option<String>, Option<i64>, Option<i64>)>> {
+    PersonRepository::list_all_for_display(ctx.ctx.pool()).await
+}
+
+pub async fn get(ctx: &CoreContext, id: i64) -> RitmoResult<Person> {
+    PersonRepository::new(&ctx.ctx).get(id).await
+}
+
 pub async fn create(ctx: &CoreContext, item: &Person) -> RitmoResult<i64> {
     if item.name.trim().is_empty() {
         return Err(RitmoErr::InvalidInput("name cannot be empty".to_string()));
