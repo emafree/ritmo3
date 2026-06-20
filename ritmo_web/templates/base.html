@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}Ritmo{% endblock title %}</title>
+{% set current_section = current_section | default(value="books") %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -477,6 +478,11 @@
     pointer-events: all;
   }
 
+  .overlay:has(.popup) {
+    opacity: 1;
+    pointer-events: all;
+  }
+
   .popup {
     background: var(--surface);
     border: 1px solid var(--border2);
@@ -488,7 +494,8 @@
     transition: transform 0.2s;
   }
 
-  .overlay.visible .popup { transform: translateY(0); }
+  .overlay.visible .popup,
+  .overlay:has(.popup) .popup { transform: translateY(0); }
 
   .popup-header {
     padding: 14px 16px 10px;
@@ -547,7 +554,6 @@
 <div class="topbar">
   <a class="app-name" href="/books">RITMO</a>
   <div class="view-toggle">
-    {% set current_section = current_section | default(value="books") %}
     <a href="/books" class="view-toggle-link{% if current_section == "books" %} active{% endif %}">Libri</a>
     <a href="/contents" class="view-toggle-link{% if current_section == "contents" %} active{% endif %}">Contenuti</a>
     <a href="/people" class="view-toggle-link{% if current_section == "people" %} active{% endif %}">Persone</a>
